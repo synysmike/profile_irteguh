@@ -1,0 +1,86 @@
+{
+	"name": "Laravel 11 Profile Site",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/var/www/html",
+	"shutdownAction": "stopCompose",
+	
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	},
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"bmewburn.vscode-intelephense-client",
+				"amiralizadeh9480.laravel-extras",
+				"onecentlin.laravel-blade",
+				"ryannaddy.laravel-artisan",
+				"bradlc.vscode-tailwindcss",
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode",
+				"xdebug.php-debug",
+				"ms-vscode.vscode-typescript-next",
+				"formulahendry.auto-rename-tag",
+				"ms-vscode.vscode-json",
+				"eamodio.gitlens",
+				"github.copilot",
+				"github.copilot-chat",
+				"ms-vscode.vscode-json"
+			],
+			"settings": {
+				"php.validate.executablePath": "/usr/local/bin/php",
+				"php.suggest.basic": false,
+				"intelephense.files.maxSize": 5000000,
+				"editor.formatOnSave": true,
+				"editor.defaultFormatter": "esbenp.prettier-vscode",
+				"[php]": {
+					"editor.defaultFormatter": "bmewburn.vscode-intelephense-client",
+					"editor.formatOnSave": true
+				},
+				"[blade]": {
+					"editor.defaultFormatter": "onecentlin.laravel-blade"
+				},
+				"[javascript]": {
+					"editor.defaultFormatter": "esbenp.prettier-vscode"
+				},
+				"[json]": {
+					"editor.defaultFormatter": "esbenp.prettier-vscode"
+				},
+				"tailwindCSS.experimental.classRegex": [
+					["class:\\s*?[\"'`]([^\"'`]*).*?[\"'`]", "[\"'`]([^\"'`]*).*?[\"'`]"],
+					["@apply\\s+([^;]*);", "['\"`]([^'\"`]*)['\"`]"]
+				],
+				"files.associations": {
+					"*.blade.php": "blade"
+				}
+			}
+		}
+	},
+
+	"forwardPorts": [8000, 3306],
+	"portsAttributes": {
+		"8000": {
+			"label": "Laravel App",
+			"onAutoForward": "notify"
+		},
+		"3306": {
+			"label": "MySQL"
+		}
+	},
+
+	"postCreateCommand": "composer install && php artisan key:generate --ansi || true",
+	"postStartCommand": "php artisan migrate --force || true",
+
+	"remoteUser": "www-data",
+	"remoteEnv": {
+		"APP_ENV": "local",
+		"DB_CONNECTION": "mysql",
+		"DB_HOST": "mysql",
+		"DB_PORT": "3306",
+		"DB_DATABASE": "profile_db",
+		"DB_USERNAME": "profile_user",
+		"DB_PASSWORD": "profile_password"
+	}
+}
