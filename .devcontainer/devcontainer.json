@@ -23,11 +23,9 @@
 				"xdebug.php-debug",
 				"ms-vscode.vscode-typescript-next",
 				"formulahendry.auto-rename-tag",
-				"ms-vscode.vscode-json",
 				"eamodio.gitlens",
 				"github.copilot",
-				"github.copilot-chat",
-				"ms-vscode.vscode-json"
+				"github.copilot-chat"
 			],
 			"settings": {
 				"php.validate.executablePath": "/usr/local/bin/php",
