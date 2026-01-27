@@ -1,65 +1,36 @@
 services:
-    app:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        container_name: profile_app_dev
-        restart: unless-stopped
-        working_dir: /var/www/html
-        volumes:
-            - ..:/var/www/html:cached
-            - ../docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
-        ports:
-            - "4240:8000"
-            - "443:443"
-        environment:
-            - APP_ENV=local
-            - DB_CONNECTION=mysql
-            - DB_HOST=mysql
-            - DB_PORT=3306
-            - DB_DATABASE=profile_db
-            - DB_USERNAME=profile_user
-            - DB_PASSWORD=profile_password
-        depends_on:
-            mysql:
-                condition: service_healthy
-        networks:
-            - profile_network
-        command: /usr/local/bin/start.sh
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: profile_app_dev
+    volumes:
+      - ..:/var/www/html:cached
+    ports:
+      - "4240:8000"
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=profile_db
+      - DB_USERNAME=profile_user
+      - DB_PASSWORD=profile_password
+    depends_on:
+      - mysql
 
-    mysql:
-        image: mysql:8.0
-        container_name: profile_mysql_dev
-        restart: unless-stopped
-        environment:
-            MYSQL_DATABASE: profile_db
-            MYSQL_USER: profile_user
-            MYSQL_PASSWORD: profile_password
-            MYSQL_ROOT_PASSWORD: root_password
-        ports:
-            - "4241:3306"
-        volumes:
-            - mysql_data:/var/lib/mysql
-        networks:
-            - profile_network
-        healthcheck:
-            test:
-                - CMD
-                - mysqladmin
-                - ping
-                - -h
-                - localhost
-                - -u
-                - root
-                - -proot_password
-            interval: 5s
-            timeout: 3s
-            retries: 10
-
-networks:
-    profile_network:
-        driver: bridge
+  mysql:
+    image: mysql:8.0
+    container_name: profile_mysql_dev
+    environment:
+      MYSQL_DATABASE: profile_db
+      MYSQL_USER: profile_user
+      MYSQL_PASSWORD: profile_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "4241:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
 
 volumes:
-    mysql_data:
-        driver: local
+  mysql_data:
