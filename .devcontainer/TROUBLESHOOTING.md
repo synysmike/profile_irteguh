@@ -30,7 +30,7 @@
     ```
 
 4. **Check port conflicts:**
-    - Ensure ports 8000 and 3306 are not in use
+    - Ensure ports 4240 (app) and 4241 (MySQL) are not in use
     - Change ports in `.devcontainer/docker-compose.yml` if needed
 
 ### Issue: MySQL connection errors
@@ -73,7 +73,7 @@
 
 **Symptoms:**
 
-- Error binding to port 8000 or 3306
+- Error binding to port 4240 or 4241
 
 **Solutions:**
 
@@ -81,8 +81,8 @@
 
     ```yaml
     ports:
-        - "8001:8000" # Change 8000 to 8001
-        - "3307:3306" # Change 3306 to 3307
+        - "4242:8000" # Change 4240 to 4242 (or any available port)
+        - "4243:3306" # Change 4241 to 4243 (or any available port)
     ```
 
 2. **Stop conflicting containers:**
