@@ -25,4 +25,4 @@ RUN chown -R www-data:www-data /var/www/html
 EXPOSE 8000
 
 # Start FrankenPHP
-CMD ["frankenphp", "run", "--worker", "--port", "8000"]
+CMD ["frankenphp", "run"]

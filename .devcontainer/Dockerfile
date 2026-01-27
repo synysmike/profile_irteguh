@@ -18,10 +18,14 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Install Node.js and npm for frontend development
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs
+    && apt-get install -y nodejs netcat-openbsd
 
 # Add www-data user to sudoers (for devcontainer)
 RUN echo "www-data ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Copy startup script
+COPY start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 
 # Set working directory
 WORKDIR /var/www/html
@@ -33,4 +37,4 @@ RUN chown -R www-data:www-data /var/www/html
 EXPOSE 8000
 
 # Start FrankenPHP
-CMD ["frankenphp", "run", "--worker", "--port", "8000"]
+CMD ["frankenphp", "run"]

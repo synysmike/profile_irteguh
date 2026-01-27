@@ -23,10 +23,11 @@ services:
       - DB_USERNAME=profile_user
       - DB_PASSWORD=profile_password
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - profile_network
-    command: frankenphp run --worker --port 8000
+    command: /usr/local/bin/start.sh
 
   mysql:
     image: mysql:8.0
@@ -43,6 +44,11 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - profile_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 networks:
   profile_network:
