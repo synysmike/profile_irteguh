@@ -92,11 +92,11 @@ After pushing to GitHub:
 - For SSH keys, ensure they're added to your GitHub account
 
 ### Port conflicts
-- If port 8000 is in use, change it in `.devcontainer/docker-compose.yml`
+- If port 4240 is in use, change it in `.devcontainer/docker-compose.yml`
 - If port 3306 is in use, change the MySQL port mapping
 
 ## Next Steps
 
-- Start developing! The app will be available at http://localhost:8000
+- Start developing! The app will be available at http://localhost:4240
 - Make changes and commit: `git add . && git commit -m "Your message"`
 - Push changes: `git push`

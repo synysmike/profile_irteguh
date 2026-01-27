@@ -83,8 +83,8 @@ npm run dev
 
 ## Usage
 
-- Access the application at: http://localhost:8000
-- API endpoints are available at: http://localhost:8000/api/v1/profiles
+- Access the application at: http://localhost:4240
+- API endpoints are available at: http://localhost:4240/api/v1/profiles
 
 ## API Endpoints
 

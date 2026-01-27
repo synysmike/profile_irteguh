@@ -30,4 +30,4 @@ install: build up
 	docker-compose exec app composer install
 	docker-compose exec app php artisan key:generate || true
 	docker-compose exec app php artisan migrate
-	@echo "Installation complete! Visit http://localhost:8000"
+	@echo "Installation complete! Visit http://localhost:4240"

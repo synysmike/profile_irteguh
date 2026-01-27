@@ -55,8 +55,8 @@ npm run build
 
 ## Accessing Services
 
-- **Laravel App**: http://localhost:8000
-- **MySQL**: localhost:3306
+- **Laravel App**: http://localhost:4240
+- **MySQL**: localhost:4241
   - Database: `profile_db`
   - Username: `profile_user`
   - Password: `profile_password`
@@ -65,4 +65,4 @@ npm run build
 
 - The workspace folder is set to `/var/www/html` (only the Laravel project)
 - All Laravel files are accessible in the container
-- Ports 8000 and 3306 are automatically forwarded
+- Ports 4240 (app) and 4241 (MySQL) are automatically forwarded
