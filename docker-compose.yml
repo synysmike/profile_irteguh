@@ -9,6 +9,7 @@ services:
         volumes:
             - ./:/var/www/html
             - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+            - ./docker/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
         networks:
             - profile_network
         depends_on:
