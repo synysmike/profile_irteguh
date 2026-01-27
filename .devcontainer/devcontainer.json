@@ -57,13 +57,13 @@
 		}
 	},
 
-	"forwardPorts": [8000, 3306],
+	"forwardPorts": [4240, 4241],
 	"portsAttributes": {
-		"8000": {
+		"4240": {
 			"label": "Laravel App",
 			"onAutoForward": "notify"
 		},
-		"3306": {
+		"4241": {
 			"label": "MySQL"
 		}
 	},
