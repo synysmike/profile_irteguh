@@ -1,8 +1,9 @@
 {
     "name": "Laravel 11 Profile Site",
-    "dockerComposeFile": ["../docker-compose.yml"],
+    "dockerComposeFile": "../docker-compose.yml",
     "service": "app",
     "workspaceFolder": "/var/www/html",
+    "shutdownAction": "stopCompose",
     "forwardPorts": [4240, 4241],
     "extensions": [
         "bmewburn.vscode-intelephense-client",
@@ -11,5 +12,15 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode"
     ],
-    "postCreateCommand": "composer install || true && php artisan key:generate || true"
+    "postCreateCommand": "composer install || true && php artisan key:generate || true",
+    "remoteUser": "www-data",
+    "remoteEnv": {
+        "APP_ENV": "local",
+        "DB_CONNECTION": "mysql",
+        "DB_HOST": "mysql",
+        "DB_PORT": "3306",
+        "DB_DATABASE": "profile_db",
+        "DB_USERNAME": "profile_user",
+        "DB_PASSWORD": "profile_password"
+    }
 }
