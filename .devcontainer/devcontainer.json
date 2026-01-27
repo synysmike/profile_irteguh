@@ -1,18 +1,15 @@
 {
-	"name": "Laravel 11 Profile Site",
-	"image": "dunglas/frankenphp:latest",
-	"workspaceFolder": "/var/www/html",
-	"forwardPorts": [4240, 4241],
-	"postCreateCommand": "apt-get update && apt-get install -y git curl libpng-dev libonig-dev libxml2-dev zip unzip && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && composer install || true",
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"bmewburn.vscode-intelephense-client",
-				"onecentlin.laravel-blade",
-				"bradlc.vscode-tailwindcss",
-				"dbaeumer.vscode-eslint",
-				"esbenp.prettier-vscode"
-			]
-		}
-	}
+    "name": "Laravel 11 Profile Site",
+    "dockerComposeFile": ["../docker-compose.yml"],
+    "service": "app",
+    "workspaceFolder": "/var/www/html",
+    "forwardPorts": [4240, 4241],
+    "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "onecentlin.laravel-blade",
+        "bradlc.vscode-tailwindcss",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+    ],
+    "postCreateCommand": "composer install || true && php artisan key:generate || true"
 }
