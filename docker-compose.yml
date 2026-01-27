@@ -22,7 +22,6 @@ services:
             - DB_DATABASE=profile_db
             - DB_USERNAME=profile_user
             - DB_PASSWORD=profile_password
-            - PHP_FPM_LISTEN=0.0.0.0:9005
 
     web:
         image: nginx:stable
