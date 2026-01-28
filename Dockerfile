@@ -9,8 +9,17 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
+    bash \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Change www-data user shell to bash (fixes terminal issue)
+RUN usermod -s /bin/bash www-data
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
