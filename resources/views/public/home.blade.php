@@ -1,0 +1,295 @@
+@extends('public.layouts.app')
+
+@section('title', 'Beranda - Ir Teguh Solution')
+
+@section('content')
+<!-- Hero Section -->
+<section class="relative py-20 md:py-32">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 animate-fade-in">
+                Solusi IT & Kreatif Terintegrasi
+            </h1>
+            <p class="text-xl md:text-2xl text-white/80 mb-8 animate-fade-in">
+                Untuk Pendidikan dan Bisnis
+            </p>
+            <p class="text-lg text-white/70 mb-12 max-w-2xl mx-auto animate-fade-in">
+                Mengubah tantangan menjadi peluang melalui otomasi, infrastruktur IT, desain kreatif, dan layanan hukum.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
+                <a href="{{ route('portfolio.index') }}" class="px-8 py-4 bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition border border-white/30 font-semibold">
+                    Lihat Portfolio
+                </a>
+                <a href="{{ route('contact') }}" class="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
+                    Hubungi Kami
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Links to Categories -->
+<section class="py-16">
+    <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-white text-center mb-12">Jelajahi Karya Kami</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            @foreach(['Infrastruktur IT', 'Otomasi & Workflow', 'Kreatif/Desain', 'Layanan Hukum/Bisnis'] as $categoryDisplay)
+            @php
+                // Map display name to database category name
+                $categoryMap = [
+                    'Infrastruktur IT' => 'Infrastruktur IT',
+                    'Otomasi & Workflow' => 'Otomasi & Workflow',
+                    'Kreatif/Desain' => 'Kreatif/Desain',
+                    'Layanan Hukum/Bisnis' => 'Layanan Hukum/Bisnis'
+                ];
+                $category = $categoryMap[$categoryDisplay] ?? $categoryDisplay;
+            @endphp
+            <a href="{{ route('portfolio.index', ['category' => $category]) }}" 
+               class="glass-card rounded-xl p-6 hover:bg-white/10 transition group">
+                <div class="text-white text-xl font-semibold mb-2 group-hover:text-purple-200 transition">
+                    {{ $categoryDisplay }}
+                </div>
+                <div class="text-white/60 text-sm">
+                    Lihat studi kasus →
+                </div>
+            </a>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+<!-- Featured Case Studies -->
+@if(isset($featuredCaseStudies) && $featuredCaseStudies->count() > 0)
+<section class="py-16">
+    <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-white text-center mb-12">Proyek Unggulan</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            @foreach($featuredCaseStudies as $caseStudy)
+            <a href="{{ route('case-study.show', $caseStudy->slug) }}" 
+               class="glass-card rounded-xl p-6 hover:scale-105 transition transform">
+                <div class="mb-4">
+                    @if($caseStudy->visuals && count($caseStudy->visuals) > 0)
+                    <div class="w-full h-48 bg-white/10 rounded-lg mb-4 flex items-center justify-center">
+                        <span class="text-white/50">Image</span>
+                    </div>
+                    @endif
+                    <h3 class="text-xl font-bold text-white mb-2">{{ $caseStudy->title }}</h3>
+                    <p class="text-white/70 text-sm mb-4">{{ Str::limit($caseStudy->excerpt ?? $caseStudy->challenge, 100) }}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{{ $caseStudy->category }}</span>
+                    <span class="text-white/70 text-sm">Baca selengkapnya →</span>
+                </div>
+            </a>
+            @endforeach
+        </div>
+        <div class="text-center mt-12">
+            <a href="{{ route('portfolio.index') }}" class="text-white/80 hover:text-white transition">
+                Lihat Semua Proyek →
+            </a>
+        </div>
+    </div>
+</section>
+@endif
+
+<!-- Services Preview -->
+<section class="py-16">
+    <div class="container mx-auto px-4">
+        <div class="glass-card rounded-2xl p-8 md:p-12 max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-white text-center mb-8">Apa Yang Kami Tawarkan</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="text-white">
+                    <h3 class="font-semibold text-lg mb-2">Infrastruktur IT</h3>
+                    <p class="text-white/70 text-sm">Deployment Docker, manajemen server, solusi cloud</p>
+                </div>
+                <div class="text-white">
+                    <h3 class="font-semibold text-lg mb-2">Otomasi & Workflow</h3>
+                    <p class="text-white/70 text-sm">Optimasi proses, otomasi workflow</p>
+                </div>
+                <div class="text-white">
+                    <h3 class="font-semibold text-lg mb-2">Desain Kreatif</h3>
+                    <p class="text-white/70 text-sm">Branding, UI/UX, identitas visual</p>
+                </div>
+                <div class="text-white">
+                    <h3 class="font-semibold text-lg mb-2">Hukum & Bisnis</h3>
+                    <p class="text-white/70 text-sm">Pendaftaran perusahaan, layanan hukum</p>
+                </div>
+            </div>
+            <div class="text-center mt-8">
+                <a href="{{ route('services') }}" class="text-white hover:text-purple-200 transition">
+                    Pelajari Lebih Lanjut Tentang Layanan Kami →
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Our Team Section -->
+@if(isset($contributors) && $contributors->count() > 0)
+<section class="py-16">
+    <div class="container mx-auto px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="glass-card rounded-2xl p-8 md:p-12 mb-12">
+                <h2 class="text-3xl font-bold text-white text-center mb-12">Tim Kami</h2>
+                
+                <!-- Slider Container -->
+                <div class="contributor-slider-wrapper relative">
+                    <!-- Slider Track -->
+                    <div class="contributor-slider-track" id="homeContributorSlider">
+                        @php
+                            $chunks = $contributors->chunk(4);
+                        @endphp
+                        @foreach($chunks as $chunk)
+                        <div class="contributor-slide">
+                            <div class="contributor-slide-content">
+                                @foreach($chunk as $contributor)
+                                <div class="contributor-profile">
+                                    <div class="contributor-image-wrapper">
+                                        <img src="{{ $contributor->image_url }}" 
+                                             alt="{{ $contributor->name }}" 
+                                             class="contributor-image"
+                                             onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($contributor->name) }}&size=300&background=fce7f3&color=9f1239&bold=true'">
+                                    </div>
+                                    <div class="contributor-info">
+                                        <div class="contributor-name">{{ $contributor->name }}</div>
+                                        <div class="contributor-role">{{ $contributor->role }}</div>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    
+                    <!-- Navigation Buttons -->
+                    <button class="contributor-slider-btn contributor-slider-prev" id="homePrevBtn" aria-label="Previous">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <button class="contributor-slider-btn contributor-slider-next" id="homeNextBtn" aria-label="Next">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Dots Indicator -->
+                    <div class="contributor-slider-dots flex justify-center gap-2 mt-8" id="homeDotsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@endif
+@endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const slider = document.getElementById('homeContributorSlider');
+    if (!slider) return;
+    
+    const prevBtn = document.getElementById('homePrevBtn');
+    const nextBtn = document.getElementById('homeNextBtn');
+    const dotsContainer = document.getElementById('homeDotsContainer');
+    const slides = slider.querySelectorAll('.contributor-slide');
+    
+    let currentSlide = 0;
+    const totalSlides = slides.length;
+    
+    if (totalSlides === 0) return;
+    
+    // Create dots
+    for (let i = 0; i < totalSlides; i++) {
+        const dot = document.createElement('button');
+        dot.classList.add('contributor-slider-dot');
+        if (i === 0) dot.classList.add('active');
+        dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+        dot.addEventListener('click', () => goToSlide(i));
+        dotsContainer.appendChild(dot);
+    }
+    
+    const dots = dotsContainer.querySelectorAll('.contributor-slider-dot');
+    
+    function updateSlider() {
+        slider.style.transform = `translateX(-${currentSlide * 100}%)`;
+        
+        // Update dots
+        dots.forEach((dot, index) => {
+            if (index === currentSlide) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    }
+    
+    function goToSlide(index) {
+        currentSlide = index;
+        updateSlider();
+    }
+    
+    function nextSlide() {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        updateSlider();
+    }
+    
+    function prevSlide() {
+        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+        updateSlider();
+    }
+    
+    // Event listeners
+    if (nextBtn) nextBtn.addEventListener('click', nextSlide);
+    if (prevBtn) prevBtn.addEventListener('click', prevSlide);
+    
+    // Auto-play
+    let autoPlayInterval = setInterval(nextSlide, 5000);
+    
+    // Pause on hover
+    const sliderWrapper = slider.closest('.contributor-slider-wrapper');
+    if (sliderWrapper) {
+        sliderWrapper.addEventListener('mouseenter', () => {
+            clearInterval(autoPlayInterval);
+        });
+        
+        sliderWrapper.addEventListener('mouseleave', () => {
+            autoPlayInterval = setInterval(nextSlide, 5000);
+        });
+    }
+    
+    // Touch/swipe support
+    let startX = 0;
+    let isDragging = false;
+    
+    slider.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+        clearInterval(autoPlayInterval);
+    });
+    
+    slider.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+    });
+    
+    slider.addEventListener('touchend', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const endX = e.changedTouches[0].clientX;
+        const diffX = startX - endX;
+        
+        if (Math.abs(diffX) > 50) {
+            if (diffX > 0) {
+                nextSlide();
+            } else {
+                prevSlide();
+            }
+        }
+        
+        autoPlayInterval = setInterval(nextSlide, 5000);
+    });
+});
+</script>
+@endpush
