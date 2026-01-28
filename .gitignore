@@ -17,3 +17,23 @@ yarn-error.log
 /.idea
 /.vscode
 !/.devcontainer
+
+# Sensitive files
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+
+# Logs
+*.log
+storage/logs/*
+!storage/logs/.gitignore
+
+# Cache
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+!bootstrap/cache/.gitignore
