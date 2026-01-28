@@ -13,7 +13,7 @@
         "esbenp.prettier-vscode"
     ],
     "initializeCommand": "bash .devcontainer/cleanup.sh || true",
-    "postCreateCommand": "composer install || true && php artisan key:generate || true",
+    "postCreateCommand": "composer install || true && php artisan key:generate || true && npm install || true && npm run build || true",
     "postStartCommand": "php artisan migrate --force || true",
     "remoteUser": "www-data",
     "remoteEnv": {
