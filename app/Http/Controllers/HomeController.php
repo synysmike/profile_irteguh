@@ -4,12 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\CaseStudy;
 use App\Models\Contributor;
+use App\Models\HeroText;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
     public function index()
     {
+        $heroTexts = HeroText::active()->ordered()->pluck('text')->toArray();
+        if (empty($heroTexts)) {
+            $heroTexts = ['Solusi IT & Kreatif Terintegrasi'];
+        }
+
         $featuredCaseStudies = CaseStudy::where('featured', true)
             ->orderBy('order')
             ->limit(6)
@@ -21,6 +27,6 @@ class HomeController extends Controller
         
         $contributors = Contributor::active()->ordered()->get();
         
-        return view('public.home', compact('featuredCaseStudies', 'categories', 'contributors'));
+        return view('public.home', compact('heroTexts', 'featuredCaseStudies', 'categories', 'contributors'));
     }
 }

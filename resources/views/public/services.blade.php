@@ -12,109 +12,31 @@
                 <p class="text-xl text-white/80">Solusi komprehensif untuk kebutuhan bisnis Anda</p>
             </div>
 
-            <!-- Services Grid -->
+            <!-- Services Grid (dikelola dari admin) -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-                <!-- IT Infrastructure -->
+                @forelse($services as $service)
                 <div class="glass-card rounded-xl p-8 hover:scale-105 transition transform">
-                    <div class="text-4xl mb-4">🖥️</div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Infrastruktur IT</h3>
+                    @if($service->icon)
+                    <div class="text-4xl mb-4">{{ $service->icon }}</div>
+                    @endif
+                    <h3 class="text-2xl font-bold text-white mb-4">{{ $service->title }}</h3>
+                    @if($service->features && count($service->features) > 0)
                     <ul class="space-y-2 text-white/70 mb-6">
-                        <li>• Deployment & containerisasi Docker</li>
-                        <li>• Manajemen & perawatan server</li>
-                        <li>• Setup infrastruktur cloud</li>
-                        <li>• Konfigurasi jaringan & keamanan</li>
-                        <li>• Administrasi database</li>
-                        <li>• Setup reverse proxy HTTPS</li>
+                        @foreach($service->features as $item)
+                        <li>• {{ $item }}</li>
+                        @endforeach
                     </ul>
+                    @endif
                     <a href="{{ route('contact') }}" class="text-purple-300 hover:text-purple-200 transition">
                         Minta Penawaran →
                     </a>
                 </div>
-
-                <!-- Automation & Workflow -->
-                <div class="glass-card rounded-xl p-8 hover:scale-105 transition transform">
-                    <div class="text-4xl mb-4">⚙️</div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Otomasi & Workflow</h3>
-                    <ul class="space-y-2 text-white/70 mb-6">
-                        <li>• Otomasi proses bisnis</li>
-                        <li>• Optimasi workflow</li>
-                        <li>• Integrasi API</li>
-                        <li>• Penjadwalan tugas & otomasi</li>
-                        <li>• Pipeline pemrosesan data</li>
-                        <li>• Script otomasi kustom</li>
-                    </ul>
-                    <a href="{{ route('contact') }}" class="text-purple-300 hover:text-purple-200 transition">
-                        Minta Penawaran →
-                    </a>
+                @empty
+                <div class="col-span-full text-center py-12 text-white/70">
+                    <p>Daftar layanan sedang disiapkan. Silakan hubungi kami untuk informasi lebih lanjut.</p>
+                    <a href="{{ route('contact') }}" class="inline-block mt-4 text-purple-300 hover:text-purple-200 transition">Hubungi Kami →</a>
                 </div>
-
-                <!-- Creative Design -->
-                <div class="glass-card rounded-xl p-8 hover:scale-105 transition transform">
-                    <div class="text-4xl mb-4">🎨</div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Desain Kreatif</h3>
-                    <ul class="space-y-2 text-white/70 mb-6">
-                        <li>• Identitas merek & desain logo</li>
-                        <li>• Desain UI/UX</li>
-                        <li>• Desain & pengembangan web</li>
-                        <li>• Materi pemasaran</li>
-                        <li>• Grafis media sosial</li>
-                        <li>• Desain cetak</li>
-                    </ul>
-                    <a href="{{ route('contact') }}" class="text-purple-300 hover:text-purple-200 transition">
-                        Minta Penawaran →
-                    </a>
-                </div>
-
-                <!-- Legal & Business Services -->
-                <div class="glass-card rounded-xl p-8 hover:scale-105 transition transform">
-                    <div class="text-4xl mb-4">⚖️</div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Layanan Hukum & Bisnis</h3>
-                    <ul class="space-y-2 text-white/70 mb-6">
-                        <li>• Pendaftaran perusahaan</li>
-                        <li>• Bantuan izin usaha</li>
-                        <li>• Dokumentasi hukum</li>
-                        <li>• Konsultasi kepatuhan</li>
-                        <li>• Konsultasi bisnis</li>
-                        <li>• Review kontrak</li>
-                    </ul>
-                    <a href="{{ route('contact') }}" class="text-purple-300 hover:text-purple-200 transition">
-                        Minta Penawaran →
-                    </a>
-                </div>
-
-                <!-- Consulting -->
-                <div class="glass-card rounded-xl p-8 hover:scale-105 transition transform">
-                    <div class="text-4xl mb-4">💼</div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Konsultasi IT</h3>
-                    <ul class="space-y-2 text-white/70 mb-6">
-                        <li>• Strategi teknologi</li>
-                        <li>• Desain arsitektur sistem</li>
-                        <li>• Audit keamanan</li>
-                        <li>• Optimasi performa</li>
-                        <li>• Migrasi teknologi</li>
-                        <li>• Pelatihan & dukungan</li>
-                    </ul>
-                    <a href="{{ route('contact') }}" class="text-purple-300 hover:text-purple-200 transition">
-                        Minta Penawaran →
-                    </a>
-                </div>
-
-                <!-- Repair & Maintenance -->
-                <div class="glass-card rounded-xl p-8 hover:scale-105 transition transform">
-                    <div class="text-4xl mb-4">🔧</div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Perbaikan & Perawatan</h3>
-                    <ul class="space-y-2 text-white/70 mb-6">
-                        <li>• Perbaikan hardware</li>
-                        <li>• Troubleshooting software</li>
-                        <li>• Perawatan sistem</li>
-                        <li>• Pemulihan data</li>
-                        <li>• Penghapusan virus</li>
-                        <li>• Paket perawatan berkala</li>
-                    </ul>
-                    <a href="{{ route('contact') }}" class="text-purple-300 hover:text-purple-200 transition">
-                        Minta Penawaran →
-                    </a>
-                </div>
+                @endforelse
             </div>
 
             <!-- CTA Section -->

@@ -9,8 +9,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        @media print {
+            body { background: #fff !important; }
+            .fixed.inset-0, nav, footer, #mobile-menu-btn, #mobile-menu, .no-print { display: none !important; }
+            .print-header-only { display: block !important; }
+            main { padding-top: 0 !important; }
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    {{-- Print header: visible only when printing --}}
+    <div class="print-header-only hidden border-b border-gray-300 pb-3 mb-4">
+        <div class="flex items-center gap-4">
+            @php $printLogoUrl = \App\Models\Setting::logoPath(); @endphp
+            @if($printLogoUrl)
+            <span class="site-logo-wrap site-logo-wrap--print">
+                <img src="{{ $printLogoUrl }}" alt="{{ config('app.name', 'Ir Teguh Solution') }}" class="site-logo" width="160" height="40">
+            </span>
+            @endif
+            <h1 class="text-lg font-bold text-gray-900">{{ config('app.name', 'Ir Teguh Solution') }}</h1>
+        </div>
+    </div>
     <!-- Animated Background -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
         <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0YzAtMS4xLS45LTItMi0ySDI2Yy0xLjEgMC0yIC45LTIgMnYyYzAgMS4xLjkgMiAyIDJoOGMxLjEgMCAyLS45IDItMnYtMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-20 animate-pulse"></div>
@@ -23,8 +43,19 @@
     <nav class="relative z-50 backdrop-blur-md bg-white/10 border-b border-white/20">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
-                <a href="{{ route('home') }}" class="text-2xl font-bold text-white hover:text-purple-200 transition">
-                    Ir Teguh Solution
+                <a href="{{ route('home') }}" class="flex items-center gap-2 text-2xl font-bold text-white hover:text-purple-200 transition">
+                    @php
+                        $siteLogoUrl = \App\Models\Setting::logoPath();
+                        $logoW = \App\Models\Setting::logoLandingWidth();
+                        $logoH = \App\Models\Setting::logoLandingHeight();
+                    @endphp
+                    @if($siteLogoUrl)
+                    <span class="site-logo-wrap site-logo-wrap--nav" style="width: {{ $logoW }}px; height: {{ $logoH }}px;">
+                        <img src="{{ $siteLogoUrl }}" alt="{{ config('app.name', 'Ir Teguh Solution') }}" class="site-logo" width="{{ $logoW }}" height="{{ $logoH }}" loading="lazy">
+                    </span>
+                    @else
+                    <span>Ir Teguh Solution</span>
+                    @endif
                 </a>
                 <div class="hidden md:flex space-x-6">
                     <a href="{{ route('home') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('home') ? 'text-white font-semibold' : '' }}">Beranda</a>

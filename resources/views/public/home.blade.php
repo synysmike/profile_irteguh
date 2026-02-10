@@ -7,8 +7,9 @@
 <section class="relative py-20 md:py-32">
     <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto text-center">
-            <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 animate-fade-in">
-                Solusi IT & Kreatif Terintegrasi
+            <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 min-h-[1.2em] flex items-center justify-center gap-0" id="hero-typing-wrapper">
+                <span id="hero-typing-text" class="inline-block"></span>
+                <span id="hero-typing-cursor" class="hero-cursor inline-block shrink-0 w-1 h-[0.9em] bg-white ml-0.5 align-middle" aria-hidden="true"></span>
             </h1>
             <p class="text-xl md:text-2xl text-white/80 mb-8 animate-fade-in">
                 Untuk Pendidikan dan Bisnis
@@ -186,6 +187,62 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Hero typing animation
+    const heroTexts = @json($heroTexts ?? ['Solusi IT & Kreatif Terintegrasi']);
+    const typingEl = document.getElementById('hero-typing-text');
+    const cursorEl = document.getElementById('hero-typing-cursor');
+    
+    if (typingEl && heroTexts.length > 0) {
+        let textIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let isFirstRun = true;
+        const typeSpeed = 90;
+        const deleteSpeed = 55;
+        const pauseAfterType = 2200;
+        const pauseAfterDelete = 800;   // Cursor berkedip di kiri sebelum teks berikutnya
+        const cursorBlinkFirst = 1200;  // Cursor berkedip dari kiri dulu sebelum mulai menulis
+
+        function type() {
+            const currentText = heroTexts[textIndex];
+
+            // Fase 1: Cursor berkedip di kiri, lalu mulai menulis ke kanan
+            if (isFirstRun) {
+                isFirstRun = false;
+                typingEl.textContent = '';
+                charIndex = 0;
+                setTimeout(type, cursorBlinkFirst);
+                return;
+            }
+
+            if (isDeleting) {
+                // Teks hilang dari kanan ke kiri (cursor mengikuti ke kiri)
+                typingEl.textContent = currentText.substring(0, charIndex - 1);
+                charIndex--;
+                if (charIndex === 0) {
+                    isDeleting = false;
+                    textIndex = (textIndex + 1) % heroTexts.length;
+                    // Cursor berkedip di kiri sebentar, lalu teks berikutnya
+                    setTimeout(type, pauseAfterDelete);
+                    return;
+                }
+                setTimeout(type, deleteSpeed);
+            } else {
+                // Menulis dari kiri ke kanan (cursor di ujung kanan)
+                typingEl.textContent = currentText.substring(0, charIndex + 1);
+                charIndex++;
+                if (charIndex === currentText.length) {
+                    isDeleting = true;
+                    setTimeout(type, pauseAfterType);
+                    return;
+                }
+                setTimeout(type, typeSpeed);
+            }
+        }
+
+        type();
+    }
+
     const slider = document.getElementById('homeContributorSlider');
     if (!slider) return;
     

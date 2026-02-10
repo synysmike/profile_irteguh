@@ -44,6 +44,55 @@
     }
 }
 
+/* Cursor blink for hero typing - kursor berkedip dari kiri */
+@keyframes cursorBlink {
+
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    51%,
+    100% {
+        opacity: 0;
+    }
+}
+
+.hero-cursor {
+    width: 4px;
+    min-width: 4px;
+    border-radius: 1px;
+    animation: cursorBlink 0.8s step-end infinite;
+}
+
+/* Site logo: fixed box + img fills box so rendered size is forced (ignores file dimensions) */
+.site-logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.site-logo-wrap--nav {
+    width: 180px;
+    height: 40px;
+}
+.site-logo-wrap--print {
+    width: 160px;
+    height: 40px;
+}
+.site-logo-wrap--preview {
+    width: 200px;
+    height: 64px;
+}
+.site-logo {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: left center;
+    display: block;
+}
+
 @keyframes blob {
     0% {
         transform: translate(0px, 0px) scale(1);

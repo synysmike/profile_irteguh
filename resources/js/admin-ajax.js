@@ -43,24 +43,123 @@ window.hideErrors = function (modalId) {
 
 window.setupModalForm = function (modalId, resourceName, singularName) {
     const form = document.getElementById(modalId + "_form");
-    if (!form) return;
+    if (!form) {
+        console.error('Form not found:', modalId + "_form");
+        return;
+    }
+
+    // Prevent duplicate event listeners
+    if (form.hasAttribute('data-form-setup')) {
+        return;
+    }
+    form.setAttribute('data-form-setup', 'true');
+
+    // Helper function to find submit button
+    function findSubmitButton() {
+        const formId = modalId + "_form";
+        
+        // Method 1: Look for button with form attribute matching our form
+        let submitBtn = document.querySelector(`button[type="submit"][form="${formId}"]`);
+        
+        // Method 2: Look inside the modal
+        if (!submitBtn) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                submitBtn = modal.querySelector('button[type="submit"]');
+            }
+        }
+        
+        // Method 3: Look inside the form itself
+        if (!submitBtn) {
+            submitBtn = form.querySelector('button[type="submit"]');
+        }
+        
+        return submitBtn;
+    }
 
     form.addEventListener("submit", function (e) {
         e.preventDefault();
 
         const formData = new FormData(form);
+
+        // Form create penjualan: ambil transaction_ids dari DOM (cari di modal agar pasti ketemu)
+        const modal = document.getElementById(modalId);
+        const selectedTransactions = modal ? modal.querySelector("#selected-transactions") : null;
+        if (selectedTransactions) {
+            formData.delete("transaction_ids[]");
+            selectedTransactions.querySelectorAll(".selected-transaction-item").forEach(function (el) {
+                const id = el.getAttribute("data-transaction-id");
+                if (id) {
+                    formData.append("transaction_ids[]", id);
+                }
+            });
+        }
+        // Fallback: input hidden di dalam form
+        if (!selectedTransactions || formData.getAll("transaction_ids[]").length === 0) {
+            formData.delete("transaction_ids[]");
+            const transactionIdsInputs = document.querySelectorAll(
+                "#" + modalId + "_form input[name=\"transaction_ids[]\"]"
+            );
+            transactionIdsInputs.forEach(function (input) {
+                if (input.value) {
+                    formData.append("transaction_ids[]", input.value);
+                }
+            });
+        }
+
         const url = form.action;
         const method = formData.get("_method") || "POST";
         const isEdit = method === "PUT";
+        
+        // Debug: Log transaction_ids being sent
+        const transactionIds = [];
+        formData.getAll('transaction_ids[]').forEach(id => transactionIds.push(id));
+        console.log('Sending transaction_ids:', transactionIds);
 
-        const submitBtn = form.querySelector('button[type="submit"]');
+        // Find submit button - try to find it fresh each time
+        const submitBtn = findSubmitButton();
         const submitText = document.getElementById(modalId + "_submit_text");
         const loading = document.getElementById(modalId + "_loading");
 
-        submitBtn.disabled = true;
+        // Debug logging
+        console.log('Form submit:', { 
+            url, 
+            method, 
+            modalId, 
+            formId: modalId + "_form",
+            hasSubmitBtn: !!submitBtn,
+            formId: form.id,
+            modalExists: !!document.getElementById(modalId)
+        });
+
+        if (!submitBtn) {
+            console.error('Submit button not found for modal:', modalId, {
+                formId: modalId + "_form",
+                modalExists: !!document.getElementById(modalId),
+                buttonsInModal: document.getElementById(modalId) ? document.getElementById(modalId).querySelectorAll('button').length : 0,
+                allButtons: document.querySelectorAll('button[type="submit"]').length
+            });
+            showNotification('Tombol simpan tidak ditemukan. Silakan refresh halaman.', 'error');
+            return;
+        }
+
+        // Safely disable submit button
+        if (submitBtn && typeof submitBtn.disabled !== 'undefined') {
+            submitBtn.disabled = true;
+        }
         if (submitText) submitText.classList.add("hidden");
         if (loading) loading.classList.remove("hidden");
         hideErrors(modalId);
+
+        // Ensure URL is set correctly
+        if (!url || url === '#') {
+            console.error('Form action URL is missing or invalid:', url);
+            showNotification('URL form tidak valid. Silakan refresh halaman.', 'error');
+            if (submitBtn) submitBtn.disabled = false;
+            if (submitText) submitText.classList.remove("hidden");
+            if (loading) loading.classList.add("hidden");
+            return;
+        }
 
         fetch(url, {
             method: method === "PUT" ? "POST" : "POST",
@@ -75,8 +174,13 @@ window.setupModalForm = function (modalId, resourceName, singularName) {
         })
             .then((response) => {
                 if (!response.ok) {
-                    return response.json().then((err) => {
-                        throw err;
+                    return response.text().then((text) => {
+                        try {
+                            const err = JSON.parse(text);
+                            throw err;
+                        } catch (e) {
+                            throw { message: text || 'Terjadi kesalahan saat menyimpan data.' };
+                        }
                     });
                 }
                 return response.json();
@@ -114,7 +218,11 @@ window.setupModalForm = function (modalId, resourceName, singularName) {
                 }
             })
             .finally(() => {
-                submitBtn.disabled = false;
+                // Re-find submit button in case DOM changed
+                const finalSubmitBtn = findSubmitButton();
+                if (finalSubmitBtn && typeof finalSubmitBtn.disabled !== 'undefined') {
+                    finalSubmitBtn.disabled = false;
+                }
                 if (submitText) submitText.classList.remove("hidden");
                 if (loading) loading.classList.add("hidden");
             });
@@ -139,6 +247,10 @@ window.openResourceModal = function (
         errorDiv.classList.add("hidden");
         const errorList = errorDiv.querySelector("ul");
         if (errorList) errorList.innerHTML = "";
+    }
+    // Remove form setup flag to allow re-initialization
+    if (form) {
+        form.removeAttribute('data-form-setup');
     }
 
     if (id) {
@@ -182,8 +294,67 @@ window.openResourceModal = function (
             .then((data) => {
                 if (data.html) {
                     formContent.innerHTML = data.html;
+                    // Ensure form action is set before setting up form
+                    if (form && (!form.action || form.action === '#')) {
+                        form.action = `/admin/${resourceName}/${id}`;
+                    }
+                    // Open modal first, then setup form after a short delay to ensure DOM is ready
                     openModal(modalId);
-                    setupModalForm(modalId, resourceName, singularName);
+                    setTimeout(() => {
+                        setupModalForm(modalId, resourceName, singularName);
+                    }, 50);
+                    // Setup PPN calculator setelah form dimuat
+                    setTimeout(function () {
+                        if (typeof window.setupPPNCalculator === "function") {
+                            window.setupPPNCalculator();
+                        }
+                        // Fallback langsung setup PPN calculator
+                        const subtotalInput =
+                            document.getElementById("subtotal");
+                        if (
+                            subtotalInput &&
+                            !subtotalInput.hasAttribute("data-ppn-setup")
+                        ) {
+                            const ppnInput =
+                                document.getElementById("ppn_amount");
+                            const totalDisplay =
+                                document.getElementById("total_display");
+                            if (ppnInput && totalDisplay) {
+                                const PPN_RATE = 0.11;
+                                function calc() {
+                                    const st =
+                                        parseFloat(subtotalInput.value) || 0;
+                                    const ppn = Math.round(st * PPN_RATE);
+                                    ppnInput.value = ppn;
+                                    totalDisplay.value =
+                                        "Rp " +
+                                        new Intl.NumberFormat("id-ID").format(
+                                            st + ppn,
+                                        );
+                                }
+                                subtotalInput.addEventListener("input", calc);
+                                subtotalInput.addEventListener("change", calc);
+                                subtotalInput.addEventListener("keyup", calc);
+                                subtotalInput.setAttribute(
+                                    "data-ppn-setup",
+                                    "true",
+                                );
+                                calc();
+                            }
+                        }
+                        // Initialize sale items form if exists
+                        if (typeof window.initSaleItemsForm === "function") {
+                            window.initSaleItemsForm();
+                        }
+                        // Initialize subtotal calculator if exists
+                        if (typeof window.initSubtotalCalculator === "function") {
+                            window.initSubtotalCalculator();
+                        }
+                        // Initialize sale transactions form if exists
+                        if (typeof window.initSaleTransactionsForm === "function") {
+                            window.initSaleTransactionsForm();
+                        }
+                    }, 100);
                 } else {
                     throw new Error("No HTML content received");
                 }
@@ -228,8 +399,71 @@ window.openResourceModal = function (
             .then((data) => {
                 if (data.html) {
                     formContent.innerHTML = data.html;
+                    // Ensure form action is set before setting up form
+                    if (form && (!form.action || form.action === '#')) {
+                        form.action = `/admin/${resourceName}`;
+                    }
+                    // Open modal first, then setup form after a short delay to ensure DOM is ready
                     openModal(modalId);
-                    setupModalForm(modalId, resourceName, singularName);
+                    setTimeout(() => {
+                        setupModalForm(modalId, resourceName, singularName);
+                    }, 50);
+                    // Setup PPN calculator setelah form dimuat
+                    setTimeout(function () {
+                        if (typeof window.setupPPNCalculator === "function") {
+                            window.setupPPNCalculator();
+                        }
+                        // Fallback langsung setup PPN calculator
+                        const subtotalInput =
+                            document.getElementById("subtotal");
+                        if (
+                            subtotalInput &&
+                            !subtotalInput.hasAttribute("data-ppn-setup")
+                        ) {
+                            const ppnInput =
+                                document.getElementById("ppn_amount");
+                            const totalDisplay =
+                                document.getElementById("total_display");
+                            if (ppnInput && totalDisplay) {
+                                const PPN_RATE = 0.11;
+                                function calc() {
+                                    const st =
+                                        parseFloat(subtotalInput.value) || 0;
+                                    const ppn = Math.round(st * PPN_RATE);
+                                    ppnInput.value = ppn;
+                                    totalDisplay.value =
+                                        "Rp " +
+                                        new Intl.NumberFormat("id-ID").format(
+                                            st + ppn,
+                                        );
+                                }
+                                subtotalInput.addEventListener("input", calc);
+                                subtotalInput.addEventListener("change", calc);
+                                subtotalInput.addEventListener("keyup", calc);
+                                subtotalInput.setAttribute(
+                                    "data-ppn-setup",
+                                    "true",
+                                );
+                                calc();
+                            }
+                        }
+                        // Initialize sale items form if exists
+                        if (typeof window.initSaleItemsForm === "function") {
+                            window.initSaleItemsForm();
+                        }
+                        // Initialize subtotal calculator if exists
+                        if (typeof window.initSubtotalCalculator === "function") {
+                            window.initSubtotalCalculator();
+                        }
+                        // Initialize sale transactions form if exists
+                        if (typeof window.initSaleTransactionsForm === "function") {
+                            window.initSaleTransactionsForm();
+                        }
+                        // Form create penjualan: script di partial tidak jalan (innerHTML), jadi load daftar pending di sini
+                        if (resourceName === "sales") {
+                            loadPendingListInModal(modalId);
+                        }
+                    }, 100);
                 } else {
                     throw new Error("No HTML content received");
                 }
@@ -242,6 +476,53 @@ window.openResourceModal = function (
                 );
             });
     }
+};
+
+function loadPendingListInModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    const listEl = modal.querySelector("#pending-transactions-list");
+    if (!listEl) return;
+
+    fetch("/admin/sales/pending-transactions/list", {
+        headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (!data.items || data.items.length === 0) {
+                listEl.innerHTML =
+                    '<p class="text-sm text-gray-500 text-center py-4">Belum ada transaksi. Tutup modal ini, lalu gunakan tombol &quot;Tambah Transaksi&quot; di halaman untuk menambah ke daftar.</p>';
+            } else {
+                let html = "";
+                data.items.forEach((it) => {
+                    html += '<div class="flex items-center justify-between border border-gray-200 rounded-lg p-3 bg-white">';
+                    html += '<div class="flex-1"><span class="font-medium text-sm">' + (it.description || "") + "</span>";
+                    html += ' <span class="text-xs text-gray-500">Qty: ' + it.quantity + " × Rp " + new Intl.NumberFormat("id-ID").format(it.unit_price) + " = Rp " + new Intl.NumberFormat("id-ID").format(it.subtotal) + "</span></div>";
+                    html += "</div>";
+                });
+                listEl.innerHTML = html;
+            }
+            const subtotalInput = modal.querySelector("#subtotal");
+            const ppnInput = modal.querySelector("#ppn_amount");
+            const totalDisplay = modal.querySelector("#total_display");
+            const totalVal = data.total != null ? data.total : 0;
+            const subtotalVal = data.subtotal != null ? data.subtotal : 0;
+            const ppnVal = data.ppn_amount != null ? data.ppn_amount : 0;
+            if (subtotalInput) subtotalInput.value = Math.round(subtotalVal);
+            if (ppnInput) ppnInput.value = ppnVal;
+            if (totalDisplay) totalDisplay.value = "Rp " + new Intl.NumberFormat("id-ID").format(totalVal);
+            const form = modal.querySelector("form");
+            const submitBtn = form ? document.querySelector('button[type="submit"][form="' + form.id + '"]') : null;
+            if (submitBtn) submitBtn.disabled = !data.items || data.items.length === 0;
+        })
+        .catch(() => {
+            listEl.innerHTML =
+                '<p class="text-sm text-gray-500 text-center py-4">Gagal memuat daftar. Coba tutup dan buka lagi.</p>';
+        });
+}
+
+window.refreshPendingInSaleModal = function () {
+    loadPendingListInModal("saleModal");
 };
 
 window.deleteResource = function (resourceName, id, singularName) {
@@ -268,6 +549,14 @@ window.deleteResource = function (resourceName, id, singularName) {
                 const rowId5 = `contributorRow_${id}`;
                 const rowId6 = `supplierRow_${id}`;
                 const rowId7 = `customerRow_${id}`;
+                const rowId8 = `heroTextRow_${id}`;
+                const rowId9 = `servicesRow_${id}`;
+                const rowId10 = `employeesRow_${id}`;
+                const rowId11 = `salesRow_${id}`;
+                const rowId12 = `purchasesRow_${id}`;
+                const rowId13 = `journal-entriesRow_${id}`;
+                const rowId14 = `cash-transactionsRow_${id}`;
+                const rowId15 = `sale-transactionsRow_${id}`;
 
                 let row =
                     document.getElementById(rowId1) ||
@@ -276,7 +565,15 @@ window.deleteResource = function (resourceName, id, singularName) {
                     document.getElementById(rowId4) ||
                     document.getElementById(rowId5) ||
                     document.getElementById(rowId6) ||
-                    document.getElementById(rowId7);
+                    document.getElementById(rowId7) ||
+                    document.getElementById(rowId8) ||
+                    document.getElementById(rowId9) ||
+                    document.getElementById(rowId10) ||
+                    document.getElementById(rowId11) ||
+                    document.getElementById(rowId12) ||
+                    document.getElementById(rowId13) ||
+                    document.getElementById(rowId14) ||
+                    document.getElementById(rowId15);
 
                 if (row) row.remove();
                 showNotification(

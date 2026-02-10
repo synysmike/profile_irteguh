@@ -44,6 +44,10 @@
                     <div class="text-4xl mb-3">👥</div>
                     <div class="text-gray-800 font-semibold">Kelola Tim</div>
                 </a>
+                <a href="{{ route('admin.services.index') }}" class="block p-6 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center">
+                    <div class="text-4xl mb-3">🛠️</div>
+                    <div class="text-gray-800 font-semibold">Kelola Layanan</div>
+                </a>
                 <a href="{{ route('admin.visitors.index') }}" class="block p-6 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center">
                     <div class="text-4xl mb-3">📊</div>
                     <div class="text-gray-800 font-semibold">Statistik Pengunjung</div>
