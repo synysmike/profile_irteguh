@@ -62,7 +62,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Keuangan (Pembukuan & Pajak) - menu lengkap
     Route::prefix('keuangan')->name('keuangan.')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Admin\KeuanganController::class, 'dashboard'])->name('dashboard');
-        Route::get('/master/akun', [\App\Http\Controllers\Admin\KeuanganController::class, 'masterAkun'])->name('master.akun');
+        Route::get('/master/akun', fn () => redirect()->route('admin.keuangan.chart-of-accounts.index'))->name('master.akun');
+        Route::resource('chart-of-accounts', \App\Http\Controllers\Admin\ChartOfAccountController::class);
         Route::get('/master/klien-vendor', [\App\Http\Controllers\Admin\KeuanganController::class, 'masterKlienVendor'])->name('master.klien-vendor');
         Route::get('/master/karyawan', [\App\Http\Controllers\Admin\KeuanganController::class, 'masterKaryawan'])->name('master.karyawan');
         Route::get('/transaksi/penjualan', [\App\Http\Controllers\Admin\KeuanganController::class, 'transaksiPenjualan'])->name('transaksi.penjualan');
