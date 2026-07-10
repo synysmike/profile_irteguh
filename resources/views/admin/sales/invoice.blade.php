@@ -28,12 +28,26 @@
         .text-right { text-align: right; }
         .total-row { font-weight: bold; font-size: 15px; background: #f9fafb; }
         .notes { padding: 12px; background: #f9fafb; border-radius: 8px; margin-top: 24px; font-size: 13px; color: #666; }
+        .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 48px; }
+        .signature-box { text-align: center; }
+        .signature-title { font-size: 12px; text-transform: uppercase; color: #6b7280; margin-bottom: 64px; }
+        .signature-name { font-weight: 600; border-top: 1px solid #111; padding-top: 8px; display: inline-block; min-width: 220px; }
         .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center; }
         @media print {
-            body { padding: 0; }
+            body { padding: 0 0 56px 0; }
             .no-print { display: none !important; }
             .header { border-bottom-color: #000; }
             table { page-break-inside: avoid; }
+            .footer {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                margin-top: 0;
+                padding: 8px 24px 0;
+                background: #fff;
+                border-top: 1px solid #e5e7eb;
+            }
         }
     </style>
 </head>
@@ -83,10 +97,6 @@
             <p>Email: {{ $sale->customer->email }}</p>
             @endif
         </div>
-        <div class="info-box">
-            <h3>Diterbitkan oleh</h3>
-            <p>{{ auth()->user()?->name ?? \App\Models\Setting::appName() }}</p>
-        </div>
     </div>
 
     <table>
@@ -122,10 +132,18 @@
                 <td colspan="4" class="text-right" style="font-weight: bold;">Subtotal (DPP)</td>
                 <td class="text-right" style="font-weight: bold;">Rp {{ number_format($sale->subtotal, 0, ',', '.') }}</td>
             </tr>
-            <tr>
-                <td colspan="4" class="text-right">PPN (11%)</td>
-                <td class="text-right">Rp {{ number_format($sale->ppn_amount, 0, ',', '.') }}</td>
-            </tr>
+            @if($sale->ppn_amount > 0)
+                <tr>
+                    <td colspan="4" class="text-right">
+                        {{ $sale->tax_name ?: 'Pajak' }}
+                        @if($sale->tax_rate)
+                            ({{ number_format($sale->tax_rate, 2, ',', '.') }}%)
+                        @endif
+                        {{ $sale->tax_calculation_type === 'deduction' ? '- Potongan' : '+ Tambahan' }}
+                    </td>
+                    <td class="text-right">{{ $sale->tax_calculation_type === 'deduction' ? '-' : '' }}Rp {{ number_format($sale->ppn_amount, 0, ',', '.') }}</td>
+                </tr>
+            @endif
             <tr class="total-row">
                 <td colspan="4" class="text-right" style="font-size: 16px;">Total Pembayaran</td>
                 <td class="text-right" style="font-size: 16px;">Rp {{ number_format($sale->total, 0, ',', '.') }}</td>
@@ -138,6 +156,17 @@
         <strong>Catatan:</strong> {{ $sale->notes }}
     </div>
     @endif
+
+    <div class="signature-grid">
+        <div class="signature-box">
+            <div class="signature-title">Penerima</div>
+            <div class="signature-name">{{ $sale->customer?->name ?? '-' }}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Penerbit</div>
+            <div class="signature-name">{{ \App\Models\Setting::appName() }}</div>
+        </div>
+    </div>
 
     <div class="footer">
         Dokumen ini dicetak dari sistem Keuangan. {{ $sale->invoice_number }} — {{ now()->locale('id')->translatedFormat('d F Y H:i') }}

@@ -65,6 +65,15 @@
     animation: cursorBlink 0.8s step-end infinite;
 }
 
+.hero-fullpage {
+    height: 100vh;
+    height: 100svh;
+}
+
+.hero-bg-slide {
+    pointer-events: none;
+}
+
 /* Site logo: fixed box + img fills box so rendered size is forced (ignores file dimensions) */
 .site-logo-wrap {
     display: inline-flex;

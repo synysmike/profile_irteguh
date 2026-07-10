@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\CustomerCategory;
+use App\Models\CustomerType;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
@@ -15,18 +17,26 @@ class CustomerController extends Controller
 
     public function index()
     {
-        $customers = Customer::orderBy('name')->get();
-        return view('admin.customers.index', compact('customers'));
+        $customers = Customer::with('customerType.category')->orderBy('name')->get();
+        $customerCategories = CustomerCategory::withCount('customerTypes')->orderBy('name')->get();
+        $customerTypes = CustomerType::with('category')->withCount('customers')->orderBy('name')->get();
+
+        return view('admin.customers.index', compact('customers', 'customerTypes', 'customerCategories'));
     }
 
     public function create()
     {
+        $customerTypes = CustomerType::with('category')->orderBy('name')->get();
+
         if (request()->ajax()) {
             return response()->json([
-                'html' => view('admin.customers.partials.form', ['customer' => null])->render()
+                'html' => view('admin.customers.partials.form', [
+                    'customer' => null,
+                    'customerTypes' => $customerTypes,
+                ])->render(),
             ]);
         }
-        return view('admin.customers.create');
+        return view('admin.customers.create', compact('customerTypes'));
     }
 
     public function store(Request $request)
@@ -38,11 +48,13 @@ class CustomerController extends Controller
             'phone' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:255',
-            'customer_type' => 'required|in:individual,company',
+            'customer_type_id' => 'required|exists:customer_types,id',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
 
+        $selectedType = CustomerType::with('category')->findOrFail($validated['customer_type_id']);
+        $validated['customer_type'] = $selectedType->resolveLegacyKey();
         $validated['is_active'] = $request->has('is_active');
         $customer = Customer::create($validated);
 
@@ -67,15 +79,16 @@ class CustomerController extends Controller
     public function edit(string $id)
     {
         $customer = Customer::findOrFail($id);
+        $customerTypes = CustomerType::with('category')->orderBy('name')->get();
         
         if (request()->ajax()) {
             return response()->json([
-                'html' => view('admin.customers.partials.form', compact('customer'))->render(),
+                'html' => view('admin.customers.partials.form', compact('customer', 'customerTypes'))->render(),
                 'data' => $customer
             ]);
         }
         
-        return view('admin.customers.edit', compact('customer'));
+        return view('admin.customers.edit', compact('customer', 'customerTypes'));
     }
 
     public function update(Request $request, string $id)
@@ -89,11 +102,13 @@ class CustomerController extends Controller
             'phone' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:255',
-            'customer_type' => 'required|in:individual,company',
+            'customer_type_id' => 'required|exists:customer_types,id',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
 
+        $selectedType = CustomerType::with('category')->findOrFail($validated['customer_type_id']);
+        $validated['customer_type'] = $selectedType->resolveLegacyKey();
         $validated['is_active'] = $request->has('is_active');
         $customer->update($validated);
 

@@ -25,12 +25,15 @@
                     <!-- Customer Type -->
                     <div>
                         <label for="customer_type" class="block text-sm font-medium text-gray-700 mb-2">Tipe Customer *</label>
-                        <select id="customer_type" name="customer_type" required
+                        <select id="customer_type" name="customer_type_id" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            <option value="individual" {{ old('customer_type', $customer->customer_type) == 'individual' ? 'selected' : '' }}>Individu</option>
-                            <option value="company" {{ old('customer_type', $customer->customer_type) == 'company' ? 'selected' : '' }}>Perusahaan</option>
+                            @foreach($customerTypes as $type)
+                                <option value="{{ $type->id }}" data-legacy-key="{{ $type->resolveLegacyKey() }}" {{ (string) old('customer_type_id', $customer->customer_type_id) === (string) $type->id ? 'selected' : '' }}>
+                                    {{ $type->category?->name ? $type->category->name . ' — ' : '' }}{{ $type->name }}
+                                </option>
+                            @endforeach
                         </select>
-                        @error('customer_type')<p class="text-red-600 text-sm mt-1">{{ $message }}</p>@enderror
+                        @error('customer_type_id')<p class="text-red-600 text-sm mt-1">{{ $message }}</p>@enderror
                     </div>
 
                     <!-- Company Name -->
@@ -99,12 +102,16 @@
         <script>
             document.getElementById('customer_type').addEventListener('change', function() {
                 const companyField = document.getElementById('company_name_field');
-                if (this.value === 'company') {
+                const selectedOption = this.options[this.selectedIndex];
+                const legacyKey = selectedOption ? selectedOption.dataset.legacyKey : 'individual';
+                if (legacyKey === 'company') {
                     companyField.style.display = 'block';
                 } else {
                     companyField.style.display = 'none';
                     document.getElementById('company_name').value = '';
                 }
             });
+
+            document.getElementById('customer_type').dispatchEvent(new Event('change'));
         </script>
 @endsection

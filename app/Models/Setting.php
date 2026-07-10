@@ -91,4 +91,35 @@ class Setting extends Model
     {
         return (bool) (int) static::get('logo_landing_lock_ratio', 0);
     }
+
+    public static function contactAddress(): string
+    {
+        return (string) static::get('contact_address', 'Surabaya, Indonesia');
+    }
+
+    public static function contactEmail(): string
+    {
+        return (string) static::get('contact_email', 'contact@irteguhsolution.com');
+    }
+
+    public static function contactWhatsapp(): string
+    {
+        return (string) static::get('contact_whatsapp', '6281234567890');
+    }
+
+    public static function contactWhatsappLabel(): string
+    {
+        return (string) static::get('contact_whatsapp_label', 'Chat dengan kami di WhatsApp');
+    }
+
+    public static function contactResponseNote(): string
+    {
+        return (string) static::get('contact_response_note', 'Kami biasanya merespons dalam 24-48 jam');
+    }
+
+    public static function contactWhatsappUrl(): string
+    {
+        $number = preg_replace('/\D+/', '', static::contactWhatsapp());
+        return $number ? 'https://wa.me/' . $number : '#';
+    }
 }

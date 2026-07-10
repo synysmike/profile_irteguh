@@ -109,21 +109,21 @@ class KeuanganController extends Controller
     /** 3. Transaksi - Penjualan */
     public function transaksiPenjualan()
     {
-        $sales = Sale::with('customer', 'cashTransaction')->latestFirst()->get();
+        $sales = Sale::with('customer', 'cashTransaction', 'project')->latestFirst()->get();
         return view('admin.keuangan.transaksi.penjualan', compact('sales'));
     }
 
     /** 3. Transaksi - Pembelian */
     public function transaksiPembelian()
     {
-        $purchases = Purchase::with('supplier', 'cashTransaction')->latestFirst()->get();
+        $purchases = Purchase::with('supplier', 'cashTransaction', 'saleTransactions')->latestFirst()->get();
         return view('admin.keuangan.transaksi.pembelian', compact('purchases'));
     }
 
     /** 3. Transaksi - Kas/Bank */
     public function transaksiKasBank()
     {
-        $cashTransactions = CashTransaction::with('chartOfAccount', 'sale', 'purchase')->latestFirst()->get();
+        $cashTransactions = CashTransaction::with('chartOfAccount', 'sale', 'purchase', 'project')->latestFirst()->get();
         return view('admin.keuangan.transaksi.kas-bank', compact('cashTransactions'));
     }
 

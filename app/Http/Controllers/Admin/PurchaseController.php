@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Purchase;
 use App\Models\Supplier;
+use App\Models\Tax;
 use App\Models\CashTransaction;
 use App\Models\ChartOfAccount;
 use Illuminate\Http\Request;
@@ -25,8 +26,9 @@ class PurchaseController extends Controller
     {
         if (request()->ajax()) {
             $suppliers = Supplier::active()->orderBy('name')->get();
+            $taxes = Tax::where('is_active', true)->orderBy('name')->get();
             return response()->json([
-                'html' => view('admin.purchases.partials.form', ['purchase' => null, 'suppliers' => $suppliers])->render()
+                'html' => view('admin.purchases.partials.form', ['purchase' => null, 'suppliers' => $suppliers, 'taxes' => $taxes])->render()
             ]);
         }
         return redirect()->route('admin.keuangan.transaksi.pembelian');
@@ -36,15 +38,26 @@ class PurchaseController extends Controller
     {
         $validated = $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
+            'tax_id' => 'nullable|exists:taxes,id',
             'invoice_number' => 'required|string|max:50|unique:purchases,invoice_number',
             'purchase_date' => 'required|date',
-            'subtotal' => 'required|numeric|min:0',
-            'ppn_amount' => 'nullable|numeric|min:0',
+            'description' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
 
-        $validated['ppn_amount'] = $validated['ppn_amount'] ?? 0;
-        $validated['total'] = $validated['subtotal'] + $validated['ppn_amount'];
+        $validated['subtotal'] = $validated['quantity'] * $validated['unit_price'];
+
+        $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
+        $taxAmount = $tax ? $tax->calculateAmount((float) $validated['subtotal']) : 0;
+        $validated['ppn_amount'] = $taxAmount;
+        $validated['tax_name'] = $tax?->name;
+        $validated['tax_rate'] = $tax?->rate;
+        $validated['tax_calculation_type'] = $tax?->calculation_type;
+        $validated['total'] = $tax && $tax->isDeduction()
+            ? ($validated['subtotal'] - $taxAmount)
+            : ($validated['subtotal'] + $taxAmount);
 
         $purchase = Purchase::create($validated);
 
@@ -65,12 +78,12 @@ class PurchaseController extends Controller
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Pembelian berhasil ditambahkan. Transaksi kas otomatis dibuat.',
+                'message' => 'Grosir berhasil ditambahkan. Transaksi kas otomatis dibuat.',
             ]);
         }
 
         return redirect()->route('admin.keuangan.transaksi.pembelian')
-            ->with('success', 'Pembelian berhasil ditambahkan.');
+            ->with('success', 'Grosir berhasil ditambahkan.');
     }
 
     public function edit(string $id)
@@ -79,8 +92,9 @@ class PurchaseController extends Controller
 
         if (request()->ajax()) {
             $suppliers = Supplier::active()->orderBy('name')->get();
+            $taxes = Tax::where('is_active', true)->orderBy('name')->get();
             return response()->json([
-                'html' => view('admin.purchases.partials.form', ['purchase' => $purchase, 'suppliers' => $suppliers])->render(),
+                'html' => view('admin.purchases.partials.form', ['purchase' => $purchase, 'suppliers' => $suppliers, 'taxes' => $taxes])->render(),
                 'data' => $purchase
             ]);
         }
@@ -94,15 +108,40 @@ class PurchaseController extends Controller
 
         $validated = $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
+            'tax_id' => 'nullable|exists:taxes,id',
             'invoice_number' => 'required|string|max:50|unique:purchases,invoice_number,' . $id,
             'purchase_date' => 'required|date',
-            'subtotal' => 'required|numeric|min:0',
-            'ppn_amount' => 'nullable|numeric|min:0',
+            'description' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
 
-        $validated['ppn_amount'] = $validated['ppn_amount'] ?? 0;
-        $validated['total'] = $validated['subtotal'] + $validated['ppn_amount'];
+        $allocated = $purchase->allocatedQuantity();
+        if ($validated['quantity'] < $allocated) {
+            $message = "Qty tidak boleh kurang dari {$allocated} unit yang sudah dialokasikan ke transaksi penjualan.";
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                    'errors' => ['quantity' => [$message]],
+                ], 422);
+            }
+
+            return back()->withInput()->withErrors(['quantity' => $message]);
+        }
+
+        $validated['subtotal'] = $validated['quantity'] * $validated['unit_price'];
+
+        $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
+        $taxAmount = $tax ? $tax->calculateAmount((float) $validated['subtotal']) : 0;
+        $validated['ppn_amount'] = $taxAmount;
+        $validated['tax_name'] = $tax?->name;
+        $validated['tax_rate'] = $tax?->rate;
+        $validated['tax_calculation_type'] = $tax?->calculation_type;
+        $validated['total'] = $tax && $tax->isDeduction()
+            ? ($validated['subtotal'] - $taxAmount)
+            : ($validated['subtotal'] + $taxAmount);
 
         $purchase->update($validated);
 
@@ -133,18 +172,29 @@ class PurchaseController extends Controller
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Pembelian berhasil diperbarui. Transaksi kas diperbarui.',
+                'message' => 'Grosir berhasil diperbarui. Transaksi kas diperbarui.',
             ]);
         }
 
         return redirect()->route('admin.keuangan.transaksi.pembelian')
-            ->with('success', 'Pembelian berhasil diperbarui.');
+            ->with('success', 'Grosir berhasil diperbarui.');
     }
 
     public function destroy(string $id)
     {
         $purchase = Purchase::findOrFail($id);
-        
+
+        if ($purchase->saleTransactions()->exists()) {
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Grosir tidak dapat dihapus karena sudah dipakai pada transaksi penjualan.',
+                ], 422);
+            }
+
+            return back()->with('error', 'Grosir tidak dapat dihapus karena sudah dipakai pada transaksi penjualan.');
+        }
+
         // Hapus cash transaction terkait
         if ($purchase->cashTransaction) {
             $purchase->cashTransaction->delete();
@@ -155,12 +205,12 @@ class PurchaseController extends Controller
         if (request()->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Pembelian berhasil dihapus. Transaksi kas terkait juga dihapus.',
+                'message' => 'Grosir berhasil dihapus. Transaksi kas terkait juga dihapus.',
             ]);
         }
 
         return redirect()->route('admin.keuangan.transaksi.pembelian')
-            ->with('success', 'Pembelian berhasil dihapus.');
+            ->with('success', 'Grosir berhasil dihapus.');
     }
 
     /**

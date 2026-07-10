@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Sale extends Model
 {
     protected $fillable = [
-        'customer_id', 'invoice_number', 'sale_date',
-        'subtotal', 'ppn_amount', 'total', 'notes',
+        'customer_id', 'project_id', 'project_payment_term_id', 'tax_id', 'invoice_number', 'sale_date',
+        'subtotal', 'ppn_amount', 'tax_name', 'tax_rate', 'tax_calculation_type', 'total', 'notes',
         'is_posted', 'posted_at',
     ];
 
@@ -16,6 +16,7 @@ class Sale extends Model
         'sale_date' => 'date',
         'subtotal' => 'decimal:2',
         'ppn_amount' => 'decimal:2',
+        'tax_rate' => 'decimal:2',
         'total' => 'decimal:2',
         'is_posted' => 'boolean',
         'posted_at' => 'datetime',
@@ -26,9 +27,24 @@ class Sale extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function projectPaymentTerm()
+    {
+        return $this->belongsTo(ProjectPaymentTerm::class);
+    }
+
     public function cashTransaction()
     {
         return $this->hasOne(CashTransaction::class);
+    }
+
+    public function tax()
+    {
+        return $this->belongsTo(Tax::class);
     }
 
     public function saleItems()

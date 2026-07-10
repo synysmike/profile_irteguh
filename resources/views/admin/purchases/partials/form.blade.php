@@ -22,22 +22,60 @@
                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
     </div>
 
-    <div>
-        <label for="subtotal" class="block text-sm font-medium text-gray-700 mb-2">Subtotal (DPP) Rp *</label>
-        <input type="number" id="subtotal" name="subtotal" value="{{ old('subtotal', isset($purchase) && $purchase ? $purchase->subtotal : 0) }}" min="0" step="1" required
-               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-        <p class="mt-1 text-xs text-gray-500">Dasar Pengenaan Pajak</p>
+    <div class="md:col-span-2">
+        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Nama Barang *</label>
+        <input type="text" id="description" name="description" value="{{ old('description', isset($purchase) && $purchase ? $purchase->description : '') }}" required
+               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+               placeholder="Contoh: Beras Premium 5kg">
+        <p class="mt-1 text-xs text-gray-500">Barang ini akan tersedia untuk transaksi penjualan</p>
     </div>
 
     <div>
-        <label for="ppn_amount" class="block text-sm font-medium text-gray-700 mb-2">PPN Masukan (11%) Rp</label>
+        <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">Quantity *</label>
+        <input type="number" id="quantity" name="quantity" value="{{ old('quantity', isset($purchase) && $purchase ? $purchase->quantity : 1) }}" min="1" step="1" required
+               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+        @if(isset($purchase) && $purchase && $purchase->allocatedQuantity() > 0)
+        <p class="mt-1 text-xs text-amber-600">Min. {{ $purchase->allocatedQuantity() }} unit (sudah dialokasikan ke penjualan)</p>
+        @endif
+    </div>
+
+    <div>
+        <label for="unit_price" class="block text-sm font-medium text-gray-700 mb-2">Harga Beli per Unit (Rp) *</label>
+        <input type="number" id="unit_price" name="unit_price" value="{{ old('unit_price', isset($purchase) && $purchase ? $purchase->unit_price : 0) }}" min="0" step="1" required
+               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+    </div>
+
+    <div>
+        <label for="subtotal" class="block text-sm font-medium text-gray-700 mb-2">Subtotal (DPP) Rp</label>
+        <input type="number" id="subtotal" name="subtotal" value="{{ old('subtotal', isset($purchase) && $purchase ? $purchase->subtotal : 0) }}" min="0" step="1" readonly
+               class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500">
+        <p class="mt-1 text-xs text-gray-500">Otomatis: Qty × Harga Beli</p>
+    </div>
+
+    <div>
+        <label for="tax_id" class="block text-sm font-medium text-gray-700 mb-2">Pajak</label>
+        <select id="tax_id" name="tax_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">Tanpa Pajak</option>
+            @foreach(($taxes ?? collect()) as $tax)
+            <option value="{{ $tax->id }}"
+                    data-rate="{{ $tax->rate }}"
+                    data-calculation="{{ $tax->calculation_type }}"
+                    data-name="{{ $tax->name }}"
+                    {{ (string) old('tax_id', isset($purchase) && $purchase ? $purchase->tax_id : '') === (string) $tax->id ? 'selected' : '' }}>
+                {{ $tax->name }} ({{ number_format($tax->rate, 2, ',', '.') }}%) {{ $tax->calculation_type === 'deduction' ? '- Potongan' : '+ Tambahan' }}
+            </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div>
+        <label for="ppn_amount" id="tax_amount_label" class="block text-sm font-medium text-gray-700 mb-2">Nominal Pajak Rp</label>
         <input type="number" id="ppn_amount" name="ppn_amount" value="{{ old('ppn_amount', isset($purchase) && $purchase ? $purchase->ppn_amount : 0) }}" min="0" step="1" readonly
                class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500">
-        <p class="mt-1 text-xs text-gray-500">Otomatis dihitung 11% dari DPP</p>
     </div>
 
     <div>
-        <label for="total_display" class="block text-sm font-medium text-gray-700 mb-2">Total (DPP + PPN) Rp</label>
+        <label for="total_display" class="block text-sm font-medium text-gray-700 mb-2">Total Setelah Pajak Rp</label>
         <input type="text" id="total_display" value="0" readonly
                class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 font-semibold text-gray-900">
         <p class="mt-1 text-xs text-gray-500">Total otomatis terhitung</p>
@@ -50,75 +88,63 @@
 </div>
 
 <script>
-// PPN Calculator untuk form pembelian - Global function
 window.setupPPNCalculator = function() {
-    const PPN_RATE = 0.11; // 11%
-    
+    const quantityInput = document.getElementById('quantity');
+    const unitPriceInput = document.getElementById('unit_price');
     const subtotalInput = document.getElementById('subtotal');
     const ppnInput = document.getElementById('ppn_amount');
     const totalDisplay = document.getElementById('total_display');
-    
+    const taxSelect = document.getElementById('tax_id');
+    const taxAmountLabel = document.getElementById('tax_amount_label');
+
     if (!subtotalInput || !ppnInput || !totalDisplay) {
-        console.log('PPN Calculator: Elements not found');
         return false;
     }
 
-    // Cek apakah sudah di-setup (untuk menghindari duplikasi)
     if (subtotalInput.hasAttribute('data-ppn-setup')) {
-        console.log('PPN Calculator: Already setup');
         return true;
     }
 
-    function calculatePPN() {
-        const subtotal = parseFloat(subtotalInput.value) || 0;
-        const ppn = Math.round(subtotal * PPN_RATE);
-        const total = subtotal + ppn;
+    function calculateTotals() {
+        const qty = parseFloat(quantityInput?.value || 0) || 0;
+        const unitPrice = parseFloat(unitPriceInput?.value || 0) || 0;
+        const subtotal = Math.round(qty * unitPrice);
+        const selectedTax = taxSelect ? taxSelect.options[taxSelect.selectedIndex] : null;
+        const rate = selectedTax ? (parseFloat(selectedTax.dataset.rate || 0) || 0) : 0;
+        const calculation = selectedTax ? (selectedTax.dataset.calculation || 'addition') : 'addition';
+        const taxName = selectedTax ? (selectedTax.dataset.name || 'Pajak') : 'Pajak';
+        const ppn = Math.round(subtotal * rate / 100);
+        const total = calculation === 'deduction' ? (subtotal - ppn) : (subtotal + ppn);
 
+        subtotalInput.value = subtotal;
         ppnInput.value = ppn;
-        totalDisplay.value = 'Rp ' + new Intl.NumberFormat('id-ID').format(total);
-        
-        console.log('PPN Calculated:', { subtotal, ppn, total });
+        totalDisplay.value = 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.max(total, 0));
+        if (taxAmountLabel) {
+            taxAmountLabel.textContent = selectedTax
+                ? `Nominal ${taxName} (${rate.toFixed(2)}%) Rp`
+                : 'Nominal Pajak Rp';
+        }
     }
 
-    // Pasang event listener dengan berbagai event untuk memastikan terdeteksi
-    subtotalInput.addEventListener('input', calculatePPN, false);
-    subtotalInput.addEventListener('change', calculatePPN, false);
-    subtotalInput.addEventListener('keyup', calculatePPN, false);
-    subtotalInput.addEventListener('keydown', calculatePPN, false);
-    
-    // Mark sebagai sudah di-setup
-    subtotalInput.setAttribute('data-ppn-setup', 'true');
+    [quantityInput, unitPriceInput, subtotalInput].forEach(function(el) {
+        if (!el) return;
+        ['input', 'change', 'keyup'].forEach(function(evt) {
+            el.addEventListener(evt, calculateTotals, false);
+        });
+    });
+    if (taxSelect) {
+        taxSelect.addEventListener('change', calculateTotals, false);
+    }
 
-    // Hitung nilai awal
-    calculatePPN();
-    
-    console.log('PPN Calculator: Setup completed');
+    subtotalInput.setAttribute('data-ppn-setup', 'true');
+    calculateTotals();
     return true;
 };
 
-// Auto-setup saat script dimuat
 (function() {
-    // Coba setup langsung
-    if (window.setupPPNCalculator()) {
-        return;
-    }
-
-    // Jika belum berhasil, coba lagi setelah delay
-    setTimeout(function() {
-        window.setupPPNCalculator();
-    }, 100);
-
-    setTimeout(function() {
-        window.setupPPNCalculator();
-    }, 300);
-
-    setTimeout(function() {
-        window.setupPPNCalculator();
-    }, 500);
-    
-    // Juga coba setelah 1 detik (untuk form yang dimuat sangat lambat)
-    setTimeout(function() {
-        window.setupPPNCalculator();
-    }, 1000);
+    if (window.setupPPNCalculator()) return;
+    [100, 300, 500, 1000].forEach(function(ms) {
+        setTimeout(window.setupPPNCalculator, ms);
+    });
 })();
 </script>

@@ -2,31 +2,74 @@
 
 @section('title', 'Beranda - Ir Teguh Solution')
 
+@section('body_class', 'bg-gray-950')
+@section('fullpage_hero', true)
+
 @section('content')
-<!-- Hero Section -->
-<section class="relative py-20 md:py-32">
-    <div class="container mx-auto px-4">
-        <div class="max-w-4xl mx-auto text-center">
-            <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 min-h-[1.2em] flex items-center justify-center gap-0" id="hero-typing-wrapper">
+<!-- Hero Section — fullpage dengan background slide dari admin -->
+<section class="hero-fullpage relative w-full h-screen min-h-[600px] overflow-hidden isolate -mt-16">
+    @if(isset($slides) && $slides->count() > 0)
+    <div class="absolute inset-0 z-0" id="hero-bg-slider" aria-hidden="true">
+        @foreach($slides as $index => $slide)
+        <img src="{{ $slide->resolvedImageUrl() }}"
+             alt=""
+             class="hero-bg-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out {{ $index === 0 ? 'opacity-100' : 'opacity-0' }}"
+             data-hero-slide="{{ $index }}"
+             loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
+             decoding="async">
+        @endforeach
+        <div class="absolute inset-0 bg-black/35"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/50"></div>
+    </div>
+    @else
+    <div class="absolute inset-0 z-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900" aria-hidden="true"></div>
+    @endif
+
+    <div class="relative z-10 flex h-full items-center justify-center px-4 pt-16 pb-20">
+        <div class="max-w-4xl mx-auto text-center w-full">
+            <div class="hero-brand mb-8 md:mb-10 animate-fade-in">
+                <p class="inline-flex items-center gap-2 px-4 py-1.5 mb-4 text-xs md:text-sm uppercase tracking-[0.25em] text-white/90 font-semibold rounded-full border border-white/20 bg-white/10 backdrop-blur-md shadow-lg">
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                    Selamat Datang Di Situs Resmi
+                </p>
+                <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-lg leading-tight tracking-tight">
+                    <span class="bg-gradient-to-r from-white via-purple-100 to-white bg-clip-text text-transparent">
+                        {{ \App\Models\Setting::appName() }}
+                    </span>
+                </h1>
+                <div class="mx-auto mt-5 h-1 w-24 rounded-full bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-80"></div>
+            </div>
+            <h2 class="text-3xl md:text-5xl font-bold text-white mb-6 min-h-[1.2em] flex items-center justify-center gap-0 drop-shadow-lg" id="hero-typing-wrapper">
                 <span id="hero-typing-text" class="inline-block"></span>
                 <span id="hero-typing-cursor" class="hero-cursor inline-block shrink-0 w-1 h-[0.9em] bg-white ml-0.5 align-middle" aria-hidden="true"></span>
-            </h1>
-            <p class="text-xl md:text-2xl text-white/80 mb-8 animate-fade-in">
+            </h2>
+            <p class="text-xl md:text-2xl text-white/90 mb-8 animate-fade-in drop-shadow-md">
                 Untuk Pendidikan dan Bisnis
             </p>
-            <p class="text-lg text-white/70 mb-12 max-w-2xl mx-auto animate-fade-in">
+            <p class="text-lg text-white/80 mb-12 max-w-2xl mx-auto animate-fade-in drop-shadow-md">
                 Mengubah tantangan menjadi peluang melalui otomasi, infrastruktur IT, desain kreatif, dan layanan hukum.
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
-                <a href="{{ route('portfolio.index') }}" class="px-8 py-4 bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition border border-white/30 font-semibold">
+                <a href="{{ route('portfolio.index') }}" class="px-8 py-4 bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition border border-white/30 font-semibold shadow-lg">
                     Lihat Portfolio
                 </a>
-                <a href="{{ route('contact') }}" class="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
+                <a href="{{ route('contact') }}" class="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold shadow-lg">
                     Hubungi Kami
                 </a>
             </div>
         </div>
     </div>
+
+    @if(isset($slides) && $slides->count() > 1)
+    <div class="absolute bottom-8 left-0 right-0 flex justify-center gap-2 z-10" id="hero-bg-dots">
+        @foreach($slides as $index => $slide)
+        <button type="button"
+                class="hero-bg-dot h-2.5 rounded-full transition-all duration-300 {{ $index === 0 ? 'bg-white w-8' : 'bg-white/40 hover:bg-white/70 w-2.5' }}"
+                data-hero-dot="{{ $index }}"
+                aria-label="Slide {{ $index + 1 }}: {{ $slide->title }}"></button>
+        @endforeach
+    </div>
+    @endif
 </section>
 
 <!-- Quick Links to Categories -->
@@ -241,6 +284,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         type();
+    }
+
+    // Hero background slideshow (dari Kelola Slide admin)
+    const heroBgSlides = document.querySelectorAll('.hero-bg-slide');
+    const heroBgDots = document.querySelectorAll('.hero-bg-dot');
+    if (heroBgSlides.length > 1) {
+        let heroBgIndex = 0;
+        let heroBgTimer = null;
+
+        function showHeroBgSlide(index) {
+            heroBgIndex = index;
+            heroBgSlides.forEach(function(slide, i) {
+                slide.classList.toggle('opacity-100', i === index);
+                slide.classList.toggle('opacity-0', i !== index);
+            });
+            heroBgDots.forEach(function(dot, i) {
+                dot.classList.toggle('bg-white', i === index);
+                dot.classList.toggle('w-8', i === index);
+                dot.classList.toggle('bg-white/40', i !== index);
+                dot.classList.toggle('w-2.5', i !== index);
+            });
+        }
+
+        function nextHeroBgSlide() {
+            showHeroBgSlide((heroBgIndex + 1) % heroBgSlides.length);
+        }
+
+        function startHeroBgAutoplay() {
+            if (heroBgTimer) clearInterval(heroBgTimer);
+            heroBgTimer = setInterval(nextHeroBgSlide, 6000);
+        }
+
+        heroBgDots.forEach(function(dot) {
+            dot.addEventListener('click', function() {
+                showHeroBgSlide(parseInt(dot.dataset.heroDot, 10));
+                startHeroBgAutoplay();
+            });
+        });
+
+        startHeroBgAutoplay();
     }
 
     const slider = document.getElementById('homeContributorSlider');

@@ -54,9 +54,11 @@
         </div>
         <select id="transaction-select" multiple class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 mt-2" size="5" style="min-height: 120px;">
             <option value="" disabled>-- Pilih transaksi (Ctrl+klik untuk multi) --</option>
-            @foreach(\App\Models\SaleTransaction::active()->orderBy('description')->get() as $transaction)
+            @foreach(\App\Models\SaleTransaction::active()->fromGrosir()->with('purchase')->orderBy('description')->get() as $transaction)
                 <option value="{{ $transaction->id }}" data-description="{{ $transaction->description }}" data-quantity="{{ $transaction->quantity }}" data-unit-price="{{ $transaction->unit_price }}" data-subtotal="{{ $transaction->subtotal }}" {{ in_array($transaction->id, $selectedIds) ? 'disabled' : '' }}>
-                    {{ $transaction->description }} {{ $transaction->code ? '(' . $transaction->code . ')' : '' }} - Rp {{ number_format($transaction->subtotal, 0, ',', '.') }}
+                    {{ $transaction->description }} {{ $transaction->code ? '(' . $transaction->code . ')' : '' }}
+                    @if($transaction->purchase) [{{ $transaction->purchase->invoice_number }}] @endif
+                    - Rp {{ number_format($transaction->subtotal, 0, ',', '.') }}
                 </option>
             @endforeach
         </select>
@@ -79,13 +81,29 @@
     </div>
 
     <div>
-        <label for="ppn_amount" class="block text-sm font-medium text-gray-700 mb-2">PPN Keluaran (11%) Rp</label>
+        <label for="tax_id" class="block text-sm font-medium text-gray-700 mb-2">Pajak</label>
+        <select id="tax_id" name="tax_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">Tanpa Pajak</option>
+            @foreach(($taxes ?? collect()) as $tax)
+            <option value="{{ $tax->id }}"
+                    data-rate="{{ $tax->rate }}"
+                    data-calculation="{{ $tax->calculation_type }}"
+                    data-name="{{ $tax->name }}"
+                    {{ (string) old('tax_id', isset($sale) && $sale ? $sale->tax_id : '') === (string) $tax->id ? 'selected' : '' }}>
+                {{ $tax->name }} ({{ number_format($tax->rate, 2, ',', '.') }}%) {{ $tax->calculation_type === 'deduction' ? '- Potongan' : '+ Tambahan' }}
+            </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div>
+        <label for="ppn_amount" id="tax_amount_label" class="block text-sm font-medium text-gray-700 mb-2">Nominal Pajak Rp</label>
         <input type="number" id="ppn_amount" name="ppn_amount" value="{{ old('ppn_amount', isset($sale) && $sale ? $sale->ppn_amount : 0) }}" min="0" step="1" readonly
                class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500">
     </div>
 
     <div>
-        <label for="total_display" class="block text-sm font-medium text-gray-700 mb-2">Total (DPP + PPN) Rp</label>
+        <label for="total_display" class="block text-sm font-medium text-gray-700 mb-2">Total Setelah Pajak Rp</label>
         <input type="text" id="total_display" value="0" readonly
                class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 font-semibold text-gray-900">
     </div>
@@ -103,9 +121,31 @@
     const subtotalInput = document.getElementById('subtotal');
     const ppnInput = document.getElementById('ppn_amount');
     const totalDisplay = document.getElementById('total_display');
+    const taxSelect = document.getElementById('tax_id');
+    const taxAmountLabel = document.getElementById('tax_amount_label');
 
     function formatRupiah(n) {
         return 'Rp ' + new Intl.NumberFormat('id-ID').format(n);
+    }
+
+    function calculateTaxAndTotal() {
+        const subtotal = parseFloat(subtotalInput ? subtotalInput.value : 0) || 0;
+        const selectedTax = taxSelect ? taxSelect.options[taxSelect.selectedIndex] : null;
+        const rate = selectedTax ? (parseFloat(selectedTax.dataset.rate || 0) || 0) : 0;
+        const calculation = selectedTax ? (selectedTax.dataset.calculation || 'addition') : 'addition';
+        const taxName = selectedTax ? (selectedTax.dataset.name || 'Pajak') : 'Pajak';
+        const taxAmount = Math.round(subtotal * rate / 100);
+        const total = calculation === 'deduction'
+            ? (subtotal - taxAmount)
+            : (subtotal + taxAmount);
+
+        if (ppnInput) ppnInput.value = taxAmount;
+        if (totalDisplay) totalDisplay.value = formatRupiah(Math.max(total, 0));
+        if (taxAmountLabel) {
+            taxAmountLabel.textContent = selectedTax
+                ? `Nominal ${taxName} (${rate.toFixed(2)}%) Rp`
+                : 'Nominal Pajak Rp';
+        }
     }
 
     if (isCreate && pendingListEl) {
@@ -130,8 +170,7 @@
                 pendingListEl.innerHTML = html;
             }
             if (subtotalInput) subtotalInput.value = Math.round(data.subtotal || 0);
-            if (ppnInput) ppnInput.value = data.ppn_amount || 0;
-            if (totalDisplay) totalDisplay.value = formatRupiah(data.total || 0);
+            calculateTaxAndTotal();
             var submitBtn = getSubmitBtn();
             if (submitBtn) submitBtn.disabled = !data.items || data.items.length === 0;
         }
@@ -165,11 +204,8 @@
                 selectedContainer.querySelectorAll('.selected-transaction-item').forEach(function(el) {
                     subtotal += parseFloat(el.getAttribute('data-subtotal') || 0);
                 });
-                var ppn = Math.round(subtotal * 0.11);
-                var total = subtotal + ppn;
                 subtotalInput.value = Math.round(subtotal);
-                ppnInput.value = ppn;
-                totalDisplay.value = formatRupiah(total);
+                calculateTaxAndTotal();
                 var submitBtn = document.querySelector('button[type="submit"][form="' + (selectedContainer.closest('form')?.id || '') + '"]');
                 if (submitBtn) submitBtn.disabled = getSelectedIds().length === 0 || subtotal <= 0;
             }
@@ -219,6 +255,16 @@
         if (document.getElementById('transaction-select')) {
             if (!window.initSaleTransactionsForm()) setTimeout(window.initSaleTransactionsForm, 100);
         }
+
+        if (taxSelect) {
+            taxSelect.addEventListener('change', calculateTaxAndTotal);
+            calculateTaxAndTotal();
+        }
+    }
+
+    if (taxSelect && isCreate) {
+        taxSelect.addEventListener('change', calculateTaxAndTotal);
+        calculateTaxAndTotal();
     }
 })();
 </script>

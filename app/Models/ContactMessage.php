@@ -11,14 +11,17 @@ class ContactMessage extends Model
         'email',
         'subject',
         'message',
+        'admin_response',
         'phone',
         'is_read',
         'read_at',
+        'responded_at',
     ];
 
     protected $casts = [
         'is_read' => 'boolean',
         'read_at' => 'datetime',
+        'responded_at' => 'datetime',
     ];
 
     /**

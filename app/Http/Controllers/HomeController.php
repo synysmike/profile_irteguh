@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CaseStudy;
 use App\Models\Contributor;
 use App\Models\HeroText;
+use App\Models\Slide;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -26,7 +27,9 @@ class HomeController extends Controller
             ->pluck('category');
         
         $contributors = Contributor::active()->ordered()->get();
+
+        $slides = Slide::active()->ordered()->get();
         
-        return view('public.home', compact('heroTexts', 'featuredCaseStudies', 'categories', 'contributors'));
+        return view('public.home', compact('heroTexts', 'featuredCaseStudies', 'categories', 'contributors', 'slides'));
     }
 }

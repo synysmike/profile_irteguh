@@ -45,7 +45,16 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Accounting/Bookkeeping routes
     Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
+    Route::post('/customer-types', [\App\Http\Controllers\Admin\CustomerTypeController::class, 'store'])->name('customer-types.store');
+    Route::put('/customer-types/{customerType}', [\App\Http\Controllers\Admin\CustomerTypeController::class, 'update'])->name('customer-types.update');
+    Route::delete('/customer-types/{customerType}', [\App\Http\Controllers\Admin\CustomerTypeController::class, 'destroy'])->name('customer-types.destroy');
+    Route::post('/customer-categories', [\App\Http\Controllers\Admin\CustomerCategoryController::class, 'store'])->name('customer-categories.store');
+    Route::put('/customer-categories/{customerCategory}', [\App\Http\Controllers\Admin\CustomerCategoryController::class, 'update'])->name('customer-categories.update');
+    Route::delete('/customer-categories/{customerCategory}', [\App\Http\Controllers\Admin\CustomerCategoryController::class, 'destroy'])->name('customer-categories.destroy');
     Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
+    Route::resource('projects', \App\Http\Controllers\Admin\ProjectController::class);
+    Route::patch('/projects/{project}/status', [\App\Http\Controllers\Admin\ProjectController::class, 'updateStatus'])->name('projects.update-status');
+    Route::post('/projects/{project}/terms/{term}/pay', [\App\Http\Controllers\Admin\ProjectController::class, 'payTerm'])->name('projects.pay-term');
     Route::resource('employees', \App\Http\Controllers\Admin\EmployeeController::class);
     Route::get('/sales/{id}/invoice', [\App\Http\Controllers\Admin\SaleController::class, 'invoice'])->name('sales.invoice');
     Route::get('/sales/pending-transactions/list', [\App\Http\Controllers\Admin\SaleController::class, 'pendingTransactionsList'])->name('sales.pending-transactions.list');
@@ -67,20 +76,21 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/master/klien-vendor', [\App\Http\Controllers\Admin\KeuanganController::class, 'masterKlienVendor'])->name('master.klien-vendor');
         Route::get('/master/karyawan', [\App\Http\Controllers\Admin\KeuanganController::class, 'masterKaryawan'])->name('master.karyawan');
         Route::get('/transaksi/penjualan', [\App\Http\Controllers\Admin\KeuanganController::class, 'transaksiPenjualan'])->name('transaksi.penjualan');
+        Route::get('/sale-transactions/purchase/{purchaseId}', [\App\Http\Controllers\Admin\SaleTransactionController::class, 'purchaseDetails'])->name('sale-transactions.purchase-details');
         Route::resource('sale-transactions', \App\Http\Controllers\Admin\SaleTransactionController::class);
         Route::get('/transaksi/pembelian', [\App\Http\Controllers\Admin\KeuanganController::class, 'transaksiPembelian'])->name('transaksi.pembelian');
+        Route::get('/transaksi/project', fn () => redirect()->route('admin.projects.index'))->name('transaksi.project');
         Route::get('/transaksi/kas-bank', [\App\Http\Controllers\Admin\KeuanganController::class, 'transaksiKasBank'])->name('transaksi.kas-bank');
         Route::get('/transaksi/gaji', [\App\Http\Controllers\Admin\KeuanganController::class, 'transaksiGaji'])->name('transaksi.gaji');
-        // Sale Transactions (CRUD transaksi template)
-        Route::resource('sale-transactions', \App\Http\Controllers\Admin\SaleTransactionController::class);
         Route::get('/jurnal', [\App\Http\Controllers\Admin\KeuanganController::class, 'jurnal'])->name('jurnal.index');
         Route::get('/laporan/neraca', [\App\Http\Controllers\Admin\KeuanganController::class, 'laporanNeraca'])->name('laporan.neraca');
         Route::get('/laporan/laba-rugi', [\App\Http\Controllers\Admin\KeuanganController::class, 'laporanLabaRugi'])->name('laporan.laba-rugi');
         Route::get('/laporan/arus-kas', [\App\Http\Controllers\Admin\KeuanganController::class, 'laporanArusKas'])->name('laporan.arus-kas');
         Route::get('/laporan/buku-besar', [\App\Http\Controllers\Admin\KeuanganController::class, 'laporanBukuBesar'])->name('laporan.buku-besar');
-        Route::get('/pajak/pph-badan', [\App\Http\Controllers\Admin\KeuanganController::class, 'pajakPphBadan'])->name('pajak.pph-badan');
-        Route::get('/pajak/pph-21', [\App\Http\Controllers\Admin\KeuanganController::class, 'pajakPph21'])->name('pajak.pph-21');
-        Route::get('/pajak/ppn', [\App\Http\Controllers\Admin\KeuanganController::class, 'pajakPpn'])->name('pajak.ppn');
+        Route::get('/pajak', [\App\Http\Controllers\Admin\TaxController::class, 'index'])->name('pajak.index');
+        Route::post('/pajak', [\App\Http\Controllers\Admin\TaxController::class, 'store'])->name('pajak.store');
+        Route::put('/pajak/{tax}', [\App\Http\Controllers\Admin\TaxController::class, 'update'])->name('pajak.update');
+        Route::delete('/pajak/{tax}', [\App\Http\Controllers\Admin\TaxController::class, 'destroy'])->name('pajak.destroy');
         Route::get('/laporan-pajak', [\App\Http\Controllers\Admin\KeuanganController::class, 'laporanPajak'])->name('laporan-pajak.index');
         Route::get('/utility', [\App\Http\Controllers\Admin\KeuanganController::class, 'utility'])->name('utility.index');
     });
@@ -88,12 +98,21 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Visitor statistics
     Route::get('/visitors', [\App\Http\Controllers\Admin\VisitorController::class, 'index'])->name('visitors.index');
     
-    // Contact messages
-    Route::get('/contact-messages', [\App\Http\Controllers\Admin\ContactMessageController::class, 'index'])->name('contact-messages.index');
-    Route::get('/contact-messages/{id}', [\App\Http\Controllers\Admin\ContactMessageController::class, 'show'])->name('contact-messages.show');
-    Route::post('/contact-messages/{id}/mark-read', [\App\Http\Controllers\Admin\ContactMessageController::class, 'markAsRead'])->name('contact-messages.mark-read');
-    Route::post('/contact-messages/{id}/mark-unread', [\App\Http\Controllers\Admin\ContactMessageController::class, 'markAsUnread'])->name('contact-messages.mark-unread');
-    Route::delete('/contact-messages/{id}', [\App\Http\Controllers\Admin\ContactMessageController::class, 'destroy'])->name('contact-messages.destroy');
+    // Halaman Kontak (publik)
+    Route::get('/contact', [\App\Http\Controllers\Admin\ContactController::class, 'index'])->name('contact.index');
+    Route::put('/contact/settings', [\App\Http\Controllers\Admin\ContactController::class, 'updateSettings'])->name('contact.settings.update');
+    Route::get('/contact/messages/{id}', [\App\Http\Controllers\Admin\ContactController::class, 'showMessage'])->name('contact.messages.show');
+    Route::post('/contact/messages/{id}/respond', [\App\Http\Controllers\Admin\ContactController::class, 'respond'])->name('contact.messages.respond');
+    Route::post('/contact/messages/{id}/mark-read', [\App\Http\Controllers\Admin\ContactController::class, 'markAsRead'])->name('contact.messages.mark-read');
+    Route::post('/contact/messages/{id}/mark-unread', [\App\Http\Controllers\Admin\ContactController::class, 'markAsUnread'])->name('contact.messages.mark-unread');
+    Route::delete('/contact/messages/{id}', [\App\Http\Controllers\Admin\ContactController::class, 'destroyMessage'])->name('contact.messages.destroy');
+
+    // Legacy redirects
+    Route::redirect('/contact-messages', '/admin/contact')->name('contact-messages.index');
+    Route::get('/contact-messages/{id}', fn (string $id) => redirect()->route('admin.contact.messages.show', $id))->name('contact-messages.show');
+    Route::post('/contact-messages/{id}/mark-read', [\App\Http\Controllers\Admin\ContactController::class, 'markAsRead'])->name('contact-messages.mark-read');
+    Route::post('/contact-messages/{id}/mark-unread', [\App\Http\Controllers\Admin\ContactController::class, 'markAsUnread'])->name('contact-messages.mark-unread');
+    Route::delete('/contact-messages/{id}', [\App\Http\Controllers\Admin\ContactController::class, 'destroyMessage'])->name('contact-messages.destroy');
     
     // User management (only for super admin and admin)
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class);

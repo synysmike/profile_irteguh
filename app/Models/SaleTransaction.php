@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class SaleTransaction extends Model
 {
     protected $fillable = [
-        'code', 'description', 'quantity', 'unit_price', 'subtotal', 'notes', 'is_active',
+        'purchase_id', 'code', 'description', 'quantity', 'unit_price', 'subtotal', 'notes', 'is_active',
     ];
 
     protected $casts = [
@@ -17,9 +17,19 @@ class SaleTransaction extends Model
         'is_active' => 'boolean',
     ];
 
+    public function purchase()
+    {
+        return $this->belongsTo(Purchase::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeFromGrosir($query)
+    {
+        return $query->whereNotNull('purchase_id');
     }
 
     /**

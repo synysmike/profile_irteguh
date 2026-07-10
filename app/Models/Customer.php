@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Customer extends Model
 {
@@ -14,6 +15,7 @@ class Customer extends Model
         'address',
         'city',
         'customer_type',
+        'customer_type_id',
         'notes',
         'is_active',
     ];
@@ -25,5 +27,10 @@ class Customer extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function customerType(): BelongsTo
+    {
+        return $this->belongsTo(CustomerType::class);
     }
 }

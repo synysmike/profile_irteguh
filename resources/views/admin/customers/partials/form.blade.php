@@ -9,15 +9,23 @@
     <!-- Customer Type -->
     <div>
         <label for="customer_type" class="block text-sm font-medium text-gray-700 mb-2">Tipe Customer *</label>
-        <select id="customer_type" name="customer_type" required
+        @php
+            $selectedTypeId = old('customer_type_id', isset($customer) && $customer ? $customer->customer_type_id : null);
+            $selectedType = isset($customerTypes) ? $customerTypes->firstWhere('id', (int) $selectedTypeId) : null;
+            $legacyType = $selectedType?->resolveLegacyKey() ?? old('customer_type', isset($customer) && $customer ? $customer->customer_type : 'individual');
+        @endphp
+        <select id="customer_type" name="customer_type_id" required
                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-            <option value="individual" {{ old('customer_type', isset($customer) && $customer ? $customer->customer_type : 'individual') == 'individual' ? 'selected' : '' }}>Individu</option>
-            <option value="company" {{ old('customer_type', isset($customer) && $customer ? $customer->customer_type : 'individual') == 'company' ? 'selected' : '' }}>Perusahaan</option>
+            @foreach(($customerTypes ?? collect()) as $type)
+                <option value="{{ $type->id }}" data-legacy-key="{{ $type->resolveLegacyKey() }}" {{ (string) $selectedTypeId === (string) $type->id ? 'selected' : '' }}>
+                    {{ $type->category?->name ? $type->category->name . ' — ' : '' }}{{ $type->name }}
+                </option>
+            @endforeach
         </select>
     </div>
 
     <!-- Company Name -->
-    <div id="company_name_field" style="display: {{ (isset($customer) && $customer && $customer->customer_type == 'company') || old('customer_type') == 'company' ? 'block' : 'none' }};">
+    <div id="company_name_field" style="display: {{ $legacyType == 'company' ? 'block' : 'none' }};">
         <label for="company_name" class="block text-sm font-medium text-gray-700 mb-2">Nama Perusahaan</label>
         <input type="text" id="company_name" name="company_name" value="{{ old('company_name', isset($customer) && $customer ? $customer->company_name : '') }}"
                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
@@ -74,14 +82,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const companyField = document.getElementById('company_name_field');
     
     if (customerTypeSelect && companyField) {
-        customerTypeSelect.addEventListener('change', function() {
-            if (this.value === 'company') {
+        const toggleCompanyField = () => {
+            const selectedOption = customerTypeSelect.options[customerTypeSelect.selectedIndex];
+            const legacyKey = selectedOption ? selectedOption.dataset.legacyKey : 'individual';
+            if (legacyKey === 'company') {
                 companyField.style.display = 'block';
             } else {
                 companyField.style.display = 'none';
                 document.getElementById('company_name').value = '';
             }
+        };
+
+        customerTypeSelect.addEventListener('change', function() {
+            toggleCompanyField();
         });
+
+        toggleCompanyField();
     }
 });
 </script>

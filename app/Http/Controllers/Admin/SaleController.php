@@ -7,6 +7,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleTransaction;
 use App\Models\Customer;
+use App\Models\Tax;
 use App\Models\CashTransaction;
 use App\Models\ChartOfAccount;
 use Illuminate\Http\Request;
@@ -36,10 +37,6 @@ class SaleController extends Controller
         $ids = array_values(array_filter(array_unique($ids)));
         $transactions = SaleTransaction::whereIn('id', $ids)->orderBy('description')->get();
         $subtotal = $transactions->sum('subtotal');
-        $ppnRate = 0.11;
-        $ppnAmount = (int) round($subtotal * $ppnRate);
-        $total = $subtotal + $ppnAmount;
-
         return response()->json([
             'items' => $transactions->map(function ($t) {
                 return [
@@ -52,8 +49,8 @@ class SaleController extends Controller
                 ];
             })->values()->all(),
             'subtotal' => $subtotal,
-            'ppn_amount' => $ppnAmount,
-            'total' => $total,
+            'ppn_amount' => 0,
+            'total' => $subtotal,
         ]);
     }
 
@@ -66,6 +63,16 @@ class SaleController extends Controller
             'transaction_ids' => 'required|array|min:1',
             'transaction_ids.*' => 'required|exists:sale_transactions,id',
         ]);
+
+        $invalidCount = SaleTransaction::whereIn('id', $request->transaction_ids)
+            ->whereNull('purchase_id')
+            ->count();
+        if ($invalidCount > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya transaksi yang terhubung ke grosir yang dapat di-invoice.',
+            ], 422);
+        }
         $ids = Session::get(self::PENDING_SESSION_KEY, []);
         foreach ($request->transaction_ids as $id) {
             $ids[] = (int) $id;
@@ -99,8 +106,9 @@ class SaleController extends Controller
     {
         if (request()->ajax()) {
             $customers = Customer::active()->orderBy('name')->get();
+            $taxes = Tax::where('is_active', true)->orderBy('name')->get();
             return response()->json([
-                'html' => view('admin.sales.partials.form', ['sale' => null, 'customers' => $customers])->render()
+                'html' => view('admin.sales.partials.form', ['sale' => null, 'customers' => $customers, 'taxes' => $taxes])->render()
             ]);
         }
         return redirect()->route('admin.keuangan.transaksi.penjualan');
@@ -122,6 +130,7 @@ class SaleController extends Controller
 
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
+            'tax_id' => 'nullable|exists:taxes,id',
             'invoice_number' => 'required|string|max:50|unique:sales,invoice_number',
             'sale_date' => 'required|date',
             'notes' => 'nullable|string',
@@ -129,10 +138,16 @@ class SaleController extends Controller
 
         $transactions = SaleTransaction::whereIn('id', $transactionIds)->get();
         $subtotal = $transactions->sum('subtotal');
-        $ppnAmount = (int) round($subtotal * 0.11);
+        $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
+        $taxAmount = $tax ? $tax->calculateAmount((float) $subtotal) : 0;
         $validated['subtotal'] = $subtotal;
-        $validated['ppn_amount'] = $ppnAmount;
-        $validated['total'] = $subtotal + $ppnAmount;
+        $validated['ppn_amount'] = $taxAmount;
+        $validated['tax_name'] = $tax?->name;
+        $validated['tax_rate'] = $tax?->rate;
+        $validated['tax_calculation_type'] = $tax?->calculation_type;
+        $validated['total'] = $tax && $tax->isDeduction()
+            ? ($subtotal - $taxAmount)
+            : ($subtotal + $taxAmount);
 
         DB::beginTransaction();
         try {
@@ -196,10 +211,11 @@ class SaleController extends Controller
 
         if (request()->ajax()) {
             $customers = Customer::active()->orderBy('name')->get();
+            $taxes = Tax::where('is_active', true)->orderBy('name')->get();
             // Map sale items to transaction IDs for form
             $sale->transaction_ids = $sale->saleItems->pluck('id')->toArray();
             return response()->json([
-                'html' => view('admin.sales.partials.form', ['sale' => $sale, 'customers' => $customers])->render(),
+                'html' => view('admin.sales.partials.form', ['sale' => $sale, 'customers' => $customers, 'taxes' => $taxes])->render(),
                 'data' => $sale
             ]);
         }
@@ -213,17 +229,24 @@ class SaleController extends Controller
 
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
+            'tax_id' => 'nullable|exists:taxes,id',
             'invoice_number' => 'required|string|max:50|unique:sales,invoice_number,' . $id,
             'sale_date' => 'required|date',
             'subtotal' => 'required|numeric|min:0',
-            'ppn_amount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'transaction_ids' => 'required|array|min:1',
             'transaction_ids.*' => 'required|exists:sale_transactions,id',
         ]);
 
-        $validated['ppn_amount'] = $validated['ppn_amount'] ?? 0;
-        $validated['total'] = $validated['subtotal'] + $validated['ppn_amount'];
+        $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
+        $taxAmount = $tax ? $tax->calculateAmount((float) $validated['subtotal']) : 0;
+        $validated['ppn_amount'] = $taxAmount;
+        $validated['tax_name'] = $tax?->name;
+        $validated['tax_rate'] = $tax?->rate;
+        $validated['tax_calculation_type'] = $tax?->calculation_type;
+        $validated['total'] = $tax && $tax->isDeduction()
+            ? ($validated['subtotal'] - $taxAmount)
+            : ($validated['subtotal'] + $taxAmount);
 
         DB::beginTransaction();
         try {

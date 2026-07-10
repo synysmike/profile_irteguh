@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Ir Teguh Solution - Solusi IT & Kreatif Terintegrasi')</title>
+    <title>@yield('title', \App\Models\Setting::appName() . ' - Solusi IT & Kreatif Terintegrasi')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,26 +18,28 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+<body class="min-h-screen @yield('body_class', 'bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900')">
     {{-- Print header: visible only when printing --}}
     <div class="print-header-only hidden border-b border-gray-300 pb-3 mb-4">
         <div class="flex items-center gap-4">
             @php $printLogoUrl = \App\Models\Setting::logoPath(); @endphp
             @if($printLogoUrl)
             <span class="site-logo-wrap site-logo-wrap--print">
-                <img src="{{ $printLogoUrl }}" alt="{{ config('app.name', 'Ir Teguh Solution') }}" class="site-logo" width="160" height="40">
+                <img src="{{ $printLogoUrl }}" alt="{{ \App\Models\Setting::appName() }}" class="site-logo" width="160" height="40">
             </span>
             @endif
-            <h1 class="text-lg font-bold text-gray-900">{{ config('app.name', 'Ir Teguh Solution') }}</h1>
+            <h1 class="text-lg font-bold text-gray-900">{{ \App\Models\Setting::appName() }}</h1>
         </div>
     </div>
+    @unless(View::hasSection('fullpage_hero'))
     <!-- Animated Background -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0YzAtMS4xLS45LTItMi0ySDI2Yy0xLjEgMC0yIC45LTIgMnYyYzAgMS4xLjkgMiAyIDJoOGMxLjEgMCAyLS45IDItMnYtMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-20 animate-pulse"></div>
         <div class="absolute top-0 left-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
         <div class="absolute top-0 right-0 w-96 h-96 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
         <div class="absolute -bottom-8 left-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
     </div>
+    @endunless
 
     <!-- Navigation -->
     <nav class="relative z-50 backdrop-blur-md bg-white/10 border-b border-white/20">
@@ -51,10 +53,10 @@
                     @endphp
                     @if($siteLogoUrl)
                     <span class="site-logo-wrap site-logo-wrap--nav" style="width: {{ $logoW }}px; height: {{ $logoH }}px;">
-                        <img src="{{ $siteLogoUrl }}" alt="{{ config('app.name', 'Ir Teguh Solution') }}" class="site-logo" width="{{ $logoW }}" height="{{ $logoH }}" loading="lazy">
+                        <img src="{{ $siteLogoUrl }}" alt="{{ \App\Models\Setting::appName() }}" class="site-logo" width="{{ $logoW }}" height="{{ $logoH }}" loading="lazy">
                     </span>
                     @else
-                    <span>Ir Teguh Solution</span>
+                    <span>{{ \App\Models\Setting::appName() }}</span>
                     @endif
                 </a>
                 <div class="hidden md:flex space-x-6">
@@ -92,7 +94,7 @@
         <div class="container mx-auto px-4 py-8">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
-                    <h3 class="text-white font-bold text-lg mb-4">Ir Teguh Solution</h3>
+                    <h3 class="text-white font-bold text-lg mb-4">{{ \App\Models\Setting::appName() }}</h3>
                     <p class="text-white/70 text-sm">Solusi IT & Kreatif Terintegrasi untuk Pendidikan dan Bisnis</p>
                 </div>
                 <div>
@@ -111,7 +113,7 @@
                 </div>
             </div>
             <div class="mt-8 pt-8 border-t border-white/20 text-center text-white/50 text-sm">
-                <p>&copy; {{ date('Y') }} Ir Teguh Solution. Hak cipta dilindungi.</p>
+                <p>&copy; {{ date('Y') }} {{ \App\Models\Setting::appName() }}. Hak cipta dilindungi.</p>
             </div>
         </div>
     </footer>

@@ -354,6 +354,9 @@ window.openResourceModal = function (
                         if (typeof window.initSaleTransactionsForm === "function") {
                             window.initSaleTransactionsForm();
                         }
+                        if (resourceName === "projects" && typeof window.initProjectForm === "function") {
+                            window.initProjectForm();
+                        }
                     }, 100);
                 } else {
                     throw new Error("No HTML content received");
@@ -463,6 +466,9 @@ window.openResourceModal = function (
                         if (resourceName === "sales") {
                             loadPendingListInModal(modalId);
                         }
+                        if (resourceName === "projects" && typeof window.initProjectForm === "function") {
+                            window.initProjectForm();
+                        }
                     }, 100);
                 } else {
                     throw new Error("No HTML content received");
@@ -557,6 +563,7 @@ window.deleteResource = function (resourceName, id, singularName) {
                 const rowId13 = `journal-entriesRow_${id}`;
                 const rowId14 = `cash-transactionsRow_${id}`;
                 const rowId15 = `sale-transactionsRow_${id}`;
+                const rowId16 = `projectsRow_${id}`;
 
                 let row =
                     document.getElementById(rowId1) ||
@@ -573,7 +580,8 @@ window.deleteResource = function (resourceName, id, singularName) {
                     document.getElementById(rowId12) ||
                     document.getElementById(rowId13) ||
                     document.getElementById(rowId14) ||
-                    document.getElementById(rowId15);
+                    document.getElementById(rowId15) ||
+                    document.getElementById(rowId16);
 
                 if (row) row.remove();
                 showNotification(

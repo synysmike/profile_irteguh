@@ -36,4 +36,23 @@ class Slide extends Model
     {
         return $query->orderBy('order');
     }
+
+    public function resolvedImageUrl(): string
+    {
+        $url = trim((string) $this->image_url);
+
+        if ($url === '') {
+            return '';
+        }
+
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            return $url;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return asset(ltrim($url, '/'));
+        }
+
+        return asset($url);
+    }
 }

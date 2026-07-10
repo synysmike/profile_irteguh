@@ -6,7 +6,7 @@
 <div class="flex items-center justify-between mb-4">
     <div>
         <h2 class="text-2xl font-bold text-gray-800">Transaksi Penjualan</h2>
-        <p class="text-gray-600 mt-1">Faktur penjualan, PPN keluaran. Terkait Data Klien (Customer) & Akun Perkiraan.</p>
+        <p class="text-gray-600 mt-1">Faktur penjualan dengan opsi pajak dinamis. Terkait Data Klien (Customer) & Akun Perkiraan.</p>
     </div>
     <div class="flex gap-2">
         <button type="button" id="btn-open-add-transaction" class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition text-sm font-semibold">
@@ -29,7 +29,7 @@
     </div>
     <div id="pending-widget-totals" class="hidden mt-3 pt-3 border-t border-amber-200 text-sm">
         <div class="flex justify-between"><span class="text-amber-800">Subtotal (DPP)</span><span id="pending-subtotal" class="font-medium">Rp 0</span></div>
-        <div class="flex justify-between"><span class="text-amber-800">PPN (11%)</span><span id="pending-ppn">Rp 0</span></div>
+        <div class="flex justify-between"><span class="text-amber-800">Pajak</span><span id="pending-ppn">Rp 0</span></div>
         <div class="flex justify-between font-semibold text-amber-900"><span>Total</span><span id="pending-total">Rp 0</span></div>
     </div>
     <p class="text-xs text-amber-600 mt-2">Setelah daftar siap, klik &quot;Buat Invoice&quot; untuk membuat faktur penjualan.</p>
@@ -42,8 +42,9 @@
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Faktur</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Project</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">PPN</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Pajak</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -55,8 +56,17 @@
                 <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $sale->invoice_number }}</td>
                 <td class="px-4 py-3 text-sm text-gray-600">{{ $sale->sale_date?->format('d/m/Y') }}</td>
                 <td class="px-4 py-3 text-sm text-gray-600">{{ $sale->customer?->name ?? '—' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">
+                    @if($sale->project)
+                    <a href="{{ route('admin.projects.show', $sale->project_id) }}" class="text-indigo-600 hover:text-indigo-800">{{ $sale->project->code }}</a>
+                    @else
+                    —
+                    @endif
+                </td>
                 <td class="px-4 py-3 text-sm text-right text-gray-600">Rp {{ number_format($sale->subtotal, 0, ',', '.') }}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-600">Rp {{ number_format($sale->ppn_amount, 0, ',', '.') }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-600">
+                    {{ $sale->tax_name ? $sale->tax_name . ': ' : '' }}Rp {{ number_format($sale->ppn_amount, 0, ',', '.') }}
+                </td>
                 <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">Rp {{ number_format($sale->total, 0, ',', '.') }}</td>
                 <td class="px-4 py-3 text-sm">
                     @if($sale->cashTransaction)
@@ -73,7 +83,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                <td colspan="9" class="px-4 py-8 text-center text-gray-500">
                     Belum ada transaksi penjualan.
                 </td>
             </tr>
@@ -92,9 +102,11 @@
         <div class="p-4 overflow-y-auto flex-1">
             <p class="text-sm text-gray-600 mb-3">Pilih satu atau lebih transaksi (Ctrl+klik untuk multi), lalu klik Tambah ke Daftar.</p>
             <select id="add-transaction-select" multiple size="10" class="w-full border border-gray-300 rounded-md p-2 text-sm">
-                @foreach(\App\Models\SaleTransaction::active()->orderBy('description')->get() as $t)
+                @foreach(\App\Models\SaleTransaction::active()->fromGrosir()->with('purchase')->orderBy('description')->get() as $t)
                     <option value="{{ $t->id }}" data-subtotal="{{ $t->subtotal }}">
-                        {{ $t->description }}{{ $t->code ? ' (' . $t->code . ')' : '' }} - Rp {{ number_format($t->subtotal, 0, ',', '.') }}
+                        {{ $t->description }}{{ $t->code ? ' (' . $t->code . ')' : '' }}
+                        @if($t->purchase) [{{ $t->purchase->invoice_number }}] @endif
+                        - Rp {{ number_format($t->subtotal, 0, ',', '.') }}
                     </option>
                 @endforeach
             </select>

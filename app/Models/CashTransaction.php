@@ -9,7 +9,7 @@ class CashTransaction extends Model
     protected $fillable = [
         'transaction_date', 'transaction_type', 'chart_of_account_id',
         'amount', 'description', 'reference', 'document_path',
-        'sale_id', 'purchase_id',
+        'sale_id', 'purchase_id', 'project_id', 'project_payment_term_id',
         'is_posted', 'posted_at',
     ];
 
@@ -33,6 +33,16 @@ class CashTransaction extends Model
     public function purchase()
     {
         return $this->belongsTo(Purchase::class);
+    }
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function projectPaymentTerm()
+    {
+        return $this->belongsTo(ProjectPaymentTerm::class);
     }
 
     public function scopeLatestFirst($query)

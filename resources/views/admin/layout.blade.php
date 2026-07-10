@@ -27,10 +27,10 @@
             @php $printLogoUrl = \App\Models\Setting::logoPath(); @endphp
             @if($printLogoUrl)
             <span class="site-logo-wrap site-logo-wrap--print">
-                <img src="{{ $printLogoUrl }}" alt="{{ config('app.name', 'Ir Teguh Solution') }}" class="site-logo" width="160" height="40">
+                <img src="{{ $printLogoUrl }}" alt="{{ \App\Models\Setting::appName() }}" class="site-logo" width="160" height="40">
             </span>
             @endif
-            <h1 class="text-lg font-bold text-gray-900">{{ config('app.name', 'Ir Teguh Solution') }}</h1>
+            <h1 class="text-lg font-bold text-gray-900">{{ \App\Models\Setting::appName() }}</h1>
         </div>
     </div>
     <!-- Navigation -->
@@ -38,7 +38,7 @@
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-14">
                 <div class="flex items-center gap-6">
-                    <a href="{{ route('admin.dashboard') }}" class="text-xl font-bold text-gray-800 hover:text-purple-600 transition">Ir Teguh Solution</a>
+                    <a href="{{ route('admin.dashboard') }}" class="text-xl font-bold text-gray-800 hover:text-purple-600 transition">{{ \App\Models\Setting::appName() }}</a>
                     <span class="text-xs text-gray-400 font-medium uppercase tracking-wider hidden sm:inline">Admin</span>
                 </div>
                 <div class="flex items-center gap-1">
@@ -47,7 +47,7 @@
 
                     {{-- Konten Website --}}
                     <div class="relative nav-dropdown-wrap">
-                        <button type="button" class="nav-dropdown-trigger px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 inline-flex items-center gap-1 {{ request()->routeIs('admin.case-studies.*', 'admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*') ? 'bg-purple-50 text-purple-700' : '' }}">
+                        <button type="button" class="nav-dropdown-trigger px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 inline-flex items-center gap-1 {{ request()->routeIs('admin.case-studies.*', 'admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*', 'admin.contact.*') ? 'bg-purple-50 text-purple-700' : '' }}">
                             Konten
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
@@ -58,6 +58,12 @@
                                 <a href="{{ route('admin.hero-texts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Teks Hero</a>
                                 <a href="{{ route('admin.services.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Layanan</a>
                                 <a href="{{ route('admin.contributors.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Tim</a>
+                                <a href="{{ route('admin.contact.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 relative">
+                                    Kontak
+                                    @if(\App\Models\ContactMessage::unread()->count() > 0)
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{{ \App\Models\ContactMessage::unread()->count() }}</span>
+                                    @endif
+                                </a>
                                 @if(Route::has('admin.site-logo.edit'))
                                 <div class="border-t border-gray-100 mt-1 pt-1">
                                     <a href="{{ route('admin.site-logo.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logo Situs</a>
@@ -69,19 +75,13 @@
 
                     {{-- Statistik & Pesan --}}
                     <div class="relative nav-dropdown-wrap">
-                        <button type="button" class="nav-dropdown-trigger px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 inline-flex items-center gap-1 {{ request()->routeIs('admin.visitors.*', 'admin.contact-messages.*') ? 'bg-purple-50 text-purple-700' : '' }}">
+                        <button type="button" class="nav-dropdown-trigger px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 inline-flex items-center gap-1 {{ request()->routeIs('admin.visitors.*') ? 'bg-purple-50 text-purple-700' : '' }}">
                             Statistik & Pesan
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div class="nav-dropdown absolute left-0 top-full pt-1 w-52 z-50">
                             <div class="py-1 bg-white rounded-lg shadow-lg border border-gray-200">
                                 <a href="{{ route('admin.visitors.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pengunjung</a>
-                                <a href="{{ route('admin.contact-messages.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 relative">
-                                    Pesan Kontak
-                                    @if(\App\Models\ContactMessage::unread()->count() > 0)
-                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{{ \App\Models\ContactMessage::unread()->count() }}</span>
-                                    @endif
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -89,6 +89,9 @@
                     {{-- Keuangan (Pembukuan & Pajak) --}}
                     @if(Route::has('admin.keuangan.dashboard'))
                     <a href="{{ route('admin.keuangan.dashboard') }}" class="nav-link px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('admin.keuangan.*') ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">Keuangan</a>
+                    @endif
+                    @if(Route::has('admin.projects.index'))
+                    <a href="{{ route('admin.projects.index') }}" class="nav-link px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('admin.projects.*') ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">Project</a>
                     @endif
                     {{-- Pembukuan (quick link: Tempat Grosir & Customer, terkait Keuangan) --}}
                     @if(Route::has('admin.suppliers.index') && Route::has('admin.customers.index'))

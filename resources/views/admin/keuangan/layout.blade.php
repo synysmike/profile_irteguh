@@ -48,7 +48,8 @@
                             <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" class="block px-4 py-2 pl-6 {{ request()->routeIs('admin.keuangan.transaksi.penjualan') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Penjualan</a>
                         </div>
                     </div>
-                    <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.transaksi.pembelian') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Pembelian</a>
+                    <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.transaksi.pembelian') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Grosir</a>
+                    <a href="{{ route('admin.projects.index') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.projects.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Project</a>
                     <a href="{{ route('admin.keuangan.transaksi.kas-bank') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.transaksi.kas-bank') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Kas/Bank</a>
                     <a href="{{ route('admin.keuangan.transaksi.gaji') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.transaksi.gaji') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Gaji & Payroll</a>
                 </li>
@@ -64,9 +65,7 @@
                 </li>
                 <li class="mt-2">
                     <div class="px-4 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Menu Pajak</div>
-                    <a href="{{ route('admin.keuangan.pajak.pph-badan') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.pajak.pph-badan') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">PPh Badan</a>
-                    <a href="{{ route('admin.keuangan.pajak.pph-21') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.pajak.pph-21') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">PPh 21</a>
-                    <a href="{{ route('admin.keuangan.pajak.ppn') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.pajak.ppn') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">PPN</a>
+                    <a href="{{ route('admin.keuangan.pajak.index') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.pajak.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Master Pajak</a>
                 </li>
                 <li>
                     <a href="{{ route('admin.keuangan.laporan-pajak.index') }}" class="block px-4 py-2 {{ request()->routeIs('admin.keuangan.laporan-pajak.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">📋 Laporan Pajak</a>
