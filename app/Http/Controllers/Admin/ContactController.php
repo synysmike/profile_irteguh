@@ -40,6 +40,7 @@ class ContactController extends Controller
             'whatsapp' => Setting::contactWhatsapp(),
             'whatsapp_label' => Setting::contactWhatsappLabel(),
             'response_note' => Setting::contactResponseNote(),
+            'maps_embed_url' => Setting::contactMapsEmbedUrl(),
         ];
 
         return view('admin.contact.index', compact(
@@ -55,11 +56,19 @@ class ContactController extends Controller
     {
         $validated = $request->validate([
             'contact_address' => 'required|string|max:500',
+            'contact_maps_embed' => 'nullable|string|max:2000',
             'contact_email' => 'required|email|max:255',
             'contact_whatsapp' => 'required|string|max:20',
             'contact_whatsapp_label' => 'nullable|string|max:255',
             'contact_response_note' => 'nullable|string|max:500',
         ]);
+
+        $mapsEmbedUrl = Setting::normalizeMapsEmbedInput($validated['contact_maps_embed'] ?? null);
+        if (!empty($validated['contact_maps_embed']) && !$mapsEmbedUrl) {
+            return redirect()->route('admin.contact.index')
+                ->withInput()
+                ->with('error', 'URL Google Maps tidak valid. Gunakan link Embed map dari Google Maps (Share → Embed a map), atau tempel kode iframe-nya.');
+        }
 
         $whatsapp = preg_replace('/\D+/', '', $validated['contact_whatsapp']);
         if (str_starts_with($whatsapp, '0')) {
@@ -67,6 +76,7 @@ class ContactController extends Controller
         }
 
         Setting::set('contact_address', $validated['contact_address']);
+        Setting::set('contact_maps_embed_url', $mapsEmbedUrl ?? '');
         Setting::set('contact_email', $validated['contact_email']);
         Setting::set('contact_whatsapp', $whatsapp);
         Setting::set('contact_whatsapp_label', $validated['contact_whatsapp_label'] ?? 'Chat dengan kami di WhatsApp');

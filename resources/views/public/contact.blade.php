@@ -89,7 +89,18 @@
                 <div class="space-y-6">
                     <div class="glass-card rounded-xl p-6">
                         <h3 class="text-xl font-bold text-white mb-4">📍 Lokasi</h3>
-                        <p class="text-white/80 whitespace-pre-line">{{ $contactInfo['address'] }}</p>
+                        <p class="text-white/80 whitespace-pre-line mb-4">{{ $contactInfo['address'] }}</p>
+                        @if(!empty($contactInfo['maps_embed_url']))
+                        <div class="rounded-xl overflow-hidden border border-white/20 shadow-lg">
+                            <iframe
+                                src="{{ $contactInfo['maps_embed_url'] }}"
+                                title="Peta lokasi {{ \App\Models\Setting::appName() }}"
+                                class="w-full h-64 md:h-72 border-0"
+                                loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade"
+                                allowfullscreen></iframe>
+                        </div>
+                        @endif
                     </div>
 
                     <div class="glass-card rounded-xl p-6">

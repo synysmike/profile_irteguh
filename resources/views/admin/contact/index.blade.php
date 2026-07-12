@@ -41,6 +41,29 @@
             @error('contact_address')<p class="text-red-600 text-sm mt-1">{{ $message }}</p>@enderror
         </div>
 
+        <div class="md:col-span-2">
+            <label for="contact_maps_embed" class="block text-sm font-medium text-gray-700 mb-2">Embed Google Maps</label>
+            <textarea id="contact_maps_embed" name="contact_maps_embed" rows="3"
+                      placeholder="Tempel URL embed atau kode iframe dari Google Maps"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm">{{ old('contact_maps_embed', $contactSettings['maps_embed_url']) }}</textarea>
+            <p class="text-xs text-gray-500 mt-2">
+                Cara ambil: buka Google Maps → cari lokasi → <strong>Share</strong> → <strong>Embed a map</strong> → Copy HTML.
+                Boleh tempel seluruh kode <code>&lt;iframe&gt;</code> atau hanya URL <code>https://www.google.com/maps/embed?...</code>
+            </p>
+            @error('contact_maps_embed')<p class="text-red-600 text-sm mt-1">{{ $message }}</p>@enderror
+
+            @if(!empty($contactSettings['maps_embed_url']))
+            <div class="mt-4 rounded-lg overflow-hidden border border-gray-200">
+                <iframe
+                    src="{{ $contactSettings['maps_embed_url'] }}"
+                    class="w-full h-56 border-0"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    allowfullscreen></iframe>
+            </div>
+            @endif
+        </div>
+
         <div>
             <label for="contact_email" class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
             <input type="email" id="contact_email" name="contact_email" required

@@ -117,6 +117,55 @@ class Setting extends Model
         return (string) static::get('contact_response_note', 'Kami biasanya merespons dalam 24-48 jam');
     }
 
+    public static function contactMapsEmbedUrl(): ?string
+    {
+        $url = trim((string) static::get('contact_maps_embed_url', ''));
+        return $url !== '' ? $url : null;
+    }
+
+    /**
+     * Extract a safe Google Maps embed URL from a raw URL or pasted iframe HTML.
+     */
+    public static function normalizeMapsEmbedInput(?string $input): ?string
+    {
+        $input = trim((string) $input);
+        if ($input === '') {
+            return null;
+        }
+
+        if (preg_match('/src=["\']([^"\']+)["\']/i', $input, $matches)) {
+            $input = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5);
+        }
+
+        if (!filter_var($input, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
+        $host = parse_url($input, PHP_URL_HOST);
+        $allowedHosts = [
+            'www.google.com',
+            'google.com',
+            'maps.google.com',
+            'www.google.co.id',
+            'maps.google.co.id',
+        ];
+
+        if (!$host || !in_array(strtolower($host), $allowedHosts, true)) {
+            return null;
+        }
+
+        // Prefer embed URLs; allow maps URLs that already contain /maps/embed
+        if (!str_contains($input, '/maps/embed') && !str_contains($input, 'output=embed')) {
+            // Still allow if it's clearly a google maps URL - admin may paste share link
+            // Convert basic place share links is unreliable; require embed format.
+            if (!str_contains($input, 'google.com/maps')) {
+                return null;
+            }
+        }
+
+        return $input;
+    }
+
     public static function contactWhatsappUrl(): string
     {
         $number = preg_replace('/\D+/', '', static::contactWhatsapp());

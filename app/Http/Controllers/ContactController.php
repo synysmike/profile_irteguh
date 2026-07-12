@@ -24,6 +24,7 @@ class ContactController extends Controller
             'whatsapp_label' => Setting::contactWhatsappLabel(),
             'whatsapp_url' => Setting::contactWhatsappUrl(),
             'response_note' => Setting::contactResponseNote(),
+            'maps_embed_url' => Setting::contactMapsEmbedUrl(),
         ];
 
         return view('public.contact', compact('contactInfo', 'captchaA', 'captchaB'));
