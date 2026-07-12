@@ -70,11 +70,15 @@ class News extends Model
             return $path;
         }
 
-        if (str_starts_with($path, '/')) {
-            return asset(ltrim($path, '/'));
+        if (str_starts_with($path, '/storage/') || str_starts_with($path, 'storage/')) {
+            return url(ltrim($path, '/'));
         }
 
-        return asset('storage/' . ltrim(str_replace('public/', '', $path), '/'));
+        if (str_starts_with($path, '/')) {
+            return url(ltrim($path, '/'));
+        }
+
+        return url('storage/' . ltrim(str_replace('public/', '', $path), '/'));
     }
 
     public function incrementViews(): void

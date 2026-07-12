@@ -2,6 +2,54 @@
 
 @section('title', $newsItem->title . ' - ' . \App\Models\Setting::appName())
 
+@php
+    $ogTitle = $newsItem->title;
+    $ogDescription = \Illuminate\Support\Str::limit(
+        $newsItem->excerpt ?: strip_tags($newsItem->content),
+        160
+    );
+    $ogUrl = $newsItem->publicUrl();
+    $ogImage = $newsItem->coverUrl();
+    if ($ogImage && !preg_match('#^https?://#i', $ogImage)) {
+        $ogImage = url($ogImage);
+    }
+    if (!$ogImage) {
+        $ogImage = \App\Models\Setting::logoPath();
+    }
+@endphp
+
+@push('meta')
+<meta name="description" content="{{ $ogDescription }}">
+<link rel="canonical" href="{{ $ogUrl }}">
+
+{{-- Open Graph (Facebook, WhatsApp, LinkedIn, Threads, dll.) --}}
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="{{ \App\Models\Setting::appName() }}">
+<meta property="og:title" content="{{ $ogTitle }}">
+<meta property="og:description" content="{{ $ogDescription }}">
+<meta property="og:url" content="{{ $ogUrl }}">
+@if($ogImage)
+<meta property="og:image" content="{{ $ogImage }}">
+<meta property="og:image:secure_url" content="{{ $ogImage }}">
+<meta property="og:image:alt" content="{{ $ogTitle }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+@endif
+<meta property="article:published_time" content="{{ optional($newsItem->published_at ?? $newsItem->created_at)->toIso8601String() }}">
+@if($newsItem->author_name)
+<meta property="article:author" content="{{ $newsItem->author_name }}">
+@endif
+
+{{-- Twitter / X Card --}}
+<meta name="twitter:card" content="{{ $ogImage ? 'summary_large_image' : 'summary' }}">
+<meta name="twitter:title" content="{{ $ogTitle }}">
+<meta name="twitter:description" content="{{ $ogDescription }}">
+@if($ogImage)
+<meta name="twitter:image" content="{{ $ogImage }}">
+<meta name="twitter:image:alt" content="{{ $ogTitle }}">
+@endif
+@endpush
+
 @section('content')
 <div class="news-reading-page">
     <div class="news-progress" id="news-progress" aria-hidden="true"><span></span></div>
