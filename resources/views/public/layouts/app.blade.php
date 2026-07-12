@@ -8,7 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
     <style>
         @media print {
             body { background: #fff !important; }
@@ -17,6 +17,7 @@
             main { padding-top: 0 !important; }
         }
     </style>
+    @stack('styles')
 </head>
 <body class="min-h-screen @yield('body_class', 'bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900')">
     {{-- Print header: visible only when printing --}}
@@ -92,7 +93,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="relative z-10 backdrop-blur-md bg-white/10 border-t border-white/20 mt-20">
+    <footer class="relative z-10 backdrop-blur-md bg-white/10 border-t border-white/20 {{ request()->routeIs('news.show') ? 'mt-10' : 'mt-20' }}">
         <div class="container mx-auto px-4 py-8">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
