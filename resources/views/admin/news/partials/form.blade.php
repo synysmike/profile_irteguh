@@ -43,20 +43,32 @@
         <p class="text-xs text-gray-500 mt-2">Gunakan toolbar untuk format teks, heading, daftar, quote, link, dan gambar.</p>
     </div>
 
+    @php
+        $existingCover = $item?->cover_image;
+        $existingIsExternal = $existingCover && filter_var($existingCover, FILTER_VALIDATE_URL);
+        $coverUrlValue = old('cover_image', $existingIsExternal ? $existingCover : '');
+    @endphp
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
             <label for="cover_image" class="block text-sm font-medium text-gray-700 mb-2">URL Cover</label>
             <input type="text" id="cover_image" name="cover_image"
-                   value="{{ old('cover_image', $item->cover_image ?? '') }}"
-                   placeholder="https://... atau kosongkan jika upload file"
+                   value="{{ $coverUrlValue }}"
+                   placeholder="https://... (opsional jika upload file)"
                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <p class="text-xs text-gray-500 mt-1">Kosongkan jika memakai upload file. Cover yang sudah ada tidak akan terhapus.</p>
         </div>
         <div>
             <label for="cover_file" class="block text-sm font-medium text-gray-700 mb-2">Upload Cover</label>
             <input type="file" id="cover_file" name="cover_file" accept="image/*"
                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
             @if($item && $item->coverUrl())
-            <img src="{{ $item->coverUrl() }}" alt="Cover" class="mt-3 h-24 rounded-md object-cover border border-gray-200">
+            <div class="mt-3 flex items-start gap-3">
+                <img src="{{ $item->coverUrl() }}" alt="Cover" class="h-24 rounded-md object-cover border border-gray-200">
+                <label class="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                    <input type="checkbox" name="remove_cover" value="1" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                    Hapus cover
+                </label>
+            </div>
             @endif
         </div>
     </div>

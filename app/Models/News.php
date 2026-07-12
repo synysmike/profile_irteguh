@@ -61,13 +61,44 @@ class News extends Model
 
     public function coverUrl(): ?string
     {
-        $path = trim((string) $this->cover_image);
+        return $this->resolveMediaUrl($this->cover_image);
+    }
+
+    /**
+     * Absolute image URL for social previews (Open Graph / Twitter).
+     * Preference: cover → first image in content → site logo.
+     */
+    public function shareImageUrl(): ?string
+    {
+        $cover = $this->coverUrl();
+        if ($cover) {
+            return $cover;
+        }
+
+        if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', (string) $this->content, $matches)) {
+            $fromContent = $this->resolveMediaUrl(html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5));
+            if ($fromContent) {
+                return $fromContent;
+            }
+        }
+
+        return $this->resolveMediaUrl(Setting::logoPath());
+    }
+
+    public function resolveMediaUrl(?string $path): ?string
+    {
+        $path = trim((string) $path);
         if ($path === '') {
             return null;
         }
 
         if (filter_var($path, FILTER_VALIDATE_URL)) {
             return $path;
+        }
+
+        if (str_starts_with($path, '//')) {
+            $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'https';
+            return $scheme . ':' . $path;
         }
 
         if (str_starts_with($path, '/storage/') || str_starts_with($path, 'storage/')) {

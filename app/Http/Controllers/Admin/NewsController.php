@@ -102,13 +102,25 @@ class NewsController extends Controller
             ? Str::slug($validated['slug'])
             : News::generateUniqueSlug($title, $newsItem?->id);
 
-        $cover = $validated['cover_image'] ?? $newsItem?->cover_image;
+        // Keep existing cover unless a new URL or file is provided.
+        $cover = $newsItem?->cover_image;
+        $coverUrlInput = trim((string) ($validated['cover_image'] ?? ''));
+        if ($coverUrlInput !== '') {
+            $cover = $coverUrlInput;
+        }
 
         if ($request->hasFile('cover_file')) {
             if ($newsItem?->cover_image && !filter_var($newsItem->cover_image, FILTER_VALIDATE_URL)) {
                 Storage::disk('public')->delete($newsItem->cover_image);
             }
             $cover = $request->file('cover_file')->store('news', 'public');
+        }
+
+        if ($request->boolean('remove_cover')) {
+            if ($cover && !filter_var($cover, FILTER_VALIDATE_URL)) {
+                Storage::disk('public')->delete($cover);
+            }
+            $cover = null;
         }
 
         $isPublished = $request->boolean('is_published');
