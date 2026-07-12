@@ -6,7 +6,6 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Panel - Ir Teguh Solution')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/admin-ajax.js'])
-    @stack('scripts')
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
@@ -76,12 +75,14 @@
                     {{-- Statistik & Pesan --}}
                     <div class="relative nav-dropdown-wrap">
                         <button type="button" class="nav-dropdown-trigger px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 inline-flex items-center gap-1 {{ request()->routeIs('admin.visitors.*') ? 'bg-purple-50 text-purple-700' : '' }}">
-                            Statistik & Pesan
+                            Statistik
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
-                        <div class="nav-dropdown absolute left-0 top-full pt-1 w-52 z-50">
+                        <div class="nav-dropdown absolute left-0 top-full pt-1 w-56 z-50">
                             <div class="py-1 bg-white rounded-lg shadow-lg border border-gray-200">
-                                <a href="{{ route('admin.visitors.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pengunjung</a>
+                                <a href="{{ route('admin.visitors.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.visitors.*') ? 'bg-purple-50 text-purple-700 font-medium' : '' }}">
+                                    Visitor Counter
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -172,5 +173,6 @@
         }
     })();
     </script>
+    @stack('scripts')
 </body>
 </html>

@@ -118,22 +118,36 @@
 
 **Solutions:**
 
-1. **Authenticate GitHub CLI:**
+1. **Login GitHub CLI di host (bukan di container):**
 
     ```bash
     gh auth login
     ```
 
-2. **Configure Git:**
+    Lalu rebuild devcontainer: **Dev Containers: Rebuild Container**
+
+2. **Verifikasi di dalam container:**
 
     ```bash
-    git config --global user.name "Your Name"
-    git config --global user.email "your.email@example.com"
+    gh auth status
+    git config --global user.name
+    git config --global user.email
     ```
 
-3. **Use SSH keys:**
-    - Add SSH key to GitHub
-    - Use SSH URL for remote: `git@github.com:user/repo.git`
+3. **Pastikan remote memakai HTTPS** (sesuai setup `gh auth login`):
+
+    ```bash
+    git remote -v
+    # origin  https://github.com/synysmike/profile_irteguh.git
+    ```
+
+4. **Fallback manual** jika mount gagal:
+
+    ```bash
+    gh auth login
+    git config --global user.name "synysmike"
+    git config --global user.email "sembuarang@yahoo.com"
+    ```
 
 ### Issue: Permission errors
 

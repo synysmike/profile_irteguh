@@ -33,13 +33,39 @@ This project includes a VS Code Dev Container configuration for seamless develop
 
 ## GitHub Integration
 
-Git and GitHub CLI are pre-installed. To authenticate with GitHub:
+Git dan GitHub CLI sudah terpasang. **Kredensial GitHub dari host otomatis diteruskan** ke devcontainer:
+
+- `~/.gitconfig` (user.name, user.email, gh credential helper)
+- `~/.config/gh` (token login `gh auth login`)
+
+### Prasyarat di host (Arch/Linux)
+
+Pastikan sudah login GitHub di mesin host:
 
 ```bash
 gh auth login
+git config --global user.name "synysmike"
+git config --global user.email "sembuarang@yahoo.com"
 ```
 
-Follow the prompts to authenticate with your GitHub account.
+### Push dari dalam devcontainer
+
+Setelah **Rebuild Container**, push langsung dari terminal container:
+
+```bash
+git status
+git add .
+git commit -m "pesan commit"
+git push
+```
+
+Verifikasi autentikasi:
+
+```bash
+gh auth status
+```
+
+Jika belum terautentikasi, rebuild container: **Dev Containers: Rebuild Container**.
 
 ## First Time Setup
 

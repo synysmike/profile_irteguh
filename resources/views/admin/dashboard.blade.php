@@ -50,7 +50,8 @@
                 </a>
                 <a href="{{ route('admin.visitors.index') }}" class="block p-6 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center">
                     <div class="text-4xl mb-3">📊</div>
-                    <div class="text-gray-800 font-semibold">Statistik Pengunjung</div>
+                    <div class="text-gray-800 font-semibold">Visitor Counter</div>
+                    <div class="text-gray-500 text-xs mt-2">IP, kota, provinsi, negara</div>
                 </a>
             </div>
             

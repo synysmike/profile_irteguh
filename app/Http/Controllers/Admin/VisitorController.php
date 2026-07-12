@@ -4,40 +4,42 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Visit;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class VisitorController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index(Request $request)
     {
-        // Get filter parameters
-        $dateRange = $request->get('range', '30'); // days
+        $dateRange = $request->get('range', '30');
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
 
-        // Set date range
         if ($startDate && $endDate) {
             $startDate = Carbon::parse($startDate)->startOfDay();
             $endDate = Carbon::parse($endDate)->endOfDay();
         } else {
             $endDate = Carbon::now()->endOfDay();
-            $startDate = Carbon::now()->subDays($dateRange)->startOfDay();
+            $startDate = Carbon::now()->subDays((int) $dateRange)->startOfDay();
         }
 
-        // Get statistics
-        $totalVisits = Visit::whereBetween('visited_at', [$startDate, $endDate])->count();
-        $uniqueVisitors = Visit::whereBetween('visited_at', [$startDate, $endDate])
-            ->distinct('ip_address')
-            ->count('ip_address');
+        $baseQuery = Visit::whereBetween('visited_at', [$startDate, $endDate]);
 
-        // Get recent visits
-        $recentVisits = Visit::whereBetween('visited_at', [$startDate, $endDate])
-            ->orderBy('visited_at', 'desc')
+        $totalVisits = (clone $baseQuery)->count();
+        $uniqueVisitors = (clone $baseQuery)->distinct('ip_address')->count('ip_address');
+        $todayVisits = Visit::whereDate('visited_at', today())->count();
+        $todayUnique = Visit::whereDate('visited_at', today())->distinct('ip_address')->count('ip_address');
+
+        $recentVisits = (clone $baseQuery)
+            ->orderByDesc('visited_at')
             ->limit(100)
             ->get();
 
-        // Get statistics by country
         $visitsByCountry = Visit::selectRaw('country, COUNT(DISTINCT ip_address) as unique_visitors, COUNT(*) as total_visits')
             ->whereBetween('visited_at', [$startDate, $endDate])
             ->whereNotNull('country')
@@ -46,16 +48,22 @@ class VisitorController extends Controller
             ->limit(20)
             ->get();
 
-        // Get statistics by city
-        $visitsByCity = Visit::selectRaw('city, country, COUNT(DISTINCT ip_address) as unique_visitors, COUNT(*) as total_visits')
+        $visitsByProvince = Visit::selectRaw('province, country, COUNT(DISTINCT ip_address) as unique_visitors, COUNT(*) as total_visits')
             ->whereBetween('visited_at', [$startDate, $endDate])
-            ->whereNotNull('city')
-            ->groupBy('city', 'country')
+            ->whereNotNull('province')
+            ->groupBy('province', 'country')
             ->orderByDesc('total_visits')
             ->limit(20)
             ->get();
 
-        // Get most visited pages
+        $visitsByCity = Visit::selectRaw('city, province, country, COUNT(DISTINCT ip_address) as unique_visitors, COUNT(*) as total_visits')
+            ->whereBetween('visited_at', [$startDate, $endDate])
+            ->whereNotNull('city')
+            ->groupBy('city', 'province', 'country')
+            ->orderByDesc('total_visits')
+            ->limit(20)
+            ->get();
+
         $mostVisitedPages = Visit::selectRaw('page_url, COUNT(*) as visits')
             ->whereBetween('visited_at', [$startDate, $endDate])
             ->whereNotNull('page_url')
@@ -64,14 +72,12 @@ class VisitorController extends Controller
             ->limit(20)
             ->get();
 
-        // Get visits by date for chart
         $visitsByDate = Visit::selectRaw('DATE(visited_at) as date, COUNT(DISTINCT ip_address) as unique_visitors, COUNT(*) as total_visits')
             ->whereBetween('visited_at', [$startDate, $endDate])
             ->groupBy('date')
             ->orderBy('date')
             ->get();
 
-        // Get device statistics
         $deviceStats = Visit::selectRaw('device_type, COUNT(*) as visits')
             ->whereBetween('visited_at', [$startDate, $endDate])
             ->whereNotNull('device_type')
@@ -79,7 +85,6 @@ class VisitorController extends Controller
             ->orderByDesc('visits')
             ->get();
 
-        // Get browser statistics
         $browserStats = Visit::selectRaw('browser, COUNT(*) as visits')
             ->whereBetween('visited_at', [$startDate, $endDate])
             ->whereNotNull('browser')
@@ -88,7 +93,6 @@ class VisitorController extends Controller
             ->limit(10)
             ->get();
 
-        // Get platform statistics
         $platformStats = Visit::selectRaw('platform, COUNT(*) as visits')
             ->whereBetween('visited_at', [$startDate, $endDate])
             ->whereNotNull('platform')
@@ -100,8 +104,11 @@ class VisitorController extends Controller
         return view('admin.visitors.index', compact(
             'totalVisits',
             'uniqueVisitors',
+            'todayVisits',
+            'todayUnique',
             'recentVisits',
             'visitsByCountry',
+            'visitsByProvince',
             'visitsByCity',
             'mostVisitedPages',
             'visitsByDate',
