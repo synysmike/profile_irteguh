@@ -65,24 +65,59 @@ class News extends Model
     }
 
     /**
-     * Absolute image URL for social previews (Open Graph / Twitter).
+     * Absolute image URL for social previews (Open Graph / Twitter / WhatsApp).
      * Preference: cover → first image in content → site logo.
      */
     public function shareImageUrl(): ?string
     {
         $cover = $this->coverUrl();
         if ($cover) {
-            return $cover;
+            return $this->preferHttpsUrl($cover);
         }
 
         if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', (string) $this->content, $matches)) {
             $fromContent = $this->resolveMediaUrl(html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5));
             if ($fromContent) {
-                return $fromContent;
+                return $this->preferHttpsUrl($fromContent);
             }
         }
 
-        return $this->resolveMediaUrl(Setting::logoPath());
+        $logo = $this->resolveMediaUrl(Setting::logoPath());
+
+        return $logo ? $this->preferHttpsUrl($logo) : null;
+    }
+
+    /**
+     * WhatsApp caches previews aggressively; a stable version query helps re-scrape after updates.
+     */
+    public function shareImageUrlForPreview(): ?string
+    {
+        $url = $this->shareImageUrl();
+        if (!$url) {
+            return null;
+        }
+
+        $version = optional($this->updated_at)->timestamp ?: time();
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url . $separator . 'v=' . $version;
+    }
+
+    public function shareImageMimeType(): ?string
+    {
+        $url = $this->shareImageUrl();
+        if (!$url) {
+            return null;
+        }
+
+        $path = strtolower(parse_url($url, PHP_URL_PATH) ?: '');
+        return match (true) {
+            str_ends_with($path, '.png') => 'image/png',
+            str_ends_with($path, '.webp') => 'image/webp',
+            str_ends_with($path, '.gif') => 'image/gif',
+            str_ends_with($path, '.jpg'), str_ends_with($path, '.jpeg') => 'image/jpeg',
+            default => 'image/jpeg',
+        };
     }
 
     public function resolveMediaUrl(?string $path): ?string
@@ -112,6 +147,16 @@ class News extends Model
         return url('storage/' . ltrim(str_replace('public/', '', $path), '/'));
     }
 
+    protected function preferHttpsUrl(string $url): string
+    {
+        $appIsHttps = str_starts_with((string) config('app.url'), 'https://');
+        if ($appIsHttps && str_starts_with($url, 'http://')) {
+            return 'https://' . substr($url, strlen('http://'));
+        }
+
+        return $url;
+    }
+
     public function incrementViews(): void
     {
         $this->increment('views_count');
@@ -124,14 +169,17 @@ class News extends Model
 
     public function shareUrls(): array
     {
-        $url = urlencode($this->publicUrl());
-        $text = urlencode($this->title . ' — ' . $this->publicUrl());
+        $pageUrl = $this->publicUrl();
+        $encodedUrl = urlencode($pageUrl);
+        $threadsText = urlencode($this->title . ' — ' . $pageUrl);
+        // WhatsApp previews more reliably when the bare URL comes first.
+        $whatsappText = urlencode($pageUrl . "\n\n" . $this->title);
 
         return [
-            'threads' => 'https://www.threads.net/intent/post?text=' . $text,
-            'twitter' => 'https://twitter.com/intent/tweet?text=' . urlencode($this->title) . '&url=' . $url,
-            'facebook' => 'https://www.facebook.com/sharer/sharer.php?u=' . $url,
-            'whatsapp' => 'https://wa.me/?text=' . $text,
+            'threads' => 'https://www.threads.net/intent/post?text=' . $threadsText,
+            'twitter' => 'https://twitter.com/intent/tweet?text=' . urlencode($this->title) . '&url=' . $encodedUrl,
+            'facebook' => 'https://www.facebook.com/sharer/sharer.php?u=' . $encodedUrl,
+            'whatsapp' => 'https://api.whatsapp.com/send?text=' . $whatsappText,
         ];
     }
 }

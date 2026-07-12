@@ -9,7 +9,8 @@
         160
     );
     $ogUrl = $newsItem->publicUrl();
-    $ogImage = $newsItem->shareImageUrl();
+    $ogImage = $newsItem->shareImageUrlForPreview();
+    $ogImageType = $newsItem->shareImageMimeType();
     $ogImageIsHttps = $ogImage && str_starts_with($ogImage, 'https://');
 @endphp
 
@@ -18,15 +19,23 @@
 <link rel="canonical" href="{{ $ogUrl }}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="{{ \App\Models\Setting::appName() }}">
+<meta property="og:locale" content="id_ID">
 <meta property="og:title" content="{{ $ogTitle }}">
 <meta property="og:description" content="{{ $ogDescription }}">
 <meta property="og:url" content="{{ $ogUrl }}">
 @if($ogImage)
 <meta property="og:image" content="{{ $ogImage }}">
+<meta property="og:image:url" content="{{ $ogImage }}">
 @if($ogImageIsHttps)
 <meta property="og:image:secure_url" content="{{ $ogImage }}">
 @endif
+@if($ogImageType)
+<meta property="og:image:type" content="{{ $ogImageType }}">
+@endif
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="{{ $ogTitle }}">
+<meta itemprop="image" content="{{ $ogImage }}">
 @endif
 <meta property="article:published_time" content="{{ optional($newsItem->published_at ?? $newsItem->created_at)->toIso8601String() }}">
 @if($newsItem->author_name)
