@@ -64,6 +64,7 @@
                     <a href="{{ route('about') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('about') ? 'text-white font-semibold' : '' }}">Tentang</a>
                     <a href="{{ route('services') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('services') ? 'text-white font-semibold' : '' }}">Layanan</a>
                     <a href="{{ route('portfolio.index') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('portfolio.*') ? 'text-white font-semibold' : '' }}">Portfolio</a>
+                    <a href="{{ route('news.index') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('news.*') ? 'text-white font-semibold' : '' }}">Berita</a>
                     <a href="{{ route('contact') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('contact') ? 'text-white font-semibold' : '' }}">Kontak</a>
                 </div>
                 <!-- Mobile menu button -->
@@ -79,6 +80,7 @@
                 <a href="{{ route('about') }}" class="block text-white/90 hover:text-white transition">Tentang</a>
                 <a href="{{ route('services') }}" class="block text-white/90 hover:text-white transition">Layanan</a>
                 <a href="{{ route('portfolio.index') }}" class="block text-white/90 hover:text-white transition">Portfolio</a>
+                <a href="{{ route('news.index') }}" class="block text-white/90 hover:text-white transition">Berita</a>
                 <a href="{{ route('contact') }}" class="block text-white/90 hover:text-white transition">Kontak</a>
             </div>
         </div>
@@ -104,6 +106,7 @@
                         <li><a href="{{ route('about') }}" class="text-white/70 hover:text-white transition">Tentang</a></li>
                         <li><a href="{{ route('services') }}" class="text-white/70 hover:text-white transition">Layanan</a></li>
                         <li><a href="{{ route('portfolio.index') }}" class="text-white/70 hover:text-white transition">Portfolio</a></li>
+                        <li><a href="{{ route('news.index') }}" class="text-white/70 hover:text-white transition">Berita</a></li>
                     </ul>
                 </div>
                 <div>

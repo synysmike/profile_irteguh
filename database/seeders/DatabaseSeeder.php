@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ContributorSeeder::class,
             ChartOfAccountSeeder::class,
             CaseStudySeeder::class,
+            NewsSeeder::class,
         ]);
     }
 }

@@ -17,6 +17,8 @@ Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
 Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
 Route::get('/case-study/{slug}', [CaseStudyController::class, 'show'])->name('case-study.show');
+Route::get('/berita', [\App\Http\Controllers\NewsController::class, 'index'])->name('news.index');
+Route::get('/berita/{slug}', [\App\Http\Controllers\NewsController::class, 'show'])->name('news.show');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 
@@ -42,6 +44,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('hero-texts', \App\Http\Controllers\Admin\HeroTextController::class);
     Route::resource('services', \App\Http\Controllers\Admin\ServiceController::class);
     Route::resource('contributors', \App\Http\Controllers\Admin\ContributorController::class);
+    Route::resource('news', \App\Http\Controllers\Admin\NewsController::class)->except(['show']);
     
     // Accounting/Bookkeeping routes
     Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);

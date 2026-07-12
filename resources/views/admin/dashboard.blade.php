@@ -36,6 +36,10 @@
                     <div class="text-4xl mb-3">📝</div>
                     <div class="text-gray-800 font-semibold">Kelola Studi Kasus</div>
                 </a>
+                <a href="{{ route('admin.news.index') }}" class="block p-6 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center">
+                    <div class="text-4xl mb-3">📰</div>
+                    <div class="text-gray-800 font-semibold">Kelola Berita</div>
+                </a>
                 <a href="{{ route('admin.slides.index') }}" class="block p-6 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center">
                     <div class="text-4xl mb-3">🖼️</div>
                     <div class="text-gray-800 font-semibold">Kelola Slide</div>
