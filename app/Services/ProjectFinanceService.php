@@ -36,7 +36,8 @@ class ProjectFinanceService
 
         $tax = $project->tax_id ? Tax::find($project->tax_id) : null;
         $amounts = static::applyTax((float) $project->subtotal, $tax);
-        $termNumber = 1;
+        $termNumber = (int) $project->paymentTerms()->where('status', 'paid')->max('term_number');
+        $termNumber = $termNumber > 0 ? $termNumber + 1 : 1;
 
         foreach ($termsInput as $row) {
             if (empty($row['label']) || !isset($row['percentage'])) {
@@ -44,6 +45,10 @@ class ProjectFinanceService
             }
 
             $percentage = (float) $row['percentage'];
+            if ($percentage <= 0) {
+                continue;
+            }
+
             $subtotalPortion = round($amounts['subtotal'] * $percentage / 100, 2);
             $taxPortion = round($amounts['ppn_amount'] * $percentage / 100, 2);
             $termTotal = round($amounts['total'] * $percentage / 100, 2);
@@ -59,6 +64,30 @@ class ProjectFinanceService
                 'status' => 'pending',
             ]);
         }
+    }
+
+    /**
+     * Update an existing term in place (including paid DP) without changing status.
+     */
+    public static function updateExistingTerm(Project $project, int $termId, array $payload): void
+    {
+        $term = $project->paymentTerms()->where('id', $termId)->first();
+        if (!$term || empty($payload)) {
+            return;
+        }
+
+        $tax = $project->tax_id ? Tax::find($project->tax_id) : null;
+        $amounts = static::applyTax((float) $project->subtotal, $tax);
+        $percentage = (float) ($payload['percentage'] ?? $term->percentage);
+
+        $term->update([
+            'label' => trim((string) ($payload['label'] ?? $term->label)) ?: $term->label,
+            'percentage' => $percentage,
+            'subtotal_amount' => round($amounts['subtotal'] * $percentage / 100, 2),
+            'tax_amount' => round($amounts['ppn_amount'] * $percentage / 100, 2),
+            'amount' => round($amounts['total'] * $percentage / 100, 2),
+            'due_date' => $payload['due_date'] ?? $term->due_date,
+        ]);
     }
 
     public static function rebuildFullPaymentTerm(Project $project): void
@@ -148,6 +177,42 @@ class ProjectFinanceService
             }
 
             return $sale;
+        });
+    }
+
+    /**
+     * Revert a paid term back to pending and remove linked sale + cash entries.
+     */
+    public static function reverseTermPayment(ProjectPaymentTerm $term): void
+    {
+        if (!$term->isPaid()) {
+            throw new \RuntimeException('Termin ini belum lunas.');
+        }
+
+        $project = $term->project()->firstOrFail();
+
+        DB::transaction(function () use ($term, $project) {
+            $saleId = $term->sale_id;
+
+            CashTransaction::where('project_payment_term_id', $term->id)->delete();
+            if ($saleId) {
+                CashTransaction::where('sale_id', $saleId)->delete();
+                SaleItem::where('sale_id', $saleId)->delete();
+                Sale::where('id', $saleId)->delete();
+            }
+
+            $term->update([
+                'status' => 'pending',
+                'paid_at' => null,
+                'sale_id' => null,
+            ]);
+
+            if ($project->status === 'completed') {
+                $project->update([
+                    'status' => 'in_progress',
+                    'progress_percent' => min(99, (int) $project->progress_percent),
+                ]);
+            }
         });
     }
 }

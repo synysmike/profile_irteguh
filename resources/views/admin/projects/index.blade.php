@@ -1,11 +1,11 @@
-@extends('admin.layout')
+@extends('admin.keuangan.layout')
 
-@section('title', 'Project - Admin')
+@section('title', 'Project - Keuangan')
 
-@section('content')
+@section('keuangan_content')
 <div class="flex items-center justify-between mb-8">
     <div>
-        <h2 class="text-3xl font-bold text-gray-800 mb-2">Project</h2>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Project</h2>
         <p class="text-gray-600">Kelola tiket project, progress, termin pembayaran, dan koneksi ke keuangan & pajak.</p>
     </div>
     <button type="button" onclick="openResourceModal('projectModal', 'projects', 'Project')" class="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition font-semibold">
@@ -78,11 +78,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const originalOpen = window.openResourceModal;
+    if (typeof originalOpen !== 'function') return;
+
     window.openResourceModal = function(modalId, resourceName, singularName, id) {
         originalOpen(modalId, resourceName, singularName, id);
-        setTimeout(function() {
-            if (typeof window.initProjectForm === 'function') window.initProjectForm();
-        }, 150);
+        if (resourceName !== 'projects') return;
+        // Form HTML arrives via AJAX; re-init after inject.
+        setTimeout(function () { window.initProjectForm(); }, 200);
+        setTimeout(function () { window.initProjectForm(); }, 450);
     };
 });
 </script>

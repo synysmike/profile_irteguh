@@ -1,13 +1,13 @@
-@extends('admin.layout')
+@extends('admin.keuangan.layout')
 
 @section('title', 'Detail Project - ' . $project->code)
 
-@section('content')
+@section('keuangan_content')
 <div class="mb-6">
     <a href="{{ route('admin.projects.index') }}" class="text-purple-600 hover:text-purple-800 mb-4 inline-block">← Kembali ke Project</a>
     <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
-            <h2 class="text-3xl font-bold text-gray-800">{{ $project->title }}</h2>
+            <h2 class="text-2xl font-bold text-gray-800">{{ $project->title }}</h2>
             <p class="text-gray-600 mt-1">{{ $project->code }} · {{ $project->customer?->name }}</p>
         </div>
         <button type="button" onclick="openResourceModal('projectModal', 'projects', 'Project', {{ $project->id }})" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-semibold">Edit Project</button>
@@ -96,6 +96,11 @@
                         @csrf
                         <button type="submit" class="text-purple-600 hover:text-purple-800 font-medium">Posting ke Keuangan</button>
                     </form>
+                    @else
+                    <form method="POST" action="{{ route('admin.projects.unpay-term', [$project, $term]) }}" class="inline" onsubmit="return confirm('Batalkan pelunasan termin ini?\nInvoice penjualan dan transaksi kas terkait akan dihapus, status kembali ke Pending.')">
+                        @csrf
+                        <button type="submit" class="text-amber-700 hover:text-amber-900 font-medium">Batalkan Lunas</button>
+                    </form>
                     @endif
                 </td>
             </tr>
@@ -119,9 +124,15 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        if (typeof window.initProjectForm === 'function') window.initProjectForm();
-    }, 100);
+    const originalOpen = window.openResourceModal;
+    if (typeof originalOpen !== 'function') return;
+
+    window.openResourceModal = function(modalId, resourceName, singularName, id) {
+        originalOpen(modalId, resourceName, singularName, id);
+        if (resourceName !== 'projects') return;
+        setTimeout(function() { if (typeof window.initProjectForm === 'function') window.initProjectForm(); }, 200);
+        setTimeout(function() { if (typeof window.initProjectForm === 'function') window.initProjectForm(); }, 450);
+    };
 });
 </script>
 @endpush

@@ -644,3 +644,199 @@ document.addEventListener("click", function (e) {
         closeModal(e.target.id);
     }
 });
+
+/**
+ * Project form helpers. Kept here because scripts inside AJAX-injected form
+ * HTML (innerHTML) are not executed by the browser.
+ */
+window.initProjectForm = function () {
+    const subtotalInput = document.getElementById("subtotal");
+    const taxSelect = document.getElementById("tax_id");
+    const taxAmountDisplay = document.getElementById("tax_amount_display");
+    const totalDisplay = document.getElementById("total_display");
+    const paymentMethod = document.getElementById("payment_method");
+    const installmentSection = document.getElementById("installment-section");
+    const termsContainer = document.getElementById("terms-container");
+    const percentTotal = document.getElementById("terms-percent-total");
+    const btnAddTerm = document.getElementById("btn-add-term");
+
+    if (!subtotalInput || !termsContainer) return;
+
+    function formatRupiah(n) {
+        return (
+            "Rp " +
+            new Intl.NumberFormat("id-ID").format(Math.max(0, Math.round(n)))
+        );
+    }
+
+    function calculateTotals() {
+        const subtotal = parseFloat(subtotalInput.value) || 0;
+        const selected = taxSelect
+            ? taxSelect.options[taxSelect.selectedIndex]
+            : null;
+        const rate =
+            selected && selected.value
+                ? parseFloat(selected.dataset.rate || 0)
+                : 0;
+        const calculation = selected
+            ? selected.dataset.calculation || "addition"
+            : "addition";
+        const taxAmount = Math.round((subtotal * rate) / 100);
+        const total =
+            calculation === "deduction"
+                ? subtotal - taxAmount
+                : subtotal + taxAmount;
+        if (taxAmountDisplay) taxAmountDisplay.value = formatRupiah(taxAmount);
+        if (totalDisplay) totalDisplay.value = formatRupiah(total);
+    }
+
+    function updatePercentTotal() {
+        let sum = 0;
+        const dpInput = document.getElementById("dp_percentage");
+        if (dpInput && !dpInput.disabled) {
+            sum += parseFloat(String(dpInput.value || "").replace(",", ".")) || 0;
+        }
+        termsContainer.querySelectorAll(".term-percentage").forEach(function (el) {
+            if (el.disabled) return;
+            const raw = String(el.value || "").replace(",", ".");
+            sum += parseFloat(raw) || 0;
+        });
+        const paidEl = document.getElementById("paid-terms-percent");
+        const paid = paidEl
+            ? parseFloat(paidEl.value) || 0
+            : parseFloat(termsContainer.dataset.paidPercent || 0) || 0;
+        sum = Math.round((sum + paid) * 100) / 100;
+        if (percentTotal) {
+            percentTotal.textContent = sum.toFixed(2);
+            percentTotal.className =
+                Math.abs(sum - 100) < 0.005
+                    ? "font-semibold text-green-600"
+                    : "font-semibold text-red-600";
+        }
+    }
+
+    function reindexTerms() {
+        termsContainer.querySelectorAll(".term-row").forEach(function (row, index) {
+            row.querySelectorAll("input").forEach(function (input) {
+                const name = input.getAttribute("name");
+                if (!name) return;
+                input.setAttribute(
+                    "name",
+                    name.replace(/terms\[\d+\]/, "terms[" + index + "]"),
+                );
+            });
+        });
+    }
+
+    function createTermRow(index) {
+        const row = document.createElement("div");
+        row.className =
+            "term-row grid grid-cols-1 md:grid-cols-4 gap-3 items-end border border-gray-200 rounded-lg p-3 bg-gray-50";
+        row.innerHTML =
+            '<div><label class="block text-xs text-gray-600 mb-1">Label Termin</label>' +
+            '<input type="text" name="terms[' +
+            index +
+            '][label]" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="Termin ' +
+            (index + 1) +
+            '"></div>' +
+            '<div><label class="block text-xs text-gray-600 mb-1">Persentase (%)</label>' +
+            '<input type="number" name="terms[' +
+            index +
+            '][percentage]" min="0" max="100" step="0.01" value="0" class="term-percentage w-full px-3 py-2 border border-gray-300 rounded-md text-sm"></div>' +
+            '<div><label class="block text-xs text-gray-600 mb-1">Jatuh Tempo</label>' +
+            '<input type="date" name="terms[' +
+            index +
+            '][due_date]" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"></div>' +
+            '<div><button type="button" class="btn-remove-term w-full px-3 py-2 bg-red-50 text-red-600 rounded-md text-sm hover:bg-red-100">Hapus</button></div>';
+        return row;
+    }
+
+    function syncInstallmentVisibility() {
+        if (!paymentMethod || !installmentSection) return;
+        const isInstallment = paymentMethod.value === "installment";
+        if (isInstallment) {
+            installmentSection.classList.remove("hidden");
+        } else {
+            installmentSection.classList.add("hidden");
+        }
+        installmentSection.querySelectorAll("input, select, textarea, button").forEach(function (el) {
+            if (el.id === "paid-terms-percent") return;
+            if (el.tagName === "BUTTON" || el.type !== "hidden") {
+                el.disabled = !isInstallment;
+            }
+        });
+        updatePercentTotal();
+    }
+
+    if (btnAddTerm && btnAddTerm.dataset.projectBound !== "1") {
+        btnAddTerm.addEventListener("click", function (e) {
+            e.preventDefault();
+            const emptyHint = document.getElementById("terms-empty-hint");
+            if (emptyHint) emptyHint.remove();
+            const index = termsContainer.querySelectorAll(".term-row").length;
+            termsContainer.appendChild(createTermRow(index));
+            updatePercentTotal();
+        });
+        btnAddTerm.dataset.projectBound = "1";
+    }
+
+    if (paymentMethod && paymentMethod.dataset.projectBound !== "1") {
+        paymentMethod.addEventListener("change", syncInstallmentVisibility);
+        paymentMethod.dataset.projectBound = "1";
+    }
+
+    if (subtotalInput.dataset.projectCalcBound !== "1") {
+        subtotalInput.addEventListener("input", calculateTotals);
+        subtotalInput.addEventListener("change", calculateTotals);
+        subtotalInput.dataset.projectCalcBound = "1";
+    }
+    if (taxSelect && taxSelect.dataset.projectCalcBound !== "1") {
+        taxSelect.addEventListener("change", calculateTotals);
+        taxSelect.dataset.projectCalcBound = "1";
+    }
+
+    const dpPercentage = document.getElementById("dp_percentage");
+    if (dpPercentage && dpPercentage.dataset.projectBound !== "1") {
+        dpPercentage.addEventListener("input", updatePercentTotal);
+        dpPercentage.addEventListener("change", updatePercentTotal);
+        dpPercentage.dataset.projectBound = "1";
+    }
+
+    if (termsContainer.dataset.projectTermsBound !== "1") {
+        termsContainer.addEventListener("input", function (e) {
+            if (e.target && e.target.classList.contains("term-percentage")) {
+                updatePercentTotal();
+            }
+        });
+        termsContainer.addEventListener("change", function (e) {
+            if (e.target && e.target.classList.contains("term-percentage")) {
+                updatePercentTotal();
+            }
+        });
+        termsContainer.addEventListener("click", function (e) {
+            const btn = e.target.closest(".btn-remove-term");
+            if (!btn) return;
+            e.preventDefault();
+            const row = btn.closest(".term-row");
+            if (!row) return;
+            row.remove();
+            reindexTerms();
+            if (
+                termsContainer.querySelectorAll(".term-row").length === 0 &&
+                !document.getElementById("terms-empty-hint")
+            ) {
+                const hint = document.createElement("p");
+                hint.id = "terms-empty-hint";
+                hint.className = "text-xs text-gray-500";
+                hint.textContent =
+                    'Belum ada termin tambahan. Klik “+ Tambah Termin” bila perlu.';
+                termsContainer.appendChild(hint);
+            }
+            updatePercentTotal();
+        });
+        termsContainer.dataset.projectTermsBound = "1";
+    }
+
+    calculateTotals();
+    syncInstallmentVisibility();
+};
