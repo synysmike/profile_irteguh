@@ -26,7 +26,7 @@
 <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 no-print"><p class="text-green-700">{{ session('success') }}</p></div>
 @endif
 
-<div class="bg-white rounded-lg shadow border border-gray-200 p-8 max-w-3xl mx-auto print:shadow-none print:border-0 print:max-w-none">
+<div class="assignment-letter-sheet bg-white rounded-lg shadow border border-gray-200 p-8 max-w-3xl mx-auto print:shadow-none print:border-0 print:max-w-none">
     <div class="mb-6 pb-4 border-b border-gray-300">
         @include('components.letterhead')
     </div>
@@ -39,35 +39,28 @@
     <div class="space-y-4 text-sm text-gray-800 leading-relaxed">
         <p>Yang bertanda tangan di bawah ini menugaskan:</p>
 
-        <div class="space-y-4">
-            @foreach($letter->assignees as $i => $assignee)
-            <div class="border border-gray-200 rounded-lg p-3 {{ $i > 0 ? 'mt-2' : '' }}">
-                <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Orang {{ $i + 1 }}</div>
-                <table class="w-full text-sm">
-                    <tr>
-                        <td class="py-1 w-40 align-top text-gray-600">Nama</td>
-                        <td class="py-1 align-top w-4">:</td>
-                        <td class="py-1 align-top font-medium">{{ $assignee->name }}</td>
-                    </tr>
-                    <tr>
-                        <td class="py-1 align-top text-gray-600">Jenis Kelamin</td>
-                        <td class="py-1 align-top">:</td>
-                        <td class="py-1 align-top">{{ $assignee->genderLabel() }}</td>
-                    </tr>
-                    <tr>
-                        <td class="py-1 align-top text-gray-600">Nomor KTP</td>
-                        <td class="py-1 align-top">:</td>
-                        <td class="py-1 align-top">{{ $assignee->ktp }}</td>
-                    </tr>
-                    <tr>
-                        <td class="py-1 align-top text-gray-600">Nomor HP</td>
-                        <td class="py-1 align-top">:</td>
-                        <td class="py-1 align-top">{{ $assignee->phone }}</td>
-                    </tr>
-                </table>
-            </div>
-            @endforeach
-        </div>
+        <table class="w-full text-sm border border-gray-300 border-collapse mt-2">
+            <thead>
+                <tr class="bg-gray-50">
+                    <th class="border border-gray-300 px-2 py-1.5 text-left font-semibold w-10">No</th>
+                    <th class="border border-gray-300 px-2 py-1.5 text-left font-semibold">Nama</th>
+                    <th class="border border-gray-300 px-2 py-1.5 text-left font-semibold">Jenis Kelamin</th>
+                    <th class="border border-gray-300 px-2 py-1.5 text-left font-semibold">Nomor KTP</th>
+                    <th class="border border-gray-300 px-2 py-1.5 text-left font-semibold">Nomor HP</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($letter->assignees as $i => $assignee)
+                <tr>
+                    <td class="border border-gray-300 px-2 py-1.5 align-top">{{ $i + 1 }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 align-top font-medium">{{ $assignee->name }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 align-top">{{ $assignee->genderLabel() }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 align-top">{{ $assignee->ktp }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 align-top">{{ $assignee->phone }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
 
         <p class="pt-2">Untuk melaksanakan tugas pada project berikut:</p>
 
@@ -133,10 +126,25 @@
 
 <style>
 @media print {
-    .no-print, nav, aside, .keuangan-sidebar { display: none !important; }
+    .no-print, nav, aside, .keuangan-sidebar,
+    .print-header-only { display: none !important; }
     .keuangan-layout { display: block !important; }
-    .keuangan-main { width: 100% !important; }
-    body { background: #fff !important; }
+    .keuangan-main { width: 100% !important; padding: 0 !important; margin: 0 !important; }
+    body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+    .container { padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; }
+    .assignment-letter-sheet {
+        padding: 8px 0 0 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    .assignment-letter-sheet .letterhead-wrap,
+    .assignment-letter-sheet > .mb-6:first-child {
+        margin-bottom: 12px !important;
+        padding-bottom: 10px !important;
+    }
+    @page { margin: 12mm 12mm 12mm 12mm; }
 }
 </style>
 @endsection
