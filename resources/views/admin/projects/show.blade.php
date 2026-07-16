@@ -111,6 +111,55 @@
     </table>
 </div>
 
+<div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800">Surat Tugas</h3>
+            <p class="text-sm text-gray-500 mt-1">Buat surat tugas untuk petugas yang ditunjuk pada project ini.</p>
+        </div>
+        <a href="{{ route('admin.projects.assignment-letters.create', $project) }}" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-semibold">
+            + Buat Surat Tugas
+        </a>
+    </div>
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nomor</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Yang Bertugas</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            @forelse($project->assignmentLetters as $letter)
+            <tr>
+                <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $letter->number }}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">{{ $letter->letter_date?->format('d/m/Y') }}</td>
+                <td class="px-4 py-3 text-sm text-gray-900">{{ $letter->assigneeNamesSummary() }}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">{{ $letter->assignees->count() }} orang</td>
+                <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
+                    <a href="{{ route('admin.projects.assignment-letters.show', [$project, $letter]) }}" class="text-blue-600 hover:text-blue-800 mr-3">Lihat</a>
+                    <a href="{{ route('admin.projects.assignment-letters.edit', [$project, $letter]) }}" class="text-purple-600 hover:text-purple-800 mr-3">Edit</a>
+                    <form method="POST" action="{{ route('admin.projects.assignment-letters.destroy', [$project, $letter]) }}" class="inline" onsubmit="return confirm('Hapus surat tugas ini?')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="text-red-600 hover:text-red-800">Hapus</button>
+                    </form>
+                </td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                    Belum ada surat tugas.
+                    <a href="{{ route('admin.projects.assignment-letters.create', $project) }}" class="text-purple-600 hover:text-purple-800">Buat sekarang</a>
+                </td>
+            </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
+
 @if($project->description || $project->notes)
 <div class="bg-white rounded-lg shadow border border-gray-200 p-6">
     @if($project->description)<p class="text-gray-700 mb-3">{{ $project->description }}</p>@endif

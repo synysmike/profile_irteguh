@@ -69,6 +69,11 @@ class Project extends Model
         return $this->hasMany(Sale::class);
     }
 
+    public function assignmentLetters(): HasMany
+    {
+        return $this->hasMany(AssignmentLetter::class)->orderByDesc('letter_date')->orderByDesc('id');
+    }
+
     public static function generateCode(): string
     {
         $prefix = 'PRJ-' . date('Ymd') . '-';

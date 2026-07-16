@@ -59,6 +59,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::patch('/projects/{project}/status', [\App\Http\Controllers\Admin\ProjectController::class, 'updateStatus'])->name('projects.update-status');
     Route::post('/projects/{project}/terms/{term}/pay', [\App\Http\Controllers\Admin\ProjectController::class, 'payTerm'])->name('projects.pay-term');
     Route::post('/projects/{project}/terms/{term}/unpay', [\App\Http\Controllers\Admin\ProjectController::class, 'unpayTerm'])->name('projects.unpay-term');
+    Route::resource('projects.assignment-letters', \App\Http\Controllers\Admin\AssignmentLetterController::class)
+        ->parameters(['assignment-letters' => 'letter']);
     Route::resource('employees', \App\Http\Controllers\Admin\EmployeeController::class);
     Route::get('/sales/{id}/invoice', [\App\Http\Controllers\Admin\SaleController::class, 'invoice'])->name('sales.invoice');
     Route::get('/sales/pending-transactions/list', [\App\Http\Controllers\Admin\SaleController::class, 'pendingTransactionsList'])->name('sales.pending-transactions.list');

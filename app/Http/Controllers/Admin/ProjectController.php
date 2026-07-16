@@ -30,7 +30,7 @@ class ProjectController extends Controller
 
     public function show(string $id)
     {
-        $project = Project::with(['customer', 'tax', 'paymentTerms.sale', 'sales'])
+        $project = Project::with(['customer', 'tax', 'paymentTerms.sale', 'sales', 'assignmentLetters.assignees'])
             ->findOrFail($id);
 
         return view('admin.projects.show', compact('project'));
