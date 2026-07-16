@@ -66,7 +66,7 @@
                                 </a>
                                 @if(Route::has('admin.site-logo.edit'))
                                 <div class="border-t border-gray-100 mt-1 pt-1">
-                                    <a href="{{ route('admin.site-logo.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logo Situs</a>
+                                    <a href="{{ route('admin.site-logo.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logo & Korp Surat</a>
                                 </div>
                                 @endif
                             </div>

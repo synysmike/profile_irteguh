@@ -5,8 +5,8 @@
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="mb-6">
-        <h2 class="text-2xl font-bold text-gray-800">Logo & Nama Aplikasi</h2>
-        <p class="text-gray-600 mt-1">Unggah logo dan atur nama aplikasi untuk ditampilkan di landing page serta invoice cetak.</p>
+        <h2 class="text-2xl font-bold text-gray-800">Logo, Nama & Korp Surat</h2>
+        <p class="text-gray-600 mt-1">Unggah logo, atur nama aplikasi, dan kostumisasi korp surat untuk semua dokumen cetak.</p>
     </div>
 
     @if(session('success'))
@@ -81,6 +81,39 @@
                 </a>
             </div>
         </form>
+
+        <div class="mt-8 pt-8 border-t border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Korp Surat (Letterhead)</h3>
+            <p class="text-sm text-gray-600 mb-3">
+                Teks korp (alamat, telepon, email, dll.) yang tampil di header semua dokumen cetak:
+                invoice penjualan, invoice grosir, dan surat tugas. Logo otomatis memakai logo situs di atas.
+            </p>
+
+            @if($logoUrl)
+            <div class="mb-4 flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <img src="{{ $logoUrl }}" alt="Logo" style="max-height:48px; width:auto;">
+                <div class="text-sm text-gray-600">Logo situs akan selalu ditampilkan di samping korp surat.</div>
+            </div>
+            @else
+            <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                Belum ada logo situs. Unggah logo di atas agar korp surat lebih lengkap saat dicetak.
+            </div>
+            @endif
+
+            <form method="POST" action="{{ route('admin.site-logo.update-letterhead') }}" id="letterheadForm">
+                @csrf
+                @method('PUT')
+                <div id="letterhead-editor" class="bg-white rounded-lg border border-gray-300 overflow-hidden mb-2"></div>
+                <input type="hidden" name="letterhead_html" id="letterhead_html" value="{{ old('letterhead_html', $letterheadHtml) }}">
+                @error('letterhead_html')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+                <p class="text-xs text-gray-500 mb-4">Contoh: alamat lengkap, nomor telepon, email, website, NPWP.</p>
+                <button type="submit" class="px-5 py-2.5 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition font-medium">
+                    Simpan Korp Surat
+                </button>
+            </form>
+        </div>
 
         <div class="mt-8 pt-8 border-t border-gray-200">
             <h3 class="text-lg font-semibold text-gray-800 mb-2">Ukuran di Landing Page</h3>
@@ -202,3 +235,57 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+<style>
+    #letterhead-editor .ql-toolbar.ql-snow {
+        border: none;
+        border-bottom: 1px solid #e5e7eb;
+        background: #fafafa;
+        padding: 8px 10px;
+    }
+    #letterhead-editor .ql-container.ql-snow {
+        border: none;
+        min-height: 160px;
+        font-size: 14px;
+    }
+    #letterhead-editor .ql-editor {
+        min-height: 160px;
+        line-height: 1.55;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const hidden = document.getElementById('letterhead_html');
+    const form = document.getElementById('letterheadForm');
+    if (!hidden || !form || typeof Quill === 'undefined') return;
+
+    const quill = new Quill('#letterhead-editor', {
+        theme: 'snow',
+        placeholder: 'Contoh: Jl. Contoh No. 1, Surabaya | Telp: 031-xxxx | Email: info@contoh.com',
+        modules: {
+            toolbar: [
+                ['bold', 'italic', 'underline'],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                [{ align: [] }],
+                ['link'],
+                ['clean']
+            ]
+        }
+    });
+
+    if (hidden.value) {
+        quill.root.innerHTML = hidden.value;
+    }
+
+    form.addEventListener('submit', function () {
+        hidden.value = quill.root.innerHTML;
+        if (!hidden.value || hidden.value === '<p><br></p>') {
+            hidden.value = '';
+        }
+    });
+});
+</script>
+@endpush

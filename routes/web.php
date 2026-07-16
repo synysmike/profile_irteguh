@@ -35,6 +35,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/site-logo', [\App\Http\Controllers\Admin\SiteLogoController::class, 'edit'])->name('site-logo.edit');
     Route::put('/site-logo', [\App\Http\Controllers\Admin\SiteLogoController::class, 'update'])->name('site-logo.update');
     Route::put('/site-logo/app-name', [\App\Http\Controllers\Admin\SiteLogoController::class, 'updateAppName'])->name('site-logo.update-app-name');
+    Route::put('/site-logo/letterhead', [\App\Http\Controllers\Admin\SiteLogoController::class, 'updateLetterhead'])->name('site-logo.update-letterhead');
     Route::patch('/site-logo/size', [\App\Http\Controllers\Admin\SiteLogoController::class, 'updateSize'])->name('site-logo.update-size');
     Route::delete('/site-logo', [\App\Http\Controllers\Admin\SiteLogoController::class, 'destroy'])->name('site-logo.destroy');
     

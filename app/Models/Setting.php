@@ -43,6 +43,16 @@ class Setting extends Model
     }
 
     /**
+     * Letterhead HTML content shown on printed documents.
+     * Logo is handled separately using the uploaded site logo.
+     */
+    public static function letterheadHtml(): string
+    {
+        $html = (string) static::get('letterhead_html', '');
+        return trim($html);
+    }
+
+    /**
      * Get site logo URL (storage path).
      */
     public static function logoUrl(): ?string

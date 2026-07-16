@@ -10,11 +10,12 @@
         .no-print { margin-bottom: 16px; }
         .btn-print { display: inline-block; padding: 10px 20px; background: #7c3aed; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
         .btn-print:hover { background: #6d28d9; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #333; }
-        .company { flex: 1; }
-        .company-brand { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .company-logo { max-height: 48px; width: auto; display: block; }
-        .company-name { font-size: 18px; font-weight: bold; color: #111; margin: 0; }
+        .letterhead-wrap { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 2px solid #333; }
+        .letterhead-content p { margin: 0 0 2px 0; text-align: center; }
+        .letterhead-content p:last-child { margin-bottom: 0; }
+        .letterhead-content { text-align: center; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+        .invoice-type { font-size: 13px; color: #6b7280; }
         .invoice-title { text-align: right; }
         .invoice-title h1 { font-size: 24px; margin: 0 0 8px 0; color: #111; }
         .invoice-meta { font-size: 13px; color: #666; }
@@ -36,7 +37,7 @@
         @media print {
             body { padding: 0 0 56px 0; }
             .no-print { display: none !important; }
-            .header { border-bottom-color: #000; }
+            .letterhead-wrap { border-bottom-color: #000; }
             table { page-break-inside: avoid; }
             .footer {
                 position: fixed;
@@ -57,17 +58,12 @@
         <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" style="margin-left: 8px; color: #6b7280; font-size: 14px;">← Kembali ke Daftar Penjualan</a>
     </div>
 
+    <div class="letterhead-wrap">
+        @include('components.letterhead')
+    </div>
+
     <div class="header">
-        <div class="company">
-            <div class="company-brand">
-                @php $logoUrl = \App\Models\Setting::logoPath(); @endphp
-                @if($logoUrl)
-                <img src="{{ $logoUrl }}" alt="{{ \App\Models\Setting::appName() }}" class="company-logo" style="max-height: 48px; width: auto;">
-                @endif
-                <div class="company-name">{{ \App\Models\Setting::appName() }}</div>
-            </div>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #6b7280;">Penjualan / Faktur Keluaran</p>
-        </div>
+        <div class="invoice-type">Penjualan / Faktur Keluaran</div>
         <div class="invoice-title">
             <h1>INVOICE PENJUALAN</h1>
             <div class="invoice-meta">

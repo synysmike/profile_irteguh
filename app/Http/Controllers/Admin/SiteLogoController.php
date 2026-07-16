@@ -25,7 +25,16 @@ class SiteLogoController extends Controller
         $logoLandingHeight = Setting::logoLandingHeight();
         $logoLandingLockRatio = Setting::logoLandingLockRatio();
         $appName = Setting::appName();
-        return view('admin.site-logo.edit', compact('logoUrl', 'logoPath', 'logoLandingWidth', 'logoLandingHeight', 'logoLandingLockRatio', 'appName'));
+        $letterheadHtml = Setting::letterheadHtml();
+        return view('admin.site-logo.edit', compact(
+            'logoUrl',
+            'logoPath',
+            'logoLandingWidth',
+            'logoLandingHeight',
+            'logoLandingLockRatio',
+            'appName',
+            'letterheadHtml'
+        ));
     }
 
     /**
@@ -84,6 +93,28 @@ class SiteLogoController extends Controller
 
         return redirect()->route('admin.site-logo.edit')
             ->with('success', 'Nama aplikasi berhasil disimpan. Nama ini tampil di bawah logo pada invoice cetak.');
+    }
+
+    /**
+     * Update letterhead (korp surat) HTML used on all printed documents.
+     */
+    public function updateLetterhead(Request $request)
+    {
+        $validated = $request->validate([
+            'letterhead_html' => 'nullable|string|max:20000',
+        ], [
+            'letterhead_html.max' => 'Konten korp surat terlalu panjang.',
+        ]);
+
+        $html = trim((string) ($validated['letterhead_html'] ?? ''));
+        if ($html === '' || $html === '<p><br></p>' || $html === '<p></p>') {
+            $html = '';
+        }
+
+        Setting::set('letterhead_html', $html);
+
+        return redirect()->route('admin.site-logo.edit')
+            ->with('success', 'Korp surat berhasil disimpan dan akan dipakai di semua dokumen cetak.');
     }
 
     /**

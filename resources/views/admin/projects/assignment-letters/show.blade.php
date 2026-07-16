@@ -27,6 +27,10 @@
 @endif
 
 <div class="bg-white rounded-lg shadow border border-gray-200 p-8 max-w-3xl mx-auto print:shadow-none print:border-0 print:max-w-none">
+    <div class="mb-6 pb-4 border-b border-gray-300">
+        @include('components.letterhead')
+    </div>
+
     <div class="text-center mb-8 border-b border-gray-300 pb-6">
         <h1 class="text-xl font-bold tracking-wide uppercase text-gray-900">Surat Tugas</h1>
         <p class="text-sm text-gray-600 mt-2">Nomor: <strong>{{ $letter->number }}</strong></p>
