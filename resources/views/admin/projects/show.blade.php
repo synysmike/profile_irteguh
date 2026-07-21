@@ -245,8 +245,14 @@
                 <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
                     @if($term->sale_id)
                     <a href="{{ route('admin.sales.invoice', $term->sale_id) }}" target="_blank" class="text-blue-600 hover:text-blue-800 mr-3">Invoice</a>
+                    <a href="{{ route('admin.sales.whatsapp', $term->sale_id) }}" target="_blank" rel="noopener" class="text-green-600 hover:text-green-800 mr-3">WA</a>
                     @endif
                     @if($term->status !== 'paid')
+                    @if($project->customer?->phone)
+                    <a href="{{ route('admin.projects.whatsapp-term', [$project, $term]) }}" target="_blank" rel="noopener" class="text-green-600 hover:text-green-800 mr-3" title="Kirim draft invoice (Belum Lunas) ke {{ $project->customer->phone }}">Kirim WA</a>
+                    @else
+                    <span class="text-gray-400 mr-3 cursor-not-allowed" title="Customer belum punya nomor HP">Kirim WA</span>
+                    @endif
                     <form method="POST" action="{{ route('admin.projects.pay-term', [$project, $term]) }}" class="inline" onsubmit="return confirm('Posting pembayaran termin ini ke penjualan & kas?')">
                         @csrf
                         <button type="submit" class="text-purple-600 hover:text-purple-800 font-medium">Posting ke Keuangan</button>

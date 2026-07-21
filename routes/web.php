@@ -60,6 +60,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::patch('/projects/{project}/status', [\App\Http\Controllers\Admin\ProjectController::class, 'updateStatus'])->name('projects.update-status');
     Route::post('/projects/{project}/terms/{term}/pay', [\App\Http\Controllers\Admin\ProjectController::class, 'payTerm'])->name('projects.pay-term');
     Route::post('/projects/{project}/terms/{term}/unpay', [\App\Http\Controllers\Admin\ProjectController::class, 'unpayTerm'])->name('projects.unpay-term');
+    Route::get('/projects/{project}/terms/{term}/whatsapp', [\App\Http\Controllers\Admin\ProjectController::class, 'whatsappTerm'])->name('projects.whatsapp-term');
     Route::post('/projects/{project}/sale-transactions', [\App\Http\Controllers\Admin\ProjectController::class, 'attachSaleTransaction'])->name('projects.sale-transactions.attach');
     Route::delete('/projects/{project}/sale-transactions/{transaction}', [\App\Http\Controllers\Admin\ProjectController::class, 'detachSaleTransaction'])->name('projects.sale-transactions.detach');
     Route::resource('projects.assignment-letters', \App\Http\Controllers\Admin\AssignmentLetterController::class)

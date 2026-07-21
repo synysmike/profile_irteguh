@@ -10,6 +10,7 @@ use App\Models\Purchase;
 use App\Models\SaleTransaction;
 use App\Models\Tax;
 use App\Services\ProjectFinanceService;
+use App\Support\ProjectTermWhatsAppInvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -287,6 +288,36 @@ class ProjectController extends Controller
             }
 
             return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Kirim draft invoice termin (belum posting) via WhatsApp ke customer.
+     * Status pembayaran dalam pesan selalu "Belum Lunas".
+     */
+    public function whatsappTerm(string $projectId, string $termId)
+    {
+        $project = Project::with(['customer', 'saleTransactions.purchase'])->findOrFail($projectId);
+        $term = ProjectPaymentTerm::where('project_id', $projectId)->findOrFail($termId);
+
+        if ($term->status === 'paid' || $term->sale_id) {
+            return redirect()
+                ->route('admin.projects.show', $project)
+                ->with('error', 'Termin sudah diposting. Kirim WA dari invoice penjualan.');
+        }
+
+        if (! ProjectTermWhatsAppInvoice::destinationPhone($project)) {
+            return redirect()
+                ->route('admin.projects.show', $project)
+                ->with('error', 'Customer project belum memiliki nomor HP. Lengkapi data customer terlebih dahulu.');
+        }
+
+        try {
+            return redirect()->away(ProjectTermWhatsAppInvoice::shareUrl($project, $term));
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('admin.projects.show', $project)
+                ->with('error', $e->getMessage());
         }
     }
 
