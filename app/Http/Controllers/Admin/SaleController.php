@@ -410,7 +410,13 @@ class SaleController extends Controller
      */
     public function invoice(string $id)
     {
-        $sale = Sale::with(['customer', 'saleItems'])->findOrFail($id);
+        $sale = Sale::with(['customer', 'saleItems', 'project'])->findOrFail($id);
+
+        if ($sale->project_id && $sale->project_payment_term_id) {
+            \App\Services\ProjectFinanceService::refreshTermInvoiceItems($sale);
+            $sale->load(['customer', 'saleItems', 'project']);
+        }
+
         return view('admin.sales.invoice', compact('sale'));
     }
 
@@ -420,6 +426,11 @@ class SaleController extends Controller
     public function whatsapp(string $id)
     {
         $sale = Sale::with(['customer', 'saleItems', 'cashTransaction', 'project'])->findOrFail($id);
+
+        if ($sale->project_id && $sale->project_payment_term_id) {
+            \App\Services\ProjectFinanceService::refreshTermInvoiceItems($sale);
+            $sale->load(['customer', 'saleItems', 'cashTransaction', 'project']);
+        }
 
         if (! SaleWhatsAppInvoice::destinationPhone($sale)) {
             return redirect()

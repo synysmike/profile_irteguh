@@ -47,10 +47,11 @@
     </div>
 
     <div>
-        <label for="subtotal" class="block text-sm font-medium text-gray-700 mb-2">Nilai Kontrak (DPP) Rp *</label>
+        <label for="subtotal" class="block text-sm font-medium text-gray-700 mb-2">Nilai Jasa / DPP Dasar Rp *</label>
         <input type="number" id="subtotal" name="subtotal" min="0" step="1" required
-               value="{{ old('subtotal', isset($project) ? $project->subtotal : 0) }}"
+               value="{{ old('subtotal', isset($project) ? ($project->base_subtotal ?? $project->subtotal) : 0) }}"
                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+        <p class="mt-1 text-xs text-gray-500">Belum termasuk alokasi stok. Stok dilampirkan di halaman detail project dan otomatis diakumulasi ke total.</p>
     </div>
 
     <div>

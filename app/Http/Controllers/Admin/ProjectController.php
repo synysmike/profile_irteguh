@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Project;
 use App\Models\ProjectPaymentTerm;
+use App\Models\Purchase;
+use App\Models\SaleTransaction;
 use App\Models\Tax;
 use App\Services\ProjectFinanceService;
 use Illuminate\Http\Request;
@@ -30,10 +32,31 @@ class ProjectController extends Controller
 
     public function show(string $id)
     {
-        $project = Project::with(['customer', 'tax', 'paymentTerms.sale', 'sales', 'assignmentLetters.assignees'])
-            ->findOrFail($id);
+        $project = Project::with([
+            'customer',
+            'tax',
+            'paymentTerms.sale',
+            'sales',
+            'assignmentLetters.assignees',
+            'saleTransactions.purchase.supplier',
+        ])->findOrFail($id);
 
-        return view('admin.projects.show', compact('project'));
+        $availableAllocations = SaleTransaction::availableForProject()
+            ->with(['purchase.supplier'])
+            ->orderBy('description')
+            ->get();
+
+        $availablePurchases = Purchase::with('supplier')
+            ->latestFirst()
+            ->get()
+            ->filter(fn (Purchase $p) => $p->remainingQuantity() > 0)
+            ->values();
+
+        return view('admin.projects.show', compact(
+            'project',
+            'availableAllocations',
+            'availablePurchases'
+        ));
     }
 
     public function create()
@@ -61,7 +84,8 @@ class ProjectController extends Controller
         DB::beginTransaction();
         try {
             $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
-            $amounts = ProjectFinanceService::applyTax((float) $validated['subtotal'], $tax);
+            $baseSubtotal = (float) $validated['subtotal'];
+            $amounts = ProjectFinanceService::applyTax($baseSubtotal, $tax);
 
             $project = Project::create([
                 'code' => Project::generateCode(),
@@ -71,6 +95,7 @@ class ProjectController extends Controller
                 'tax_id' => $validated['tax_id'] ?? null,
                 'status' => $validated['status'],
                 'progress_percent' => $validated['progress_percent'] ?? 0,
+                'base_subtotal' => $baseSubtotal,
                 'subtotal' => $amounts['subtotal'],
                 'ppn_amount' => $amounts['ppn_amount'],
                 'tax_name' => $amounts['tax_name'],
@@ -118,7 +143,7 @@ class ProjectController extends Controller
         DB::beginTransaction();
         try {
             $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
-            $amounts = ProjectFinanceService::applyTax((float) $validated['subtotal'], $tax);
+            $baseSubtotal = (float) $validated['subtotal'];
 
             $project->update([
                 'title' => $validated['title'],
@@ -127,17 +152,16 @@ class ProjectController extends Controller
                 'tax_id' => $validated['tax_id'] ?? null,
                 'status' => $validated['status'],
                 'progress_percent' => $validated['progress_percent'] ?? 0,
-                'subtotal' => $amounts['subtotal'],
-                'ppn_amount' => $amounts['ppn_amount'],
-                'tax_name' => $amounts['tax_name'],
-                'tax_rate' => $amounts['tax_rate'],
-                'tax_calculation_type' => $amounts['tax_calculation_type'],
-                'total' => $amounts['total'],
+                'base_subtotal' => $baseSubtotal,
                 'payment_method' => $validated['payment_method'],
                 'start_date' => $validated['start_date'] ?? null,
                 'due_date' => $validated['due_date'] ?? null,
                 'notes' => $validated['notes'] ?? null,
             ]);
+
+            // DPP final = base + alokasi stok; pajak & termin unpaid ikut dihitung ulang.
+            ProjectFinanceService::recalculateFromAllocations($project);
+            $project->refresh();
 
             // Keep paid terms; syncPaymentTerms only replaces unpaid rows.
             $this->syncTermsForProject($project, $validated);
@@ -364,14 +388,79 @@ class ProjectController extends Controller
         }
 
         if ($project && $project->paymentTerms()->where('status', 'paid')->exists()) {
-            if ((float) $validated['subtotal'] !== (float) $project->subtotal) {
+            $lockedBase = (float) ($project->base_subtotal ?? $project->subtotal);
+            if ((float) $validated['subtotal'] !== $lockedBase) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'subtotal' => ['Nilai project tidak bisa diubah setelah ada termin yang sudah dibayar.'],
+                    'subtotal' => ['Nilai dasar project tidak bisa diubah setelah ada termin yang sudah dibayar.'],
                 ]);
             }
         }
 
         return $validated;
+    }
+
+    public function attachSaleTransaction(Request $request, string $projectId)
+    {
+        $project = Project::findOrFail($projectId);
+
+        $validated = $request->validate([
+            'mode' => 'nullable|in:existing,purchase',
+            'sale_transaction_id' => 'nullable|exists:sale_transactions,id',
+            'purchase_id' => 'nullable|exists:purchases,id',
+            'quantity' => 'nullable|integer|min:1',
+            'unit_price' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $mode = $validated['mode'] ?? ($validated['purchase_id'] ? 'purchase' : 'existing');
+
+        try {
+            if ($mode === 'purchase') {
+                $request->validate([
+                    'purchase_id' => 'required|exists:purchases,id',
+                    'quantity' => 'required|integer|min:1',
+                    'unit_price' => 'required|numeric|min:0',
+                ]);
+                $purchase = Purchase::findOrFail($validated['purchase_id']);
+                ProjectFinanceService::allocateFromPurchase(
+                    $project,
+                    $purchase,
+                    (int) $validated['quantity'],
+                    (float) $validated['unit_price'],
+                    $validated['notes'] ?? null
+                );
+            } else {
+                $request->validate([
+                    'sale_transaction_id' => 'required|exists:sale_transactions,id',
+                ]);
+                $transaction = SaleTransaction::findOrFail($validated['sale_transaction_id']);
+                ProjectFinanceService::attachSaleTransaction($project, $transaction);
+            }
+
+            return redirect()
+                ->route('admin.projects.show', $project)
+                ->with('success', 'Alokasi stok berhasil dilampirkan. Nilai, pajak, dan termin diperbarui.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function detachSaleTransaction(string $projectId, string $transactionId)
+    {
+        $project = Project::findOrFail($projectId);
+        $transaction = SaleTransaction::where('project_id', $projectId)->findOrFail($transactionId);
+
+        try {
+            ProjectFinanceService::detachSaleTransaction($project, $transaction);
+
+            return redirect()
+                ->route('admin.projects.show', $project)
+                ->with('success', 'Alokasi stok dilepas. Nilai, pajak, dan termin diperbarui.');
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 
     private function syncTermsForProject(Project $project, array $validated): void

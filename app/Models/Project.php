@@ -16,6 +16,7 @@ class Project extends Model
         'tax_id',
         'status',
         'progress_percent',
+        'base_subtotal',
         'subtotal',
         'ppn_amount',
         'tax_name',
@@ -31,6 +32,7 @@ class Project extends Model
     protected $casts = [
         'start_date' => 'date',
         'due_date' => 'date',
+        'base_subtotal' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'ppn_amount' => 'decimal:2',
         'tax_rate' => 'decimal:2',
@@ -67,6 +69,16 @@ class Project extends Model
     public function sales(): HasMany
     {
         return $this->hasMany(Sale::class);
+    }
+
+    public function saleTransactions(): HasMany
+    {
+        return $this->hasMany(SaleTransaction::class)->orderBy('description');
+    }
+
+    public function stockSubtotal(): float
+    {
+        return (float) $this->saleTransactions()->sum('subtotal');
     }
 
     public function assignmentLetters(): HasMany

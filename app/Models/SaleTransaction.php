@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class SaleTransaction extends Model
 {
     protected $fillable = [
-        'purchase_id', 'code', 'description', 'quantity', 'unit_price', 'subtotal', 'notes', 'is_active',
+        'purchase_id', 'project_id', 'code', 'description', 'quantity', 'unit_price', 'subtotal', 'notes', 'is_active',
     ];
 
     protected $casts = [
@@ -20,6 +20,11 @@ class SaleTransaction extends Model
     public function purchase()
     {
         return $this->belongsTo(Purchase::class);
+    }
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function saleItems()
@@ -36,6 +41,14 @@ class SaleTransaction extends Model
     {
         return $query->active()
             ->fromGrosir()
+            ->whereNull('project_id')
+            ->whereDoesntHave('saleItems');
+    }
+
+    public function scopeAvailableForProject($query)
+    {
+        return $query->fromGrosir()
+            ->whereNull('project_id')
             ->whereDoesntHave('saleItems');
     }
 
