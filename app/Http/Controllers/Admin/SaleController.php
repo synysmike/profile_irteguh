@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Tax;
 use App\Models\CashTransaction;
 use App\Models\ChartOfAccount;
+use App\Support\SaleWhatsAppInvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
@@ -346,5 +347,21 @@ class SaleController extends Controller
     {
         $sale = Sale::with(['customer', 'saleItems'])->findOrFail($id);
         return view('admin.sales.invoice', compact('sale'));
+    }
+
+    /**
+     * Open WhatsApp chat to the invoice customer's phone with a prefilled invoice message.
+     */
+    public function whatsapp(string $id)
+    {
+        $sale = Sale::with(['customer', 'saleItems', 'cashTransaction', 'project'])->findOrFail($id);
+
+        if (! SaleWhatsAppInvoice::destinationPhone($sale)) {
+            return redirect()
+                ->route('admin.keuangan.transaksi.penjualan')
+                ->with('error', 'Customer pada invoice ini belum memiliki nomor HP. Lengkapi data customer terlebih dahulu.');
+        }
+
+        return redirect()->away(SaleWhatsAppInvoice::shareUrl($sale));
     }
 }

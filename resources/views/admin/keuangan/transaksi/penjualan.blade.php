@@ -35,8 +35,14 @@
     <p class="text-xs text-amber-600 mt-2">Setelah daftar siap, klik &quot;Buat Invoice&quot; untuk membuat faktur penjualan.</p>
 </div>
 
-<div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
+@if(session('error'))
+<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+    <p class="text-red-700 text-sm">{{ session('error') }}</p>
+</div>
+@endif
+
+<div class="bg-white rounded-lg shadow border border-gray-200 overflow-x-auto">
+    <table class="min-w-[1100px] w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
             <tr>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Faktur</th>
@@ -75,8 +81,13 @@
                     <span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">Belum Posting</span>
                     @endif
                 </td>
-                <td class="px-4 py-3 text-right text-sm">
+                <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
                     <a href="{{ route('admin.sales.invoice', $sale->id) }}" target="_blank" class="text-blue-600 hover:text-blue-800 mr-3">Cetak Invoice</a>
+                    @if($sale->customer?->phone)
+                    <a href="{{ route('admin.sales.whatsapp', $sale->id) }}" target="_blank" rel="noopener" class="text-green-600 hover:text-green-800 mr-3" title="Kirim ke {{ $sale->customer->phone }}">Kirim WA</a>
+                    @else
+                    <span class="text-gray-400 mr-3 cursor-not-allowed" title="Customer belum punya nomor HP">Kirim WA</span>
+                    @endif
                     <button type="button" onclick="openResourceModal('saleModal', 'sales', 'Penjualan', {{ $sale->id }})" class="text-purple-600 hover:text-purple-800 mr-3">Edit</button>
                     <button type="button" onclick="deleteResource('sales', {{ $sale->id }}, 'Penjualan')" class="text-red-600 hover:text-red-800">Hapus</button>
                 </td>
