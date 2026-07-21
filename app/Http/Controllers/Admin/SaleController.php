@@ -10,10 +10,12 @@ use App\Models\Customer;
 use App\Models\Tax;
 use App\Models\CashTransaction;
 use App\Models\ChartOfAccount;
+use App\Services\PosCheckoutService;
 use App\Support\SaleWhatsAppInvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Validation\ValidationException;
 
 class SaleController extends Controller
 {
@@ -157,6 +159,7 @@ class SaleController extends Controller
             foreach ($transactions->values() as $index => $transaction) {
                 $item = new SaleItem([
                     'sale_id' => $sale->id,
+                    'sale_transaction_id' => $transaction->id,
                     'description' => $transaction->description,
                     'quantity' => $transaction->quantity,
                     'unit_price' => $transaction->unit_price,
@@ -165,6 +168,7 @@ class SaleController extends Controller
                     'sort_order' => $index,
                 ]);
                 $item->save();
+                $transaction->update(['is_active' => false]);
             }
 
             Session::forget(self::PENDING_SESSION_KEY);
@@ -261,6 +265,7 @@ class SaleController extends Controller
             foreach ($transactions as $index => $transaction) {
                 $item = new SaleItem([
                     'sale_id' => $sale->id,
+                    'sale_transaction_id' => $transaction->id,
                     'description' => $transaction->description,
                     'quantity' => $transaction->quantity,
                     'unit_price' => $transaction->unit_price,
@@ -269,6 +274,7 @@ class SaleController extends Controller
                     'sort_order' => $index,
                 ]);
                 $item->save();
+                $transaction->update(['is_active' => false]);
             }
 
             // Update cash transaction terkait jika ada
@@ -338,6 +344,65 @@ class SaleController extends Controller
 
         return redirect()->route('admin.keuangan.transaksi.penjualan')
             ->with('success', 'Penjualan berhasil dihapus.');
+    }
+
+    /**
+     * POS catalog: stok grosir tersisa + alokasi siap invoice.
+     */
+    public function posCatalog(PosCheckoutService $pos)
+    {
+        return response()->json($pos->catalog());
+    }
+
+    /**
+     * POS checkout: buat SaleTransaction (jika dari stok) + Sale + SaleItem + Kas.
+     */
+    public function posCheckout(Request $request, PosCheckoutService $pos)
+    {
+        $validated = $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'tax_id' => 'nullable|exists:taxes,id',
+            'invoice_number' => 'required|string|max:50|unique:sales,invoice_number',
+            'sale_date' => 'required|date',
+            'notes' => 'nullable|string',
+            'cart' => 'required|array|min:1',
+            'cart.*.type' => 'required|in:purchase,sale_transaction',
+            'cart.*.purchase_id' => 'nullable|exists:purchases,id',
+            'cart.*.sale_transaction_id' => 'nullable|exists:sale_transactions,id',
+            'cart.*.quantity' => 'nullable|integer|min:1',
+            'cart.*.unit_price' => 'nullable|numeric|min:0',
+            'cart.*.notes' => 'nullable|string',
+        ]);
+
+        try {
+            $sale = $pos->checkout([
+                'customer_id' => $validated['customer_id'],
+                'tax_id' => $validated['tax_id'] ?? null,
+                'invoice_number' => $validated['invoice_number'],
+                'sale_date' => $validated['sale_date'],
+                'notes' => $validated['notes'] ?? null,
+            ], $validated['cart']);
+
+            Session::forget(self::PENDING_SESSION_KEY);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice berhasil dibuat.',
+                'sale_id' => $sale->id,
+                'invoice_number' => $sale->invoice_number,
+                'invoice_url' => route('admin.sales.invoice', $sale->id),
+                'whatsapp_url' => SaleWhatsAppInvoice::destinationPhone($sale)
+                    ? route('admin.sales.whatsapp', $sale->id)
+                    : null,
+            ]);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membuat invoice: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

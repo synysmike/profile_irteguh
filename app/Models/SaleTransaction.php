@@ -22,6 +22,23 @@ class SaleTransaction extends Model
         return $this->belongsTo(Purchase::class);
     }
 
+    public function saleItems()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
+
+    public function isInvoiced(): bool
+    {
+        return $this->saleItems()->exists();
+    }
+
+    public function scopeAvailableForInvoice($query)
+    {
+        return $query->active()
+            ->fromGrosir()
+            ->whereDoesntHave('saleItems');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

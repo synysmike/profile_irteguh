@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ChartOfAccount;
+use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Sale;
 use App\Models\Purchase;
 use App\Models\JournalEntry;
 use App\Models\CashTransaction;
+use App\Models\Tax;
 use Illuminate\Http\Request;
 
 class KeuanganController extends Controller
@@ -110,7 +112,16 @@ class KeuanganController extends Controller
     public function transaksiPenjualan()
     {
         $sales = Sale::with('customer', 'cashTransaction', 'project')->latestFirst()->get();
-        return view('admin.keuangan.transaksi.penjualan', compact('sales'));
+        $customers = Customer::active()->orderBy('name')->get();
+        $taxes = Tax::where('is_active', true)->orderBy('name')->get();
+        $nextInvoiceNumber = Sale::generateInvoiceNumber();
+
+        return view('admin.keuangan.transaksi.penjualan', compact(
+            'sales',
+            'customers',
+            'taxes',
+            'nextInvoiceNumber'
+        ));
     }
 
     /** 3. Transaksi - Pembelian */

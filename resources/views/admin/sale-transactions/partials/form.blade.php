@@ -21,7 +21,7 @@
             <option value="" disabled>Belum ada data grosir dengan stok tersedia</option>
             @endforelse
         </select>
-        <p class="mt-1 text-xs text-gray-500">Transaksi penjualan harus berasal dari barang grosir yang tercatat</p>
+        <p class="mt-1 text-xs text-gray-500">Opsional jika jual langsung dari Kasir POS. Alokasi ini muncul di tab &quot;Alokasi Siap Invoice&quot;.</p>
         <p id="purchase-info" class="mt-2 text-xs text-purple-700 hidden"></p>
     </div>
 

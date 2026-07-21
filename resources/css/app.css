@@ -753,3 +753,101 @@ body {
         height: 20px;
     }
 }
+
+/* ===== Admin responsive shell ===== */
+.admin-content details > summary,
+#admin-mobile-menu details > summary {
+    list-style: none;
+}
+.admin-content details > summary::-webkit-details-marker,
+#admin-mobile-menu details > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Page headers: stack title + actions on small screens */
+@media (max-width: 640px) {
+    .admin-content > .flex.items-center.justify-between,
+    .admin-content > .mb-4.flex,
+    .admin-content > .mb-6.flex,
+    .admin-content > .mb-8.flex,
+    .keuangan-main > .flex.items-center.justify-between,
+    .keuangan-main > .mb-4.flex,
+    .keuangan-main > .mb-6.flex,
+    .keuangan-main > .flex.flex-wrap.items-center.justify-between {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem;
+    }
+
+    .keuangan-main > .flex.items-center.justify-between > .flex.gap-2,
+    .keuangan-main > .flex.flex-wrap.items-center.justify-between > .flex.gap-2,
+    .admin-content > .flex.items-center.justify-between > .flex.gap-2 {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .keuangan-main > .flex.items-center.justify-between > .flex.gap-2 > a,
+    .keuangan-main > .flex.items-center.justify-between > .flex.gap-2 > button,
+    .keuangan-main > .flex.flex-wrap.items-center.justify-between > .flex.gap-2 > a,
+    .keuangan-main > .flex.flex-wrap.items-center.justify-between > .flex.gap-2 > button,
+    .admin-content > .flex.items-center.justify-between > .flex.gap-2 > a,
+    .admin-content > .flex.items-center.justify-between > .flex.gap-2 > button,
+    .keuangan-main > .flex.items-center.justify-between > button,
+    .keuangan-main > .flex.items-center.justify-between > a {
+        flex: 1 1 auto;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .admin-content h2.text-2xl,
+    .admin-content h2.text-3xl,
+    .keuangan-main h2.text-2xl,
+    .keuangan-main h2.text-3xl {
+        font-size: 1.25rem;
+        line-height: 1.75rem;
+    }
+}
+
+/* Tables: always allow horizontal scroll inside common card wrappers */
+.admin-content .bg-white.rounded-lg.shadow,
+.admin-content .bg-white.rounded-lg.shadow-sm,
+.keuangan-main .bg-white.rounded-lg.shadow,
+.keuangan-main .bg-white.rounded-lg.shadow-sm {
+    max-width: 100%;
+}
+
+.admin-content .bg-white.rounded-lg.shadow.border.border-gray-200.overflow-hidden,
+.admin-content .bg-white.rounded-lg.shadow.border.border-gray-200:not(.overflow-x-auto),
+.keuangan-main .bg-white.rounded-lg.shadow.border.border-gray-200.overflow-hidden,
+.keuangan-main .bg-white.rounded-lg.shadow.border.border-gray-200:not(.overflow-x-auto) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-content table,
+.keuangan-main table {
+    min-width: 640px;
+}
+
+.admin-content table.min-w-\[1100px\],
+.keuangan-main table.min-w-\[1100px\] {
+    min-width: 1100px;
+}
+
+/* Forms in cards: avoid overflow */
+.admin-content input,
+.admin-content select,
+.admin-content textarea,
+.keuangan-main input,
+.keuangan-main select,
+.keuangan-main textarea {
+    max-width: 100%;
+}
+
+/* Grid forms: single column on very small phones if using md:grid-cols-2 without gap issues */
+@media (max-width: 767px) {
+    .admin-content .grid.md\:grid-cols-2,
+    .keuangan-main .grid.md\:grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+}

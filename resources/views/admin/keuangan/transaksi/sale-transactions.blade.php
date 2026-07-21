@@ -1,16 +1,19 @@
 @extends('admin.keuangan.layout')
 
-@section('title', 'Transaksi Penjualan - Keuangan')
+@section('title', 'Alokasi Stok - Keuangan')
 
 @section('keuangan_content')
 <div class="flex items-center justify-between mb-6">
     <div>
-        <h2 class="text-2xl font-bold text-gray-800">Transaksi Penjualan</h2>
-        <p class="text-gray-600 mt-1">Kelola item penjualan yang terhubung ke barang grosir untuk pembukuan yang konsisten.</p>
+        <h2 class="text-2xl font-bold text-gray-800">Alokasi Stok</h2>
+        <p class="text-gray-600 mt-1">Opsional: alokasi stok grosir sebelum masuk kasir. Biasanya cukup jual langsung dari Kasir POS.</p>
     </div>
-    <button type="button" onclick="openResourceModal('saleTransactionModal', 'keuangan/sale-transactions', 'Transaksi')" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition text-sm font-semibold">
-        + Tambah Transaksi
-    </button>
+    <div class="flex gap-2">
+        <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium">Ke Kasir POS</a>
+        <button type="button" onclick="openResourceModal('saleTransactionModal', 'keuangan/sale-transactions', 'Alokasi')" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition text-sm font-semibold">
+            + Tambah Alokasi
+        </button>
+    </div>
 </div>
 
 <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
