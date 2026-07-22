@@ -47,10 +47,16 @@
     </div>
 
     <div>
+        <label for="cost_unit_price_display" class="block text-sm font-medium text-gray-700 mb-2">Harga Grosir (Rp)</label>
+        <input type="text" id="cost_unit_price_display" value="—" disabled readonly
+               class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 cursor-not-allowed">
+        <p class="mt-1 text-xs text-gray-500">Harga beli dari data grosir (otomatis)</p>
+    </div>
+
+    <div>
         <label for="unit_price" class="block text-sm font-medium text-gray-700 mb-2">Harga Jual per Unit (Rp) *</label>
         <input type="number" id="unit_price" name="unit_price" value="{{ old('unit_price', isset($transaction) && $transaction ? $transaction->unit_price : 0) }}" min="0" step="1" required
                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-        <p id="cost-hint" class="mt-1 text-xs text-gray-500">Harga beli grosir: —</p>
     </div>
 
     <div>
@@ -86,7 +92,7 @@
     const subtotalDisplay = document.getElementById('subtotal_display');
     const purchaseInfo = document.getElementById('purchase-info');
     const quantityHint = document.getElementById('quantity-hint');
-    const costHint = document.getElementById('cost-hint');
+    const costDisplay = document.getElementById('cost_unit_price_display');
     const excludeId = @json($saleTransactionId ?: null);
     const detailsUrlTemplate = @json(route('admin.keuangan.sale-transactions.purchase-details', ['purchaseId' => '__ID__']));
 
@@ -106,6 +112,13 @@
         }
     }
 
+    function setCostDisplay(cost) {
+        if (!costDisplay) return;
+        costDisplay.value = cost === null || cost === undefined || cost === ''
+            ? '—'
+            : formatRp(cost);
+    }
+
     function applyPurchaseOption(option) {
         if (!option || !option.value) {
             maxQuantity = null;
@@ -113,7 +126,7 @@
                 purchaseInfo.classList.add('hidden');
                 purchaseInfo.textContent = '';
             }
-            if (costHint) costHint.textContent = 'Harga beli grosir: —';
+            setCostDisplay(null);
             if (quantityHint) quantityHint.textContent = 'Maksimal sesuai stok grosir tersisa';
             return;
         }
@@ -130,7 +143,7 @@
                 quantityInput.value = remaining > 0 ? remaining : 1;
             }
         }
-        if (costHint) costHint.textContent = 'Harga beli grosir: ' + formatRp(cost);
+        setCostDisplay(cost);
         if (quantityHint) quantityHint.textContent = 'Stok tersisa: ' + remaining + ' unit';
         if (purchaseInfo) {
             purchaseInfo.textContent = 'Supplier: ' + (option.textContent.split('—')[0] || '').trim();
@@ -156,7 +169,7 @@
             if (quantityInput) {
                 quantityInput.max = data.remaining_quantity > 0 ? data.remaining_quantity : 1;
             }
-            if (costHint) costHint.textContent = 'Harga beli grosir: ' + formatRp(data.cost_unit_price);
+            setCostDisplay(data.cost_unit_price);
             if (quantityHint) quantityHint.textContent = 'Stok tersisa: ' + data.remaining_quantity + ' unit';
             if (purchaseInfo) {
                 purchaseInfo.textContent = data.invoice_number + ' • ' + (data.supplier || '—') + ' • ' + (data.purchase_date || '');
