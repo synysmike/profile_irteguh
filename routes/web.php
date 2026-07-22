@@ -58,6 +58,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
     Route::resource('projects', \App\Http\Controllers\Admin\ProjectController::class);
     Route::patch('/projects/{project}/status', [\App\Http\Controllers\Admin\ProjectController::class, 'updateStatus'])->name('projects.update-status');
+    Route::get('/projects/{project}/terms/edit', [\App\Http\Controllers\Admin\ProjectController::class, 'editTerms'])->name('projects.terms.edit');
+    Route::patch('/projects/{project}/terms', [\App\Http\Controllers\Admin\ProjectController::class, 'updateTerms'])->name('projects.terms.update');
     Route::post('/projects/{project}/terms/{term}/pay', [\App\Http\Controllers\Admin\ProjectController::class, 'payTerm'])->name('projects.pay-term');
     Route::post('/projects/{project}/terms/{term}/unpay', [\App\Http\Controllers\Admin\ProjectController::class, 'unpayTerm'])->name('projects.unpay-term');
     Route::get('/projects/{project}/terms/{term}/whatsapp', [\App\Http\Controllers\Admin\ProjectController::class, 'whatsappTerm'])->name('projects.whatsapp-term');

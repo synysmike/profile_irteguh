@@ -210,9 +210,14 @@
 </script>
 
 <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mb-6">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-800">Termin Pembayaran</h3>
-        <p class="text-sm text-gray-500 mt-1">Klik "Posting ke Keuangan" untuk membuat invoice penjualan, pajak, dan penerimaan kas.</p>
+    <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800">Termin Pembayaran</h3>
+            <p class="text-sm text-gray-500 mt-1">Klik "Posting ke Keuangan" untuk membuat invoice penjualan, pajak, dan penerimaan kas.</p>
+        </div>
+        <a href="{{ route('admin.projects.terms.edit', $project) }}" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-semibold shrink-0">
+            Edit Termin
+        </a>
     </div>
     <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">

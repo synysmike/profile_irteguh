@@ -176,6 +176,41 @@ class ProjectController extends Controller
         }
     }
 
+    public function editTerms(string $projectId)
+    {
+        $project = Project::with('paymentTerms')->findOrFail($projectId);
+
+        return view('admin.projects.edit-terms', compact('project'));
+    }
+
+    public function updateTerms(Request $request, string $projectId)
+    {
+        $project = Project::with('paymentTerms')->findOrFail($projectId);
+        $validated = $this->validatePaymentTerms($request, $project);
+
+        DB::beginTransaction();
+        try {
+            $project->update([
+                'payment_method' => $validated['payment_method'],
+            ]);
+
+            ProjectFinanceService::recalculateFromAllocations($project);
+            $project->refresh();
+
+            $this->syncTermsForProject($project, $validated);
+
+            DB::commit();
+
+            return redirect()
+                ->route('admin.projects.show', $project)
+                ->with('success', 'Termin pembayaran berhasil diperbarui.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+    }
+
     public function destroy(string $id)
     {
         $project = Project::findOrFail($id);
@@ -346,77 +381,7 @@ class ProjectController extends Controller
             'terms.*.due_date' => 'nullable|date',
         ]);
 
-        if ($validated['payment_method'] === 'installment') {
-            $existingTerms = $project ? $project->paymentTerms : collect();
-            $existingDp = $existingTerms->first(fn ($t) => strcasecmp((string) $t->label, 'DP') === 0)
-                ?? $existingTerms->sortBy('term_number')->first();
-            $dpIsPaid = $existingDp && $existingDp->status === 'paid';
-
-            // Paid *additional* terms only — DP is always counted from the form.
-            $paidExtraPercent = round(
-                (float) $existingTerms
-                    ->where('status', 'paid')
-                    ->when($existingDp, fn ($c) => $c->where('id', '!=', $existingDp->id))
-                    ->sum('percentage'),
-                2
-            );
-
-            $dpLabel = trim((string) ($validated['dp']['label'] ?? 'DP')) ?: 'DP';
-            $dpPercent = (float) str_replace(',', '.', (string) ($validated['dp']['percentage'] ?? 0));
-            if ($dpPercent <= 0) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'dp.percentage' => ['Persentase DP wajib diisi dan harus lebih dari 0.'],
-                ]);
-            }
-
-            $dpPayload = [
-                'label' => $dpLabel,
-                'percentage' => $dpPercent,
-                'due_date' => $validated['dp']['due_date'] ?? null,
-            ];
-
-            $extras = collect($validated['terms'] ?? [])
-                ->map(function ($t) {
-                    return [
-                        'label' => trim((string) ($t['label'] ?? '')),
-                        'percentage' => (float) str_replace(',', '.', (string) ($t['percentage'] ?? 0)),
-                        'due_date' => $t['due_date'] ?? null,
-                    ];
-                })
-                ->filter(function ($t) {
-                    if ($t['label'] === '' || $t['percentage'] <= 0) {
-                        return false;
-                    }
-                    return strcasecmp($t['label'], 'DP') !== 0;
-                })
-                ->values();
-
-            $editableSum = round($dpPercent + $extras->sum(fn ($t) => $t['percentage']), 2);
-            $sum = round($paidExtraPercent + $editableSum, 2);
-            if (abs($sum - 100) > 0.01) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'terms' => [
-                        'Total persentase harus 100% (termin tambahan lunas '
-                        . number_format($paidExtraPercent, 2, '.', '')
-                        . '% + DP '
-                        . number_format($dpPercent, 2, '.', '')
-                        . '% + termin tambahan '
-                        . number_format($extras->sum(fn ($t) => $t['percentage']), 2, '.', '')
-                        . '% = '
-                        . number_format($sum, 2, '.', '')
-                        . '%).',
-                    ],
-                ]);
-            }
-
-            $validated['dp_is_paid'] = $dpIsPaid;
-            $validated['dp_term_id'] = $dpIsPaid ? ($existingDp->id ?? null) : null;
-            $validated['dp_payload'] = $dpPayload;
-            // Unpaid sync payload: recreate DP only when not paid; always recreate unpaid extras.
-            $validated['terms'] = $dpIsPaid
-                ? $extras->all()
-                : collect([$dpPayload])->concat($extras)->values()->all();
-        }
+        $validated = $this->normalizePaymentTermsPayload($validated, $project);
 
         if ($project && $project->paymentTerms()->where('status', 'paid')->exists()) {
             $lockedBase = (float) ($project->base_subtotal ?? $project->subtotal);
@@ -426,6 +391,103 @@ class ProjectController extends Controller
                 ]);
             }
         }
+
+        return $validated;
+    }
+
+    private function validatePaymentTerms(Request $request, Project $project): array
+    {
+        $validated = $request->validate([
+            'payment_method' => 'required|in:full,installment',
+            'dp' => 'nullable|array',
+            'dp.label' => 'nullable|string|max:120',
+            'dp.percentage' => 'nullable|numeric|min:0|max:100',
+            'dp.due_date' => 'nullable|date',
+            'dp.term_id' => 'nullable|integer',
+            'terms' => 'nullable|array',
+            'terms.*.label' => 'nullable|string|max:120',
+            'terms.*.percentage' => 'nullable|numeric|min:0|max:100',
+            'terms.*.due_date' => 'nullable|date',
+        ]);
+
+        return $this->normalizePaymentTermsPayload($validated, $project);
+    }
+
+    private function normalizePaymentTermsPayload(array $validated, ?Project $project = null): array
+    {
+        if ($validated['payment_method'] !== 'installment') {
+            return $validated;
+        }
+
+        $existingTerms = $project ? $project->paymentTerms : collect();
+        $existingDp = $existingTerms->first(fn ($t) => strcasecmp((string) $t->label, 'DP') === 0)
+            ?? $existingTerms->sortBy('term_number')->first();
+        $dpIsPaid = $existingDp && $existingDp->status === 'paid';
+
+        // Paid *additional* terms only — DP is always counted from the form.
+        $paidExtraPercent = round(
+            (float) $existingTerms
+                ->where('status', 'paid')
+                ->when($existingDp, fn ($c) => $c->where('id', '!=', $existingDp->id))
+                ->sum('percentage'),
+            2
+        );
+
+        $dpLabel = trim((string) ($validated['dp']['label'] ?? 'DP')) ?: 'DP';
+        $dpPercent = (float) str_replace(',', '.', (string) ($validated['dp']['percentage'] ?? 0));
+        if ($dpPercent <= 0) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'dp.percentage' => ['Persentase DP wajib diisi dan harus lebih dari 0.'],
+            ]);
+        }
+
+        $dpPayload = [
+            'label' => $dpLabel,
+            'percentage' => $dpPercent,
+            'due_date' => $validated['dp']['due_date'] ?? null,
+        ];
+
+        $extras = collect($validated['terms'] ?? [])
+            ->map(function ($t) {
+                return [
+                    'label' => trim((string) ($t['label'] ?? '')),
+                    'percentage' => (float) str_replace(',', '.', (string) ($t['percentage'] ?? 0)),
+                    'due_date' => $t['due_date'] ?? null,
+                ];
+            })
+            ->filter(function ($t) {
+                if ($t['label'] === '' || $t['percentage'] <= 0) {
+                    return false;
+                }
+                return strcasecmp($t['label'], 'DP') !== 0;
+            })
+            ->values();
+
+        $editableSum = round($dpPercent + $extras->sum(fn ($t) => $t['percentage']), 2);
+        $sum = round($paidExtraPercent + $editableSum, 2);
+        if (abs($sum - 100) > 0.01) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'terms' => [
+                    'Total persentase harus 100% (termin tambahan lunas '
+                    . number_format($paidExtraPercent, 2, '.', '')
+                    . '% + DP '
+                    . number_format($dpPercent, 2, '.', '')
+                    . '% + termin tambahan '
+                    . number_format($extras->sum(fn ($t) => $t['percentage']), 2, '.', '')
+                    . '% = '
+                    . number_format($sum, 2, '.', '')
+                    . '%).',
+                ],
+            ]);
+        }
+
+        $validated['dp_is_paid'] = $dpIsPaid;
+        $validated['dp_term_id'] = $dpIsPaid ? ($existingDp->id ?? null) : null;
+        $validated['dp_payload'] = $dpPayload;
+        // Unpaid sync payload: recreate DP only when not paid; always recreate unpaid extras.
+        $validated['terms'] = $dpIsPaid
+            ? $extras->all()
+            : collect([$dpPayload])->concat($extras)->values()->all();
 
         return $validated;
     }

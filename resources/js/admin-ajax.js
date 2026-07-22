@@ -660,7 +660,8 @@ window.initProjectForm = function () {
     const percentTotal = document.getElementById("terms-percent-total");
     const btnAddTerm = document.getElementById("btn-add-term");
 
-    if (!subtotalInput || !termsContainer) return;
+    // Terms-only page has no subtotal; full project form has both.
+    if (!termsContainer && !subtotalInput) return;
 
     function formatRupiah(n) {
         return (
@@ -691,6 +692,7 @@ window.initProjectForm = function () {
     }
 
     function updatePercentTotal() {
+        if (!termsContainer) return;
         let sum = 0;
         const dpInput = document.getElementById("dp_percentage");
         if (dpInput && !dpInput.disabled) {
@@ -716,6 +718,7 @@ window.initProjectForm = function () {
     }
 
     function reindexTerms() {
+        if (!termsContainer) return;
         termsContainer.querySelectorAll(".term-row").forEach(function (row, index) {
             row.querySelectorAll("input").forEach(function (input) {
                 const name = input.getAttribute("name");
@@ -768,7 +771,7 @@ window.initProjectForm = function () {
         updatePercentTotal();
     }
 
-    if (btnAddTerm && btnAddTerm.dataset.projectBound !== "1") {
+    if (btnAddTerm && termsContainer && btnAddTerm.dataset.projectBound !== "1") {
         btnAddTerm.addEventListener("click", function (e) {
             e.preventDefault();
             const emptyHint = document.getElementById("terms-empty-hint");
@@ -785,7 +788,7 @@ window.initProjectForm = function () {
         paymentMethod.dataset.projectBound = "1";
     }
 
-    if (subtotalInput.dataset.projectCalcBound !== "1") {
+    if (subtotalInput && subtotalInput.dataset.projectCalcBound !== "1") {
         subtotalInput.addEventListener("input", calculateTotals);
         subtotalInput.addEventListener("change", calculateTotals);
         subtotalInput.dataset.projectCalcBound = "1";
@@ -802,7 +805,7 @@ window.initProjectForm = function () {
         dpPercentage.dataset.projectBound = "1";
     }
 
-    if (termsContainer.dataset.projectTermsBound !== "1") {
+    if (termsContainer && termsContainer.dataset.projectTermsBound !== "1") {
         termsContainer.addEventListener("input", function (e) {
             if (e.target && e.target.classList.contains("term-percentage")) {
                 updatePercentTotal();
@@ -837,6 +840,6 @@ window.initProjectForm = function () {
         termsContainer.dataset.projectTermsBound = "1";
     }
 
-    calculateTotals();
+    if (subtotalInput) calculateTotals();
     syncInstallmentVisibility();
 };
