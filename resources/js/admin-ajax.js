@@ -354,6 +354,12 @@ window.openResourceModal = function (
                         if (typeof window.initSaleTransactionsForm === "function") {
                             window.initSaleTransactionsForm();
                         }
+                        if (
+                            resourceName.indexOf("sale-transactions") !== -1 &&
+                            typeof window.initSaleTransactionAllocationForm === "function"
+                        ) {
+                            window.initSaleTransactionAllocationForm();
+                        }
                         if (resourceName === "projects" && typeof window.initProjectForm === "function") {
                             window.initProjectForm();
                         }
@@ -465,6 +471,12 @@ window.openResourceModal = function (
                         // Form create penjualan: script di partial tidak jalan (innerHTML), jadi load daftar pending di sini
                         if (resourceName === "sales") {
                             loadPendingListInModal(modalId);
+                        }
+                        if (
+                            resourceName.indexOf("sale-transactions") !== -1 &&
+                            typeof window.initSaleTransactionAllocationForm === "function"
+                        ) {
+                            window.initSaleTransactionAllocationForm();
                         }
                         if (resourceName === "projects" && typeof window.initProjectForm === "function") {
                             window.initProjectForm();
@@ -842,4 +854,166 @@ window.initProjectForm = function () {
 
     if (subtotalInput) calculateTotals();
     syncInstallmentVisibility();
+};
+/**
+ * Alokasi stok modal: purchase dropdown fills description, cost (harga grosir), qty max, subtotal.
+ * Inline <script> in AJAX-loaded form HTML does not run.
+ */
+window.initSaleTransactionAllocationForm = function () {
+    const purchaseSelect = document.getElementById("purchase_id");
+    const descriptionInput = document.getElementById("description");
+    const quantityInput = document.getElementById("quantity");
+    const unitPriceInput = document.getElementById("unit_price");
+    const subtotalDisplay = document.getElementById("subtotal_display");
+    const purchaseInfo = document.getElementById("purchase-info");
+    const quantityHint = document.getElementById("quantity-hint");
+    const costDisplay = document.getElementById("cost_unit_price_display");
+
+    if (!purchaseSelect || purchaseSelect.dataset.allocationBound === "1") {
+        return;
+    }
+    purchaseSelect.dataset.allocationBound = "1";
+
+    const detailsUrlTemplate = purchaseSelect.dataset.detailsUrl || "";
+    const excludeId = purchaseSelect.dataset.excludeId || "";
+    let maxQuantity = null;
+
+    function formatRp(value) {
+        return (
+            "Rp " +
+            new Intl.NumberFormat("id-ID").format(Math.round(Number(value) || 0))
+        );
+    }
+
+    function calculateSubtotal() {
+        const qty = parseFloat(quantityInput?.value || 0) || 0;
+        const price = parseFloat(unitPriceInput?.value || 0) || 0;
+        if (subtotalDisplay) {
+            subtotalDisplay.value = formatRp(qty * price);
+        }
+    }
+
+    function setCostDisplay(cost) {
+        if (!costDisplay) return;
+        if (cost === null || cost === undefined || cost === "") {
+            costDisplay.value = "—";
+            return;
+        }
+        costDisplay.value = formatRp(cost);
+    }
+
+    function applyPurchaseOption(option) {
+        if (!option || !option.value) {
+            maxQuantity = null;
+            if (purchaseInfo) {
+                purchaseInfo.classList.add("hidden");
+                purchaseInfo.textContent = "";
+            }
+            setCostDisplay(null);
+            if (quantityHint) {
+                quantityHint.textContent = "Maksimal sesuai stok grosir tersisa";
+            }
+            return;
+        }
+
+        const description = option.dataset.description || "";
+        const remaining = parseInt(option.dataset.remaining || "0", 10);
+        const cost = parseFloat(option.dataset.cost || "0") || 0;
+
+        maxQuantity = remaining;
+        if (descriptionInput) descriptionInput.value = description;
+        if (quantityInput) {
+            quantityInput.max = remaining > 0 ? remaining : 1;
+            if ((parseInt(quantityInput.value, 10) || 0) > remaining) {
+                quantityInput.value = remaining > 0 ? remaining : 1;
+            }
+        }
+        setCostDisplay(cost);
+        if (quantityHint) {
+            quantityHint.textContent = "Stok tersisa: " + remaining + " unit";
+        }
+        if (purchaseInfo) {
+            purchaseInfo.textContent =
+                "Supplier: " +
+                (option.textContent.split("—")[0] || "").trim();
+            purchaseInfo.classList.remove("hidden");
+        }
+        calculateSubtotal();
+    }
+
+    async function refreshPurchaseDetails(purchaseId) {
+        if (!purchaseId || !detailsUrlTemplate) return;
+        let url = detailsUrlTemplate.replace("__ID__", purchaseId);
+        if (excludeId) {
+            url +=
+                "?exclude_sale_transaction_id=" +
+                encodeURIComponent(excludeId);
+        }
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            maxQuantity = data.remaining_quantity;
+            if (descriptionInput) descriptionInput.value = data.description;
+            if (quantityInput) {
+                quantityInput.max =
+                    data.remaining_quantity > 0 ? data.remaining_quantity : 1;
+            }
+            setCostDisplay(data.cost_unit_price);
+            if (quantityHint) {
+                quantityHint.textContent =
+                    "Stok tersisa: " + data.remaining_quantity + " unit";
+            }
+            if (purchaseInfo) {
+                purchaseInfo.textContent =
+                    data.invoice_number +
+                    " • " +
+                    (data.supplier || "—") +
+                    " • " +
+                    (data.purchase_date || "");
+                purchaseInfo.classList.remove("hidden");
+            }
+            calculateSubtotal();
+        } catch (e) {
+            // keep option-based values
+        }
+    }
+
+    purchaseSelect.addEventListener("change", function () {
+        const option = this.options[this.selectedIndex];
+        applyPurchaseOption(option);
+        if (option && option.value) {
+            refreshPurchaseDetails(option.value);
+        }
+    });
+
+    [quantityInput, unitPriceInput].forEach(function (input) {
+        if (!input) return;
+        input.addEventListener("input", calculateSubtotal);
+        input.addEventListener("change", function () {
+            if (
+                input === quantityInput &&
+                maxQuantity !== null &&
+                (parseInt(input.value, 10) || 0) > maxQuantity
+            ) {
+                input.value = maxQuantity;
+            }
+            calculateSubtotal();
+        });
+    });
+
+    const initialOption = purchaseSelect.options[purchaseSelect.selectedIndex];
+    if (initialOption && initialOption.value) {
+        applyPurchaseOption(initialOption);
+        refreshPurchaseDetails(initialOption.value);
+    } else {
+        calculateSubtotal();
+    }
+
+    window.initSubtotalCalculator = calculateSubtotal;
 };
