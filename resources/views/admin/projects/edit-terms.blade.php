@@ -9,7 +9,7 @@
     <p class="text-gray-600 mt-1">{{ $project->title }} · {{ $project->code }}</p>
     <p class="text-sm text-gray-500 mt-2">
         Total project saat ini: <strong>Rp {{ number_format($project->total, 0, ',', '.') }}</strong>
-        (DPP jasa + stok + pajak). Nominal termin mengikuti persentase × total.
+        (DPP jasa + stok + pajak). Isi persentase atau nominal — keduanya saling menghitung otomatis.
     </p>
 </div>
 

@@ -670,10 +670,15 @@ window.initProjectForm = function () {
     const installmentSection = document.getElementById("installment-section");
     const termsContainer = document.getElementById("terms-container");
     const percentTotal = document.getElementById("terms-percent-total");
+    const amountTotal = document.getElementById("terms-amount-total");
+    const termsBaseEl = document.getElementById("terms-base-total");
+    const termsBaseLabel = document.getElementById("terms-base-total-label");
     const btnAddTerm = document.getElementById("btn-add-term");
 
     // Terms-only page has no subtotal; full project form has both.
     if (!termsContainer && !subtotalInput) return;
+
+    let syncingTermFields = false;
 
     function formatRupiah(n) {
         return (
@@ -682,8 +687,68 @@ window.initProjectForm = function () {
         );
     }
 
+    function parseNum(raw) {
+        return parseFloat(String(raw || "").replace(",", ".")) || 0;
+    }
+
+    function getTermsBaseTotal() {
+        if (termsBaseEl) {
+            return parseNum(termsBaseEl.value);
+        }
+        return 0;
+    }
+
+    function setTermsBaseTotal(total) {
+        if (termsBaseEl) termsBaseEl.value = String(Math.round(total));
+        if (termsBaseLabel) termsBaseLabel.textContent = formatRupiah(total);
+    }
+
+    function amountFromPercent(pct) {
+        const base = getTermsBaseTotal();
+        if (base <= 0) return 0;
+        return Math.round((base * pct) / 100);
+    }
+
+    function percentFromAmount(amount) {
+        const base = getTermsBaseTotal();
+        if (base <= 0) return 0;
+        return Math.round((amount / base) * 10000) / 100;
+    }
+
+    function syncAmountFromPercent(percentInput, amountInput) {
+        if (!percentInput || !amountInput || syncingTermFields) return;
+        syncingTermFields = true;
+        amountInput.value = String(amountFromPercent(parseNum(percentInput.value)));
+        syncingTermFields = false;
+    }
+
+    function syncPercentFromAmount(percentInput, amountInput) {
+        if (!percentInput || !amountInput || syncingTermFields) return;
+        syncingTermFields = true;
+        percentInput.value = String(percentFromAmount(parseNum(amountInput.value)));
+        syncingTermFields = false;
+    }
+
+    function syncAllAmountsFromPercents() {
+        const dpPct = document.getElementById("dp_percentage");
+        const dpAmt = document.getElementById("dp_amount");
+        syncAmountFromPercent(dpPct, dpAmt);
+        if (!termsContainer) return;
+        termsContainer.querySelectorAll(".term-row").forEach(function (row) {
+            syncAmountFromPercent(
+                row.querySelector(".term-percentage"),
+                row.querySelector(".term-amount"),
+            );
+        });
+        updatePercentTotal();
+    }
+
     function calculateTotals() {
+        if (!subtotalInput) return;
         const subtotal = parseFloat(subtotalInput.value) || 0;
+        const stock = termsBaseEl
+            ? parseNum(termsBaseEl.dataset.stock)
+            : 0;
         const selected = taxSelect
             ? taxSelect.options[taxSelect.selectedIndex]
             : null;
@@ -694,36 +759,64 @@ window.initProjectForm = function () {
         const calculation = selected
             ? selected.dataset.calculation || "addition"
             : "addition";
-        const taxAmount = Math.round((subtotal * rate) / 100);
-        const total =
+        // Display jasa-only tax/total in project form fields (existing UX).
+        const jasaTax = Math.round((subtotal * rate) / 100);
+        const jasaTotal =
             calculation === "deduction"
-                ? subtotal - taxAmount
-                : subtotal + taxAmount;
-        if (taxAmountDisplay) taxAmountDisplay.value = formatRupiah(taxAmount);
-        if (totalDisplay) totalDisplay.value = formatRupiah(total);
+                ? subtotal - jasaTax
+                : subtotal + jasaTax;
+        if (taxAmountDisplay) taxAmountDisplay.value = formatRupiah(jasaTax);
+        if (totalDisplay) totalDisplay.value = formatRupiah(jasaTotal);
+
+        // Terms use full DPP (jasa + stok) + pajak, matching project.total.
+        const dpp = subtotal + stock;
+        const fullTax = Math.round((dpp * rate) / 100);
+        const fullTotal =
+            calculation === "deduction" ? dpp - fullTax : dpp + fullTax;
+        setTermsBaseTotal(fullTotal);
+        syncAllAmountsFromPercents();
     }
 
     function updatePercentTotal() {
         if (!termsContainer) return;
-        let sum = 0;
+        let sumPct = 0;
+        let sumAmt = 0;
         const dpInput = document.getElementById("dp_percentage");
+        const dpAmt = document.getElementById("dp_amount");
         if (dpInput && !dpInput.disabled) {
-            sum += parseFloat(String(dpInput.value || "").replace(",", ".")) || 0;
+            sumPct += parseNum(dpInput.value);
         }
-        termsContainer.querySelectorAll(".term-percentage").forEach(function (el) {
-            if (el.disabled) return;
-            const raw = String(el.value || "").replace(",", ".");
-            sum += parseFloat(raw) || 0;
+        if (dpAmt && !dpAmt.disabled) {
+            sumAmt += parseNum(dpAmt.value);
+        }
+        termsContainer.querySelectorAll(".term-row").forEach(function (row) {
+            const pctEl = row.querySelector(".term-percentage");
+            const amtEl = row.querySelector(".term-amount");
+            if (pctEl && !pctEl.disabled) sumPct += parseNum(pctEl.value);
+            if (amtEl && !amtEl.disabled) sumAmt += parseNum(amtEl.value);
         });
         const paidEl = document.getElementById("paid-terms-percent");
-        const paid = paidEl
-            ? parseFloat(paidEl.value) || 0
-            : parseFloat(termsContainer.dataset.paidPercent || 0) || 0;
-        sum = Math.round((sum + paid) * 100) / 100;
+        const paidAmtEl = document.getElementById("paid-terms-amount");
+        const paidPct = paidEl
+            ? parseNum(paidEl.value)
+            : parseNum(termsContainer.dataset.paidPercent);
+        const paidAmt = paidAmtEl
+            ? parseNum(paidAmtEl.value)
+            : parseNum(termsContainer.dataset.paidAmount);
+        sumPct = Math.round((sumPct + paidPct) * 100) / 100;
+        sumAmt = Math.round(sumAmt + paidAmt);
         if (percentTotal) {
-            percentTotal.textContent = sum.toFixed(2);
+            percentTotal.textContent = sumPct.toFixed(2);
             percentTotal.className =
-                Math.abs(sum - 100) < 0.005
+                Math.abs(sumPct - 100) < 0.005
+                    ? "font-semibold text-green-600"
+                    : "font-semibold text-red-600";
+        }
+        if (amountTotal) {
+            const base = getTermsBaseTotal();
+            amountTotal.textContent = formatRupiah(sumAmt);
+            amountTotal.className =
+                base > 0 && Math.abs(sumAmt - base) <= 1
                     ? "font-semibold text-green-600"
                     : "font-semibold text-red-600";
         }
@@ -746,7 +839,7 @@ window.initProjectForm = function () {
     function createTermRow(index) {
         const row = document.createElement("div");
         row.className =
-            "term-row grid grid-cols-1 md:grid-cols-4 gap-3 items-end border border-gray-200 rounded-lg p-3 bg-gray-50";
+            "term-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end border border-gray-200 rounded-lg p-3 bg-gray-50";
         row.innerHTML =
             '<div><label class="block text-xs text-gray-600 mb-1">Label Termin</label>' +
             '<input type="text" name="terms[' +
@@ -758,6 +851,8 @@ window.initProjectForm = function () {
             '<input type="number" name="terms[' +
             index +
             '][percentage]" min="0" max="100" step="0.01" value="0" class="term-percentage w-full px-3 py-2 border border-gray-300 rounded-md text-sm"></div>' +
+            '<div><label class="block text-xs text-gray-600 mb-1">Nominal (Rp)</label>' +
+            '<input type="number" min="0" step="1" value="0" class="term-amount w-full px-3 py-2 border border-gray-300 rounded-md text-sm" inputmode="numeric"></div>' +
             '<div><label class="block text-xs text-gray-600 mb-1">Jatuh Tempo</label>' +
             '<input type="date" name="terms[' +
             index +
@@ -775,7 +870,7 @@ window.initProjectForm = function () {
             installmentSection.classList.add("hidden");
         }
         installmentSection.querySelectorAll("input, select, textarea, button").forEach(function (el) {
-            if (el.id === "paid-terms-percent") return;
+            if (el.id === "paid-terms-percent" || el.id === "paid-terms-amount" || el.id === "terms-base-total") return;
             if (el.tagName === "BUTTON" || el.type !== "hidden") {
                 el.disabled = !isInstallment;
             }
@@ -811,20 +906,66 @@ window.initProjectForm = function () {
     }
 
     const dpPercentage = document.getElementById("dp_percentage");
+    const dpAmount = document.getElementById("dp_amount");
     if (dpPercentage && dpPercentage.dataset.projectBound !== "1") {
-        dpPercentage.addEventListener("input", updatePercentTotal);
-        dpPercentage.addEventListener("change", updatePercentTotal);
+        dpPercentage.addEventListener("input", function () {
+            syncAmountFromPercent(dpPercentage, dpAmount);
+            updatePercentTotal();
+        });
+        dpPercentage.addEventListener("change", function () {
+            syncAmountFromPercent(dpPercentage, dpAmount);
+            updatePercentTotal();
+        });
         dpPercentage.dataset.projectBound = "1";
+    }
+    if (dpAmount && dpAmount.dataset.projectBound !== "1") {
+        dpAmount.addEventListener("input", function () {
+            syncPercentFromAmount(dpPercentage, dpAmount);
+            updatePercentTotal();
+        });
+        dpAmount.addEventListener("change", function () {
+            syncPercentFromAmount(dpPercentage, dpAmount);
+            updatePercentTotal();
+        });
+        dpAmount.dataset.projectBound = "1";
     }
 
     if (termsContainer && termsContainer.dataset.projectTermsBound !== "1") {
         termsContainer.addEventListener("input", function (e) {
-            if (e.target && e.target.classList.contains("term-percentage")) {
+            const t = e.target;
+            if (!t) return;
+            const row = t.closest(".term-row");
+            if (!row) return;
+            if (t.classList.contains("term-percentage")) {
+                syncAmountFromPercent(
+                    t,
+                    row.querySelector(".term-amount"),
+                );
+                updatePercentTotal();
+            } else if (t.classList.contains("term-amount")) {
+                syncPercentFromAmount(
+                    row.querySelector(".term-percentage"),
+                    t,
+                );
                 updatePercentTotal();
             }
         });
         termsContainer.addEventListener("change", function (e) {
-            if (e.target && e.target.classList.contains("term-percentage")) {
+            const t = e.target;
+            if (!t) return;
+            const row = t.closest(".term-row");
+            if (!row) return;
+            if (t.classList.contains("term-percentage")) {
+                syncAmountFromPercent(
+                    t,
+                    row.querySelector(".term-amount"),
+                );
+                updatePercentTotal();
+            } else if (t.classList.contains("term-amount")) {
+                syncPercentFromAmount(
+                    row.querySelector(".term-percentage"),
+                    t,
+                );
                 updatePercentTotal();
             }
         });
@@ -852,7 +993,11 @@ window.initProjectForm = function () {
         termsContainer.dataset.projectTermsBound = "1";
     }
 
-    if (subtotalInput) calculateTotals();
+    if (subtotalInput) {
+        calculateTotals();
+    } else {
+        updatePercentTotal();
+    }
     syncInstallmentVisibility();
 };
 /**
