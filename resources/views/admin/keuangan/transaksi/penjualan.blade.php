@@ -147,7 +147,7 @@
                     @endif
                 </td>
                 <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
-                    <a href="{{ route('admin.sales.invoice', $sale->id) }}" target="_blank" class="text-blue-600 hover:text-blue-800 mr-3">Cetak</a>
+                    <a href="{{ $sale->publicInvoiceUrl() }}" target="_blank" class="text-blue-600 hover:text-blue-800 mr-3">Cetak</a>
                     @if($sale->customer?->phone)
                     <a href="{{ route('admin.sales.whatsapp', $sale->id) }}" target="_blank" rel="noopener" class="text-green-600 hover:text-green-800 mr-3" title="Kirim ke {{ $sale->customer->phone }}">WA</a>
                     @else

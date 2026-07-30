@@ -55,7 +55,9 @@
 <body>
     <div class="no-print">
         <button type="button" class="btn-print" onclick="window.print();">🖨 Cetak Invoice</button>
+        @if(empty($isPublic) && auth()->check())
         <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" style="margin-left: 8px; color: #6b7280; font-size: 14px;">← Kembali ke Daftar Penjualan</a>
+        @endif
     </div>
 
     <div class="letterhead-wrap">

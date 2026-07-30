@@ -132,7 +132,7 @@ class SaleWhatsAppInvoice
         $lines[] = '';
         $lines[] = '=================';
         $lines[] = 'Link invoice:';
-        $lines[] = route('admin.sales.invoice', $sale->id);
+        $lines[] = $sale->publicInvoiceUrl();
         $lines[] = '';
         $lines[] = 'Terima kasih';
 

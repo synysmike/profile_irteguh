@@ -390,7 +390,7 @@ class SaleController extends Controller
                 'message' => 'Invoice berhasil dibuat.',
                 'sale_id' => $sale->id,
                 'invoice_number' => $sale->invoice_number,
-                'invoice_url' => route('admin.sales.invoice', $sale->id),
+                'invoice_url' => $sale->publicInvoiceUrl(),
                 'whatsapp_url' => SaleWhatsAppInvoice::destinationPhone($sale)
                     ? route('admin.sales.whatsapp', $sale->id)
                     : null,
@@ -407,17 +407,13 @@ class SaleController extends Controller
 
     /**
      * Tampilkan invoice penjualan (untuk cetak).
+     * Redirect ke URL publik bertanda tangan agar link di address bar bisa dibagikan ke customer.
      */
     public function invoice(string $id)
     {
-        $sale = Sale::with(['customer', 'saleItems', 'project'])->findOrFail($id);
+        $sale = Sale::findOrFail($id);
 
-        if ($sale->project_id && $sale->project_payment_term_id) {
-            \App\Services\ProjectFinanceService::refreshTermInvoiceItems($sale);
-            $sale->load(['customer', 'saleItems', 'project']);
-        }
-
-        return view('admin.sales.invoice', compact('sale'));
+        return redirect()->to($sale->publicInvoiceUrl());
     }
 
     /**

@@ -22,6 +22,11 @@ Route::get('/berita/{slug}', [\App\Http\Controllers\NewsController::class, 'show
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 
+// Public sales invoice (signed URL — no login; for customer share / WhatsApp)
+Route::get('/invoice/{sale}', [\App\Http\Controllers\PublicSaleInvoiceController::class, 'show'])
+    ->middleware('signed')
+    ->name('invoice.sales.show');
+
 // Auth Routes
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);

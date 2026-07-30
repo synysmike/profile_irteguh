@@ -278,7 +278,7 @@ class ProjectController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Pembayaran termin berhasil diposting ke penjualan & kas.',
-                    'invoice_url' => route('admin.sales.invoice', $sale->id),
+                    'invoice_url' => $sale->publicInvoiceUrl(),
                 ]);
             }
 

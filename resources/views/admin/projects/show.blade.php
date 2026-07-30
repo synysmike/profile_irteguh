@@ -248,8 +248,8 @@
                     @endif
                 </td>
                 <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
-                    @if($term->sale_id)
-                    <a href="{{ route('admin.sales.invoice', $term->sale_id) }}" target="_blank" class="text-blue-600 hover:text-blue-800 mr-3">Invoice</a>
+                    @if($term->sale_id && $term->sale)
+                    <a href="{{ $term->sale->publicInvoiceUrl() }}" target="_blank" class="text-blue-600 hover:text-blue-800 mr-3">Invoice</a>
                     <a href="{{ route('admin.sales.whatsapp', $term->sale_id) }}" target="_blank" rel="noopener" class="text-green-600 hover:text-green-800 mr-3">WA</a>
                     @endif
                     @if($term->status !== 'paid')

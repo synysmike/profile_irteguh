@@ -64,4 +64,14 @@ class Sale extends Model
         $seq = $last ? (int) substr($last->invoice_number, strlen($prefix)) + 1 : 1;
         return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
+
+    /**
+     * Public invoice URL (signed, no login required) for sharing with customers.
+     */
+    public function publicInvoiceUrl(): string
+    {
+        return \Illuminate\Support\Facades\URL::signedRoute('invoice.sales.show', [
+            'sale' => $this->id,
+        ]);
+    }
 }
