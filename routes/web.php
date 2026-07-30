@@ -27,6 +27,10 @@ Route::get('/invoice/{sale}', [\App\Http\Controllers\PublicSaleInvoiceController
     ->middleware('signed')
     ->name('invoice.sales.show');
 
+// Path lama tetap di luar grup auth supaya link yang sudah dikirim ke customer tidak jatuh ke login.
+Route::get('/admin/sales/{id}/invoice', [\App\Http\Controllers\Admin\SaleController::class, 'invoice'])
+    ->name('admin.sales.invoice');
+
 // Auth Routes
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
@@ -73,7 +77,6 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('projects.assignment-letters', \App\Http\Controllers\Admin\AssignmentLetterController::class)
         ->parameters(['assignment-letters' => 'letter']);
     Route::resource('employees', \App\Http\Controllers\Admin\EmployeeController::class);
-    Route::get('/sales/{id}/invoice', [\App\Http\Controllers\Admin\SaleController::class, 'invoice'])->name('sales.invoice');
     Route::get('/sales/{id}/whatsapp', [\App\Http\Controllers\Admin\SaleController::class, 'whatsapp'])->name('sales.whatsapp');
     Route::get('/sales/pos/catalog', [\App\Http\Controllers\Admin\SaleController::class, 'posCatalog'])->name('sales.pos.catalog');
     Route::post('/sales/pos/checkout', [\App\Http\Controllers\Admin\SaleController::class, 'posCheckout'])->name('sales.pos.checkout');

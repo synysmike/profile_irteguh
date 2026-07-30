@@ -21,7 +21,8 @@ class SaleController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        // 'invoice' hanya redirect ke URL publik bertanda tangan, jadi tidak butuh login.
+        $this->middleware('auth')->except('invoice');
     }
 
     public function index()
