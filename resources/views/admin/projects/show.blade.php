@@ -45,6 +45,9 @@
         <div class="text-sm text-gray-500 mb-1">Nilai, Diskon & Pajak</div>
         <div class="space-y-1 text-sm">
             <div class="flex justify-between"><span>Jasa kotor</span><span>Rp {{ number_format($project->base_subtotal ?? 0, 0, ',', '.') }}</span></div>
+            @if($project->assignmentLetters->flatMap->jasaItems->isNotEmpty())
+            <p class="text-xs text-indigo-600">Dari item jasa surat tugas (qty bisa diubah di bawah).</p>
+            @endif
             <div class="flex justify-between text-red-700">
                 <span>Diskon jasa{{ $project->discount_name ? ' ('.$project->discount_name.')' : '' }}</span>
                 <span>- Rp {{ number_format($project->discount_amount ?? 0, 0, ',', '.') }}</span>
@@ -78,6 +81,115 @@
             <div class="bg-green-600 h-2 rounded-full" style="width: {{ $project->paymentProgressPercent() }}%"></div>
         </div>
     </div>
+</div>
+
+@php
+    $projectJasaItems = $project->assignmentLetters->flatMap(fn ($letter) => $letter->jasaItems->map(function ($item) use ($letter) {
+        $item->setAttribute('letter_number', $letter->number);
+        return $item;
+    }));
+    $jasaQtyLocked = $project->paymentTerms->where('status', 'paid')->isNotEmpty();
+@endphp
+
+{{-- Item Jasa (dari surat tugas) — qty bisa disesuaikan --}}
+<div id="item-jasa" class="bg-white rounded-lg shadow border-2 border-indigo-300 overflow-hidden mb-6">
+    <div class="px-4 sm:px-6 py-4 border-b border-indigo-100 bg-indigo-50 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800">Item Jasa</h3>
+            <p class="text-sm text-gray-600 mt-1">
+                Berasal dari surat tugas. Sesuaikan qty lalu simpan — nilai jasa kotor, DPP, termin unpaid, dan total invoice ikut berubah.
+            </p>
+        </div>
+        <a href="{{ route('admin.projects.assignment-letters.create', $project) }}" class="text-sm text-indigo-700 hover:text-indigo-900 font-medium">+ Surat Tugas / Tambah Jasa</a>
+    </div>
+
+    @if($projectJasaItems->isEmpty())
+    <div class="px-6 py-8 text-center text-gray-500 text-sm">
+        Belum ada item jasa. Tambahkan lewat <strong>Surat Tugas</strong>, atau isi nilai jasa manual di Edit Project.
+    </div>
+    @else
+    <form method="POST" action="{{ route('admin.projects.jasa-items.update', $project) }}" id="form-project-jasa-qty">
+        @csrf
+        @method('PATCH')
+        @if($jasaQtyLocked)
+        <div class="mx-4 sm:mx-6 mt-4 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-sm text-amber-800">
+            Qty terkunci karena sudah ada termin yang lunas.
+        </div>
+        @endif
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Surat</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jasa</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Harga</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28">Qty</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200" id="project-jasa-rows">
+                    @foreach($projectJasaItems as $index => $item)
+                    <tr class="project-jasa-row" data-price="{{ (float) $item->unit_price }}">
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ $item->letter_number }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $item->description }}</td>
+                        <td class="px-4 py-3 text-sm text-right">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
+                        <td class="px-4 py-3 text-sm text-right">
+                            <input type="hidden" name="items[{{ $index }}][id]" value="{{ $item->id }}">
+                            <input type="number" name="items[{{ $index }}][quantity]" min="1" step="1" required
+                                   value="{{ $item->quantity }}"
+                                   {{ $jasaQtyLocked ? 'readonly' : '' }}
+                                   class="jasa-qty-input w-24 ml-auto block px-2 py-1.5 border border-gray-300 rounded-md text-sm text-right {{ $jasaQtyLocked ? 'bg-gray-50' : '' }}">
+                        </td>
+                        <td class="px-4 py-3 text-sm text-right font-medium jasa-line-subtotal">
+                            Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="4" class="px-4 py-3 text-sm text-right font-semibold text-gray-700">Total jasa (nilai jasa kotor)</td>
+                        <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900" id="project-jasa-total">
+                            Rp {{ number_format($projectJasaItems->sum('subtotal'), 0, ',', '.') }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        @unless($jasaQtyLocked)
+        <div class="px-4 sm:px-6 py-4 border-t border-gray-200 flex justify-end">
+            <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-semibold">
+                Simpan Qty &amp; Hitung Ulang Invoice
+            </button>
+        </div>
+        @endunless
+    </form>
+    <script>
+    (function () {
+        const rows = document.querySelectorAll('#project-jasa-rows .project-jasa-row');
+        const totalEl = document.getElementById('project-jasa-total');
+        if (!rows.length) return;
+        function formatRp(n) {
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(n || 0));
+        }
+        function recalc() {
+            let total = 0;
+            rows.forEach(function (row) {
+                const price = parseFloat(row.dataset.price) || 0;
+                const qty = parseFloat(row.querySelector('.jasa-qty-input')?.value) || 0;
+                const sub = price * qty;
+                total += sub;
+                const cell = row.querySelector('.jasa-line-subtotal');
+                if (cell) cell.textContent = formatRp(sub);
+            });
+            if (totalEl) totalEl.textContent = formatRp(total);
+        }
+        rows.forEach(function (row) {
+            row.querySelector('.jasa-qty-input')?.addEventListener('input', recalc);
+        });
+    })();
+    </script>
+    @endif
 </div>
 
 {{-- Alokasi Stok --}}

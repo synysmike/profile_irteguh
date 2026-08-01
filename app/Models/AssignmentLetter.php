@@ -43,6 +43,16 @@ class AssignmentLetter extends Model
         return $this->hasMany(AssignmentLetterAssignee::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function jasaItems(): HasMany
+    {
+        return $this->hasMany(AssignmentLetterJasaItem::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function jasaItemsTotal(): float
+    {
+        return round((float) $this->jasaItems->sum('subtotal'), 2);
+    }
+
     public function assigneeNamesSummary(int $limit = 2): string
     {
         $names = $this->assignees->pluck('name')->filter()->values();

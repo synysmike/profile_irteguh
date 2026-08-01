@@ -77,6 +77,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('projects', \App\Http\Controllers\Admin\ProjectController::class);
     Route::patch('/projects/{project}/status', [\App\Http\Controllers\Admin\ProjectController::class, 'updateStatus'])->name('projects.update-status');
     Route::patch('/projects/{project}/discount', [\App\Http\Controllers\Admin\ProjectController::class, 'updateDiscount'])->name('projects.update-discount');
+    Route::patch('/projects/{project}/jasa-items', [\App\Http\Controllers\Admin\ProjectController::class, 'updateJasaItems'])->name('projects.jasa-items.update');
     Route::get('/projects/{project}/terms/edit', [\App\Http\Controllers\Admin\ProjectController::class, 'editTerms'])->name('projects.terms.edit');
     Route::patch('/projects/{project}/terms', [\App\Http\Controllers\Admin\ProjectController::class, 'updateTerms'])->name('projects.terms.update');
     Route::post('/projects/{project}/terms/{term}/pay', [\App\Http\Controllers\Admin\ProjectController::class, 'payTerm'])->name('projects.pay-term');
@@ -129,6 +130,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::post('/diskon', [\App\Http\Controllers\Admin\DiscountController::class, 'store'])->name('diskon.store');
         Route::put('/diskon/{diskon}', [\App\Http\Controllers\Admin\DiscountController::class, 'update'])->name('diskon.update');
         Route::delete('/diskon/{diskon}', [\App\Http\Controllers\Admin\DiscountController::class, 'destroy'])->name('diskon.destroy');
+        Route::get('/jasa', [\App\Http\Controllers\Admin\JasaController::class, 'index'])->name('jasa.index');
+        Route::post('/jasa', [\App\Http\Controllers\Admin\JasaController::class, 'store'])->name('jasa.store');
+        Route::put('/jasa/{jasa}', [\App\Http\Controllers\Admin\JasaController::class, 'update'])->name('jasa.update');
+        Route::delete('/jasa/{jasa}', [\App\Http\Controllers\Admin\JasaController::class, 'destroy'])->name('jasa.destroy');
         Route::get('/laporan-pajak', [\App\Http\Controllers\Admin\KeuanganController::class, 'laporanPajak'])->name('laporan-pajak.index');
         Route::get('/utility', [\App\Http\Controllers\Admin\KeuanganController::class, 'utility'])->name('utility.index');
     });

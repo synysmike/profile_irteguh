@@ -107,6 +107,38 @@
             @endif
         </table>
 
+        @if($letter->jasaItems->isNotEmpty())
+        <div class="pt-4">
+            <p class="font-medium text-gray-800 mb-2">Rincian Jasa:</p>
+            <table class="w-full text-sm border border-gray-300 border-collapse">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="border border-gray-300 px-2 py-1.5 text-left font-semibold w-10">No</th>
+                        <th class="border border-gray-300 px-2 py-1.5 text-left font-semibold">Jasa</th>
+                        <th class="border border-gray-300 px-2 py-1.5 text-right font-semibold">Qty</th>
+                        <th class="border border-gray-300 px-2 py-1.5 text-right font-semibold">Harga</th>
+                        <th class="border border-gray-300 px-2 py-1.5 text-right font-semibold">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($letter->jasaItems as $i => $item)
+                    <tr>
+                        <td class="border border-gray-300 px-2 py-1.5">{{ $i + 1 }}</td>
+                        <td class="border border-gray-300 px-2 py-1.5">{{ $item->description }}</td>
+                        <td class="border border-gray-300 px-2 py-1.5 text-right">{{ number_format($item->quantity, 0, ',', '.') }}</td>
+                        <td class="border border-gray-300 px-2 py-1.5 text-right">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
+                        <td class="border border-gray-300 px-2 py-1.5 text-right">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                    </tr>
+                    @endforeach
+                    <tr class="bg-gray-50 font-semibold">
+                        <td colspan="4" class="border border-gray-300 px-2 py-1.5 text-right">Total Jasa</td>
+                        <td class="border border-gray-300 px-2 py-1.5 text-right">Rp {{ number_format($letter->jasaItemsTotal(), 0, ',', '.') }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        @endif
+
         @if($letter->notes)
         <p class="pt-2"><span class="text-gray-600">Catatan:</span> {{ $letter->notes }}</p>
         @endif

@@ -40,6 +40,7 @@ class ProjectController extends Controller
             'paymentTerms.sale',
             'sales',
             'assignmentLetters.assignees',
+            'assignmentLetters.jasaItems',
             'saleTransactions.purchase.supplier',
         ])->findOrFail($id);
 
@@ -130,7 +131,7 @@ class ProjectController extends Controller
 
     public function edit(string $id)
     {
-        $project = Project::with('paymentTerms')->findOrFail($id);
+        $project = Project::with(['paymentTerms', 'assignmentLetters.jasaItems'])->findOrFail($id);
         $customers = Customer::active()->orderBy('name')->get();
         $taxes = Tax::where('is_active', true)->orderBy('name')->get();
         $discounts = Discount::where('is_active', true)->orderBy('name')->get();
@@ -147,12 +148,15 @@ class ProjectController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $project = Project::with('paymentTerms')->findOrFail($id);
+        $project = Project::with(['paymentTerms', 'assignmentLetters.jasaItems'])->findOrFail($id);
         $validated = $this->validateProject($request, $project);
 
         DB::beginTransaction();
         try {
-            $baseSubtotal = (float) $validated['subtotal'];
+            $hasLetterJasa = $project->assignmentLetters->flatMap->jasaItems->isNotEmpty();
+            $baseSubtotal = $hasLetterJasa
+                ? (float) ($project->base_subtotal ?? 0)
+                : (float) $validated['subtotal'];
 
             $project->update([
                 'title' => $validated['title'],
@@ -170,7 +174,11 @@ class ProjectController extends Controller
             ]);
 
             // DPP final = jasa net + alokasi stok; pajak & termin unpaid ikut dihitung ulang.
-            ProjectFinanceService::recalculateFromAllocations($project);
+            if ($hasLetterJasa) {
+                ProjectFinanceService::syncJasaFromAssignmentLetters($project->fresh());
+            } else {
+                ProjectFinanceService::recalculateFromAllocations($project);
+            }
             $project->refresh();
 
             // Keep paid terms; syncPaymentTerms only replaces unpaid rows.
@@ -532,6 +540,55 @@ class ProjectController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    /**
+     * Sesuaikan qty item jasa (dari surat tugas) di detail project — memengaruhi base_subtotal & invoice.
+     */
+    public function updateJasaItems(Request $request, string $projectId)
+    {
+        $project = Project::with(['assignmentLetters.jasaItems', 'paymentTerms'])->findOrFail($projectId);
+
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.id' => 'required|integer|exists:assignment_letter_jasa_items,id',
+            'items.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        $itemIds = collect($validated['items'])->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $ownedIds = $project->assignmentLetters
+            ->flatMap(fn ($letter) => $letter->jasaItems)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        foreach ($itemIds as $id) {
+            if (! in_array($id, $ownedIds, true)) {
+                return back()->with('error', 'Item jasa tidak valid untuk project ini.');
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($project, $validated) {
+                foreach ($validated['items'] as $row) {
+                    $item = \App\Models\AssignmentLetterJasaItem::findOrFail($row['id']);
+                    $qty = max(1, (int) $row['quantity']);
+                    $item->quantity = $qty;
+                    $item->recalculateSubtotal();
+                    $item->save();
+                }
+
+                ProjectFinanceService::syncJasaFromAssignmentLetters($project->fresh());
+            });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?? 'Gagal memperbarui qty jasa.');
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('admin.projects.show', $project)
+            ->with('success', 'Qty jasa diperbarui. Nilai project, termin unpaid, dan total invoice dihitung ulang.');
     }
 
     public function attachSaleTransaction(Request $request, string $projectId)

@@ -3,14 +3,84 @@
 @section('title', $title ?? 'Keuangan - Admin')
 
 @section('content')
+@php
+    $penjualanOpen = request()->routeIs(
+        'admin.keuangan.transaksi.penjualan',
+        'admin.keuangan.sale-transactions.*',
+        'admin.projects.*'
+    );
+@endphp
 <style>
 .keuangan-layout { display: flex; flex-direction: row; gap: 1.5rem; align-items: flex-start; }
-.keuangan-sidebar { width: 14rem; min-width: 14rem; flex-shrink: 0; position: sticky; top: 4.5rem; }
+.keuangan-sidebar { width: 15rem; min-width: 15rem; flex-shrink: 0; position: sticky; top: 4.5rem; }
 .keuangan-main { flex: 1; min-width: 0; }
-.keuangan-sidebar .nav-dropdown-wrap .nav-dropdown { display: none; }
-.keuangan-sidebar .nav-dropdown-wrap.open .nav-dropdown { display: block; }
-.keuangan-sidebar .nav-dropdown-wrap:hover .nav-dropdown { display: block; }
-.keuangan-sidebar .nav-dropdown-wrap.open .nav-dropdown-chevron { transform: rotate(180deg); }
+.keuangan-sidebar .nav-dropdown { display: none; }
+.keuangan-sidebar .nav-dropdown-wrap.open > .nav-dropdown { display: block; }
+.keuangan-sidebar .nav-dropdown-wrap.open > .nav-dropdown-btn .nav-dropdown-chevron { transform: rotate(180deg); }
+.keuangan-sidebar .nav-link {
+    display: block;
+    padding: 0.5rem 1rem 0.5rem 1.25rem;
+    color: #374151;
+    border-left: 2px solid transparent;
+}
+.keuangan-sidebar .nav-link:hover { background: #f3f4f6; }
+.keuangan-sidebar .nav-link.active {
+    background: #f5f3ff;
+    color: #6d28d9;
+    font-weight: 500;
+    border-left-color: #7c3aed;
+    padding-left: calc(1.25rem - 2px);
+}
+.keuangan-sidebar .nav-link.nav-link-root {
+    padding-left: 1rem;
+}
+.keuangan-sidebar .nav-link.nav-link-root.active {
+    padding-left: calc(1rem - 2px);
+}
+.keuangan-sidebar .nav-link.nav-link-child {
+    padding-left: 1.75rem;
+    font-size: 0.8125rem;
+}
+.keuangan-sidebar .nav-link.nav-link-child.active {
+    padding-left: calc(1.75rem - 2px);
+}
+.keuangan-sidebar .nav-section {
+    margin-top: 0.5rem;
+    padding: 0.35rem 1rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+.keuangan-sidebar .nav-dropdown-btn {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem 0.5rem 1.25rem;
+    color: #374151;
+    border-left: 2px solid transparent;
+    background: transparent;
+    cursor: pointer;
+}
+.keuangan-sidebar .nav-dropdown-btn:hover { background: #f3f4f6; }
+.keuangan-sidebar .nav-dropdown-wrap.open > .nav-dropdown-btn,
+.keuangan-sidebar .nav-dropdown-btn.is-active {
+    background: #f5f3ff;
+    color: #6d28d9;
+    font-weight: 500;
+    border-left-color: #7c3aed;
+    padding-left: calc(1.25rem - 2px);
+}
+.keuangan-sidebar .nav-dropdown-chevron {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
 .keuangan-menu-toggle { display: none; }
 .keuangan-sidebar-backdrop { display: none; }
 
@@ -65,8 +135,6 @@
         z-index: 45;
     }
     .keuangan-layout.sidebar-open .keuangan-sidebar-backdrop { display: block; }
-    .keuangan-sidebar .nav-dropdown-wrap:hover .nav-dropdown { display: none; }
-    .keuangan-sidebar .nav-dropdown-wrap.open .nav-dropdown { display: block; }
 }
 @media (min-width: 1024px) {
     .keuangan-sidebar-close { display: none !important; }
@@ -79,7 +147,7 @@
 </style>
 
 <button type="button" id="keuangan-menu-toggle" class="keuangan-menu-toggle mb-3 no-print" aria-expanded="false" aria-controls="keuangan-sidebar">
-    <span>☰ Menu Keuangan</span>
+    <span>Menu Keuangan</span>
     <span class="text-xs font-normal text-gray-500">Buka navigasi</span>
 </button>
 
@@ -91,7 +159,7 @@
             <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-start justify-between gap-2">
                 <div>
                     <h2 class="font-semibold text-gray-800 text-sm">Menu Keuangan</h2>
-                    <p class="text-xs text-gray-500 mt-0.5">Pembukuan & Pajak CV</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Pembukuan & transaksi</p>
                 </div>
                 <button type="button" id="keuangan-sidebar-close" class="keuangan-sidebar-close p-1.5 rounded-md text-gray-500 hover:bg-gray-200" aria-label="Tutup menu">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -99,87 +167,96 @@
             </div>
             <ul class="py-2 text-sm max-h-[calc(100vh-12rem)] overflow-y-auto">
                 <li>
-                    <a href="{{ route('admin.keuangan.dashboard') }}" class="block px-4 py-2 {{ request()->routeIs('admin.keuangan.dashboard') ? 'bg-purple-50 text-purple-700 font-medium border-l-2 border-purple-600 -ml-px pl-[15px]' : 'text-gray-700 hover:bg-gray-100 border-l-2 border-transparent' }}">📊 Dashboard</a>
+                    <a href="{{ route('admin.keuangan.dashboard') }}" class="nav-link nav-link-root {{ request()->routeIs('admin.keuangan.dashboard') ? 'active' : '' }}">Dashboard</a>
                 </li>
-                <li class="mt-2">
-                    <div class="px-4 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Master Data</div>
-                    <a href="{{ route('admin.keuangan.chart-of-accounts.index') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.chart-of-accounts.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Akun Perkiraan (COA)</a>
-                    <a href="{{ route('admin.keuangan.master.klien-vendor') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.master.klien-vendor') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Data Klien & Vendor</a>
-                    <a href="{{ route('admin.keuangan.master.karyawan') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.master.karyawan') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Data Karyawan</a>
+
+                <li>
+                    <div class="nav-section">Master Data</div>
+                    <a href="{{ route('admin.keuangan.chart-of-accounts.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.chart-of-accounts.*') ? 'active' : '' }}">Akun Perkiraan (COA)</a>
+                    <a href="{{ route('admin.keuangan.master.klien-vendor') }}" class="nav-link {{ request()->routeIs('admin.keuangan.master.klien-vendor') ? 'active' : '' }}">Klien & Vendor</a>
+                    <a href="{{ route('admin.keuangan.master.karyawan') }}" class="nav-link {{ request()->routeIs('admin.keuangan.master.karyawan') ? 'active' : '' }}">Karyawan</a>
+                    <a href="{{ route('admin.keuangan.pajak.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.pajak.*') ? 'active' : '' }}">Pajak</a>
+                    <a href="{{ route('admin.keuangan.diskon.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.diskon.*') ? 'active' : '' }}">Diskon</a>
+                    <a href="{{ route('admin.keuangan.jasa.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.jasa.*') ? 'active' : '' }}">Jasa</a>
                 </li>
-                <li class="mt-2">
-                    <div class="px-4 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Transaksi</div>
-                    <div id="penjualan-dropdown-wrap" class="nav-dropdown-wrap {{ request()->routeIs('admin.keuangan.transaksi.penjualan') || request()->routeIs('admin.keuangan.sale-transactions.*') || request()->routeIs('admin.projects.*') ? 'open' : '' }}">
-                        <button type="button" id="penjualan-dropdown-btn" class="w-full text-left px-4 py-2 pl-5 flex items-center justify-between text-gray-700 hover:bg-gray-100 border-l-2 border-transparent rounded-none" aria-expanded="{{ request()->routeIs('admin.keuangan.transaksi.penjualan') || request()->routeIs('admin.keuangan.sale-transactions.*') || request()->routeIs('admin.projects.*') ? 'true' : 'false' }}">
+
+                <li>
+                    <div class="nav-section">Transaksi</div>
+                    <div id="penjualan-dropdown-wrap" class="nav-dropdown-wrap {{ $penjualanOpen ? 'open' : '' }}">
+                        <button type="button"
+                                id="penjualan-dropdown-btn"
+                                class="nav-dropdown-btn {{ $penjualanOpen ? 'is-active' : '' }}"
+                                aria-expanded="{{ $penjualanOpen ? 'true' : 'false' }}"
+                                aria-controls="penjualan-dropdown-panel">
                             <span>Penjualan</span>
-                            <svg class="w-4 h-4 transition-transform nav-dropdown-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <svg class="nav-dropdown-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
                         </button>
-                        <div class="nav-dropdown pl-0">
-                            <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" class="block px-4 py-2 pl-6 {{ request()->routeIs('admin.keuangan.transaksi.penjualan') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Kasir POS</a>
-                            <a href="{{ route('admin.projects.index') }}" class="block px-4 py-2 pl-6 {{ request()->routeIs('admin.projects.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Project</a>
-                            <a href="{{ route('admin.keuangan.sale-transactions.index') }}" class="block px-4 py-2 pl-6 {{ request()->routeIs('admin.keuangan.sale-transactions.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Alokasi Stok</a>
+                        <div id="penjualan-dropdown-panel" class="nav-dropdown" role="region" aria-label="Submenu Penjualan">
+                            <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" class="nav-link nav-link-child {{ request()->routeIs('admin.keuangan.transaksi.penjualan') ? 'active' : '' }}">Kasir POS</a>
+                            <a href="{{ route('admin.projects.index') }}" class="nav-link nav-link-child {{ request()->routeIs('admin.projects.*') ? 'active' : '' }}">Project</a>
+                            <a href="{{ route('admin.keuangan.sale-transactions.index') }}" class="nav-link nav-link-child {{ request()->routeIs('admin.keuangan.sale-transactions.*') ? 'active' : '' }}">Alokasi Stok</a>
                         </div>
                     </div>
-                    <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.transaksi.pembelian') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Grosir</a>
-                    <a href="{{ route('admin.keuangan.transaksi.kas-bank') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.transaksi.kas-bank') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Kas/Bank</a>
-                    <a href="{{ route('admin.keuangan.transaksi.gaji') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.transaksi.gaji') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Gaji & Payroll</a>
+                    <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="nav-link {{ request()->routeIs('admin.keuangan.transaksi.pembelian') ? 'active' : '' }}">Grosir</a>
+                    <a href="{{ route('admin.keuangan.transaksi.kas-bank') }}" class="nav-link {{ request()->routeIs('admin.keuangan.transaksi.kas-bank') ? 'active' : '' }}">Kas / Bank</a>
+                    <a href="{{ route('admin.keuangan.transaksi.gaji') }}" class="nav-link {{ request()->routeIs('admin.keuangan.transaksi.gaji') ? 'active' : '' }}">Gaji & Payroll</a>
+                    <a href="{{ route('admin.keuangan.jurnal.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.jurnal.*') ? 'active' : '' }}">Jurnal Umum</a>
                 </li>
+
                 <li>
-                    <a href="{{ route('admin.keuangan.jurnal.index') }}" class="block px-4 py-2 {{ request()->routeIs('admin.keuangan.jurnal.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">📒 Jurnal Umum</a>
+                    <div class="nav-section">Laporan</div>
+                    <a href="{{ route('admin.keuangan.laporan.neraca') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan.neraca') ? 'active' : '' }}">Neraca</a>
+                    <a href="{{ route('admin.keuangan.laporan.laba-rugi') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan.laba-rugi') ? 'active' : '' }}">Laba Rugi</a>
+                    <a href="{{ route('admin.keuangan.laporan.arus-kas') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan.arus-kas') ? 'active' : '' }}">Arus Kas</a>
+                    <a href="{{ route('admin.keuangan.laporan.buku-besar') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan.buku-besar') ? 'active' : '' }}">Buku Besar</a>
+                    <a href="{{ route('admin.keuangan.laporan-pajak.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan-pajak.*') ? 'active' : '' }}">Laporan Pajak</a>
                 </li>
-                <li class="mt-2">
-                    <div class="px-4 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Laporan Keuangan</div>
-                    <a href="{{ route('admin.keuangan.laporan.neraca') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.laporan.neraca') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Neraca</a>
-                    <a href="{{ route('admin.keuangan.laporan.laba-rugi') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.laporan.laba-rugi') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Laba Rugi</a>
-                    <a href="{{ route('admin.keuangan.laporan.arus-kas') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.laporan.arus-kas') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Arus Kas</a>
-                    <a href="{{ route('admin.keuangan.laporan.buku-besar') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.laporan.buku-besar') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Buku Besar</a>
-                </li>
-                <li class="mt-2">
-                    <div class="px-4 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Menu Pajak</div>
-                    <a href="{{ route('admin.keuangan.pajak.index') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.pajak.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Master Pajak</a>
-                    <a href="{{ route('admin.keuangan.diskon.index') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.diskon.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Master Diskon</a>
-                </li>
+
                 <li>
-                    <a href="{{ route('admin.keuangan.laporan-pajak.index') }}" class="block px-4 py-2 {{ request()->routeIs('admin.keuangan.laporan-pajak.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">📋 Laporan Pajak</a>
-                </li>
-                <li>
-                    <a href="{{ route('admin.keuangan.utility.index') }}" class="block px-4 py-2 {{ request()->routeIs('admin.keuangan.utility.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">⚙️ Utility</a>
+                    <div class="nav-section">Sistem</div>
+                    <a href="{{ route('admin.keuangan.utility.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.utility.*') ? 'active' : '' }}">Utility</a>
                 </li>
             </ul>
         </nav>
     </aside>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var layout = document.getElementById('keuangan-layout');
-        var openBtn = document.getElementById('keuangan-menu-toggle');
-        var closeBtn = document.getElementById('keuangan-sidebar-close');
-        var backdrop = document.getElementById('keuangan-sidebar-backdrop');
-
-        function setSidebarOpen(open) {
-            if (!layout) return;
-            layout.classList.toggle('sidebar-open', open);
-            if (openBtn) openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-            document.body.style.overflow = open && window.innerWidth < 1024 ? 'hidden' : '';
-        }
-        if (openBtn) openBtn.addEventListener('click', function() { setSidebarOpen(true); });
-        if (closeBtn) closeBtn.addEventListener('click', function() { setSidebarOpen(false); });
-        if (backdrop) backdrop.addEventListener('click', function() { setSidebarOpen(false); });
-
-        var btn = document.getElementById('penjualan-dropdown-btn');
-        var wrap = document.getElementById('penjualan-dropdown-wrap');
-        if (btn && wrap) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                wrap.classList.toggle('open');
-                btn.setAttribute('aria-expanded', wrap.classList.contains('open') ? 'true' : 'false');
-            });
-        }
-    });
-    </script>
-
     <main class="keuangan-main">
         @yield('keuangan_content')
     </main>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var layout = document.getElementById('keuangan-layout');
+    var openBtn = document.getElementById('keuangan-menu-toggle');
+    var closeBtn = document.getElementById('keuangan-sidebar-close');
+    var backdrop = document.getElementById('keuangan-sidebar-backdrop');
+
+    function setSidebarOpen(open) {
+        if (!layout) return;
+        layout.classList.toggle('sidebar-open', open);
+        if (openBtn) openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        document.body.style.overflow = open && window.innerWidth < 1024 ? 'hidden' : '';
+    }
+
+    if (openBtn) openBtn.addEventListener('click', function () { setSidebarOpen(true); });
+    if (closeBtn) closeBtn.addEventListener('click', function () { setSidebarOpen(false); });
+    if (backdrop) backdrop.addEventListener('click', function () { setSidebarOpen(false); });
+
+    var btn = document.getElementById('penjualan-dropdown-btn');
+    var wrap = document.getElementById('penjualan-dropdown-wrap');
+    if (btn && wrap) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var willOpen = !wrap.classList.contains('open');
+            wrap.classList.toggle('open', willOpen);
+            btn.classList.toggle('is-active', willOpen || {{ $penjualanOpen ? 'true' : 'false' }});
+            btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+    }
+});
+</script>
 @endsection

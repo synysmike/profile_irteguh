@@ -194,6 +194,41 @@ class ProjectFinanceService
         // Also update paid term display portions? Keep paid amounts frozen (already billed).
     }
 
+    /**
+     * Set project base_subtotal from Σ (qty × unit_price) of all assignment-letter jasa items,
+     * then recalculate finance. Blocks changes when any payment term is already paid.
+     */
+    public static function syncJasaFromAssignmentLetters(Project $project): void
+    {
+        $project->loadMissing(['assignmentLetters.jasaItems', 'paymentTerms']);
+
+        $newBase = round((float) $project->assignmentLetters
+            ->flatMap(fn ($letter) => $letter->jasaItems)
+            ->sum('subtotal'), 2);
+
+        $currentBase = round((float) ($project->base_subtotal ?? 0), 2);
+        $hasLetterJasa = $project->assignmentLetters
+            ->flatMap(fn ($letter) => $letter->jasaItems)
+            ->isNotEmpty();
+
+        // If no letter jasa lines exist, leave manual base_subtotal untouched.
+        if (! $hasLetterJasa) {
+            static::recalculateFromAllocations($project);
+
+            return;
+        }
+
+        if ($project->paymentTerms->where('status', 'paid')->isNotEmpty()
+            && abs($newBase - $currentBase) > 0.009) {
+            throw ValidationException::withMessages([
+                'jasa_items' => ['Nilai jasa tidak bisa diubah karena sudah ada termin yang lunas.'],
+            ]);
+        }
+
+        $project->update(['base_subtotal' => $newBase]);
+        static::recalculateFromAllocations($project->fresh());
+    }
+
     public static function allocateFromPurchase(
         Project $project,
         Purchase $purchase,

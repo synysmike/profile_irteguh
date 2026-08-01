@@ -64,10 +64,20 @@
 
     <div>
         <label for="subtotal" class="block text-sm font-medium text-gray-700 mb-2">Nilai Jasa / DPP Dasar Rp *</label>
+        @php
+            $hasLetterJasa = isset($project) && $project->relationLoaded('assignmentLetters')
+                ? $project->assignmentLetters->flatMap->jasaItems->isNotEmpty()
+                : (isset($project) && $project->assignmentLetters()->whereHas('jasaItems')->exists());
+        @endphp
         <input type="number" id="subtotal" name="subtotal" min="0" step="1" required
                value="{{ old('subtotal', isset($project) ? ($project->base_subtotal ?? $project->subtotal) : 0) }}"
-               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-        <p class="mt-1 text-xs text-gray-500">Belum termasuk alokasi stok. Stok dilampirkan di halaman detail project dan otomatis diakumulasi ke total.</p>
+               @if($hasLetterJasa) readonly @endif
+               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 {{ $hasLetterJasa ? 'bg-gray-50' : '' }}">
+        @if($hasLetterJasa)
+        <p class="mt-1 text-xs text-indigo-600">Nilai ini diisi otomatis dari item jasa surat tugas. Sesuaikan qty di halaman detail project.</p>
+        @else
+        <p class="mt-1 text-xs text-gray-500">Belum termasuk alokasi stok. Bisa juga diisi lewat item jasa pada surat tugas (lalu qty di detail project).</p>
+        @endif
     </div>
 
     <div>

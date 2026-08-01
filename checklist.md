@@ -6,6 +6,16 @@ Lihat juga: [README.md](README.md) (alur) · [prd.md](prd.md) (requirement)
 
 ---
 
+## Master jasa (2026-08-02)
+
+- [x] CRUD Master Jasa (Keuangan → Master Jasa)
+- [x] Baris jasa pada surat tugas (qty awal + harga)
+- [x] Sesuaikan qty di detail project → sync `base_subtotal` + recalc invoice/termin unpaid
+- [x] Kunci ubah nilai jasa jika ada termin lunas
+- [x] Hint UX di form/detail project
+
+---
+
 ## Prioritas tinggi (keamanan & integritas data)
 
 - [x] Invoice publik pakai verifikasi nomor HP (bukan signed URL saja)

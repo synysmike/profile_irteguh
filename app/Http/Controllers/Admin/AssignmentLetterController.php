@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AssignmentLetter;
+use App\Models\Jasa;
 use App\Models\Project;
+use App\Services\ProjectFinanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -25,27 +27,35 @@ class AssignmentLetterController extends Controller
     public function create(string $projectId)
     {
         $project = Project::findOrFail($projectId);
+        $jasas = Jasa::active()->orderBy('name')->get();
 
         return view('admin.projects.assignment-letters.create', [
             'project' => $project,
             'letter' => null,
+            'jasas' => $jasas,
         ]);
     }
 
     public function store(Request $request, string $projectId)
     {
         $project = Project::findOrFail($projectId);
-        [$letterData, $assignees] = $this->validateLetter($request);
+        [$letterData, $assignees, $jasaItems] = $this->validateLetter($request);
 
-        $letter = DB::transaction(function () use ($project, $letterData, $assignees) {
-            $letter = $project->assignmentLetters()->create([
-                ...$letterData,
-                'number' => AssignmentLetter::generateNumber(),
-            ]);
-            $this->syncAssignees($letter, $assignees);
+        try {
+            $letter = DB::transaction(function () use ($project, $letterData, $assignees, $jasaItems) {
+                $letter = $project->assignmentLetters()->create([
+                    ...$letterData,
+                    'number' => AssignmentLetter::generateNumber(),
+                ]);
+                $this->syncAssignees($letter, $assignees);
+                $this->syncJasaItems($letter, $jasaItems);
+                ProjectFinanceService::syncJasaFromAssignmentLetters($project->fresh());
 
-            return $letter;
-        });
+                return $letter;
+            });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withInput()->withErrors($e->errors());
+        }
 
         return redirect()
             ->route('admin.projects.assignment-letters.show', [$project, $letter])
@@ -55,7 +65,7 @@ class AssignmentLetterController extends Controller
     public function show(string $projectId, string $letterId)
     {
         $project = Project::with('customer')->findOrFail($projectId);
-        $letter = AssignmentLetter::with('assignees')
+        $letter = AssignmentLetter::with(['assignees', 'jasaItems'])
             ->where('project_id', $project->id)
             ->findOrFail($letterId);
 
@@ -65,23 +75,37 @@ class AssignmentLetterController extends Controller
     public function edit(string $projectId, string $letterId)
     {
         $project = Project::findOrFail($projectId);
-        $letter = AssignmentLetter::with('assignees')
+        $letter = AssignmentLetter::with(['assignees', 'jasaItems'])
             ->where('project_id', $project->id)
             ->findOrFail($letterId);
+        $jasas = Jasa::active()->orderBy('name')->get();
 
-        return view('admin.projects.assignment-letters.edit', compact('project', 'letter'));
+        // Keep selected jasa even if later deactivated.
+        $selectedIds = $letter->jasaItems->pluck('jasa_id')->filter()->all();
+        if ($selectedIds) {
+            $extra = Jasa::whereIn('id', $selectedIds)->get();
+            $jasas = $jasas->merge($extra)->unique('id')->sortBy('name')->values();
+        }
+
+        return view('admin.projects.assignment-letters.edit', compact('project', 'letter', 'jasas'));
     }
 
     public function update(Request $request, string $projectId, string $letterId)
     {
         $project = Project::findOrFail($projectId);
         $letter = AssignmentLetter::where('project_id', $project->id)->findOrFail($letterId);
-        [$letterData, $assignees] = $this->validateLetter($request);
+        [$letterData, $assignees, $jasaItems] = $this->validateLetter($request);
 
-        DB::transaction(function () use ($letter, $letterData, $assignees) {
-            $letter->update($letterData);
-            $this->syncAssignees($letter, $assignees);
-        });
+        try {
+            DB::transaction(function () use ($project, $letter, $letterData, $assignees, $jasaItems) {
+                $letter->update($letterData);
+                $this->syncAssignees($letter, $assignees);
+                $this->syncJasaItems($letter, $jasaItems);
+                ProjectFinanceService::syncJasaFromAssignmentLetters($project->fresh());
+            });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withInput()->withErrors($e->errors());
+        }
 
         return redirect()
             ->route('admin.projects.assignment-letters.show', [$project, $letter])
@@ -92,7 +116,17 @@ class AssignmentLetterController extends Controller
     {
         $project = Project::findOrFail($projectId);
         $letter = AssignmentLetter::where('project_id', $project->id)->findOrFail($letterId);
-        $letter->delete();
+
+        try {
+            DB::transaction(function () use ($project, $letter) {
+                $letter->delete();
+                ProjectFinanceService::syncJasaFromAssignmentLetters($project->fresh());
+            });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()
+                ->route('admin.projects.show', $project)
+                ->with('error', collect($e->errors())->flatten()->first() ?? 'Surat tugas tidak bisa dihapus.');
+        }
 
         return redirect()
             ->route('admin.projects.show', $project)
@@ -113,6 +147,11 @@ class AssignmentLetterController extends Controller
             'assignees.*.gender' => 'required|in:L,P',
             'assignees.*.ktp' => 'required|string|max:32',
             'assignees.*.phone' => 'required|string|max:32',
+            'jasa_items' => 'nullable|array',
+            'jasa_items.*.jasa_id' => 'required|exists:jasas,id',
+            'jasa_items.*.description' => 'nullable|string|max:255',
+            'jasa_items.*.quantity' => 'required|integer|min:1',
+            'jasa_items.*.unit_price' => 'required|numeric|min:0',
         ], [
             'assignees.required' => 'Minimal 1 orang yang bertugas harus diisi.',
             'assignees.min' => 'Minimal 1 orang yang bertugas harus diisi.',
@@ -120,6 +159,9 @@ class AssignmentLetterController extends Controller
             'assignees.*.gender.required' => 'Jenis kelamin wajib dipilih.',
             'assignees.*.ktp.required' => 'Nomor KTP wajib diisi.',
             'assignees.*.phone.required' => 'Nomor HP wajib diisi.',
+            'jasa_items.*.jasa_id.required' => 'Jasa wajib dipilih.',
+            'jasa_items.*.quantity.required' => 'Qty jasa wajib diisi.',
+            'jasa_items.*.unit_price.required' => 'Harga jasa wajib diisi.',
         ]);
 
         $assignees = collect($validated['assignees'] ?? [])
@@ -142,9 +184,37 @@ class AssignmentLetterController extends Controller
             ]);
         }
 
-        unset($validated['assignees']);
+        $jasaCatalog = Jasa::whereIn(
+            'id',
+            collect($validated['jasa_items'] ?? [])->pluck('jasa_id')->filter()->unique()->all()
+        )->get()->keyBy('id');
 
-        return [$validated, $assignees];
+        $jasaItems = collect($validated['jasa_items'] ?? [])
+            ->map(function ($row, $index) use ($jasaCatalog) {
+                $jasaId = (int) ($row['jasa_id'] ?? 0);
+                $jasa = $jasaCatalog->get($jasaId);
+                $qty = max(1, (int) ($row['quantity'] ?? 1));
+                $unitPrice = max(0, (float) ($row['unit_price'] ?? 0));
+                $description = trim((string) ($row['description'] ?? ''));
+                if ($description === '' && $jasa) {
+                    $description = $jasa->name;
+                }
+
+                return [
+                    'sort_order' => $index,
+                    'jasa_id' => $jasaId ?: null,
+                    'description' => $description !== '' ? $description : 'Jasa',
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'subtotal' => round($qty * $unitPrice, 2),
+                ];
+            })
+            ->values()
+            ->all();
+
+        unset($validated['assignees'], $validated['jasa_items']);
+
+        return [$validated, $assignees, $jasaItems];
     }
 
     private function syncAssignees(AssignmentLetter $letter, array $assignees): void
@@ -152,6 +222,14 @@ class AssignmentLetterController extends Controller
         $letter->assignees()->delete();
         foreach ($assignees as $row) {
             $letter->assignees()->create($row);
+        }
+    }
+
+    private function syncJasaItems(AssignmentLetter $letter, array $jasaItems): void
+    {
+        $letter->jasaItems()->delete();
+        foreach ($jasaItems as $row) {
+            $letter->jasaItems()->create($row);
         }
     }
 }
