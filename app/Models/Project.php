@@ -14,6 +14,11 @@ class Project extends Model
         'description',
         'customer_id',
         'tax_id',
+        'discount_id',
+        'discount_name',
+        'discount_type',
+        'discount_value',
+        'discount_amount',
         'status',
         'progress_percent',
         'base_subtotal',
@@ -33,6 +38,8 @@ class Project extends Model
         'start_date' => 'date',
         'due_date' => 'date',
         'base_subtotal' => 'decimal:2',
+        'discount_value' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'ppn_amount' => 'decimal:2',
         'tax_rate' => 'decimal:2',
@@ -59,6 +66,16 @@ class Project extends Model
     public function tax(): BelongsTo
     {
         return $this->belongsTo(Tax::class);
+    }
+
+    public function discount(): BelongsTo
+    {
+        return $this->belongsTo(Discount::class);
+    }
+
+    public function jasaNetSubtotal(): float
+    {
+        return max(0, (float) ($this->base_subtotal ?? 0) - (float) ($this->discount_amount ?? 0));
     }
 
     public function paymentTerms(): HasMany

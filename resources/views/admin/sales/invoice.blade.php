@@ -102,9 +102,10 @@
             <tr>
                 <th style="width: 5%;">No</th>
                 <th>Deskripsi Item</th>
-                <th class="text-right" style="width: 10%;">Qty</th>
-                <th class="text-right" style="width: 15%;">Harga Satuan</th>
-                <th class="text-right" style="width: 15%;">Subtotal</th>
+                <th class="text-right" style="width: 8%;">Qty</th>
+                <th class="text-right" style="width: 14%;">Harga Satuan</th>
+                <th class="text-right" style="width: 14%;">Diskon</th>
+                <th class="text-right" style="width: 14%;">Subtotal</th>
             </tr>
         </thead>
         <tbody>
@@ -119,20 +120,49 @@
                 </td>
                 <td class="text-right">{{ number_format($item->quantity, 0, ',', '.') }}</td>
                 <td class="text-right">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
+                <td class="text-right" style="color: #b91c1c;">
+                    @if((float) ($item->discount_amount ?? 0) > 0)
+                    - Rp {{ number_format($item->discount_amount, 0, ',', '.') }}
+                    @if($item->discount_name)
+                    <br><span style="font-size: 11px; color: #666;">{{ $item->discount_name }}</span>
+                    @endif
+                    @else
+                    —
+                    @endif
+                </td>
                 <td class="text-right">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
             </tr>
             @empty
             <tr>
-                <td colspan="5" class="text-center" style="padding: 20px; color: #999;">Tidak ada item transaksi</td>
+                <td colspan="6" class="text-center" style="padding: 20px; color: #999;">Tidak ada item transaksi</td>
             </tr>
             @endforelse
+            @php
+                $invoiceDiscount = (float) ($sale->discount_amount ?? $sale->saleItems->sum('discount_amount'));
+                $grossSubtotal = (float) $sale->subtotal + $invoiceDiscount;
+            @endphp
+            @if($invoiceDiscount > 0)
             <tr style="border-top: 2px solid #333;">
-                <td colspan="4" class="text-right" style="font-weight: bold;">Subtotal (DPP)</td>
+                <td colspan="5" class="text-right">Subtotal kotor</td>
+                <td class="text-right">Rp {{ number_format($grossSubtotal, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="text-right" style="color: #b91c1c;">
+                    Diskon
+                    @if($sale->discount_name)
+                        ({{ $sale->discount_name }})
+                    @endif
+                </td>
+                <td class="text-right" style="color: #b91c1c;">- Rp {{ number_format($invoiceDiscount, 0, ',', '.') }}</td>
+            </tr>
+            @endif
+            <tr @if($invoiceDiscount <= 0) style="border-top: 2px solid #333;" @endif>
+                <td colspan="5" class="text-right" style="font-weight: bold;">Subtotal (DPP)</td>
                 <td class="text-right" style="font-weight: bold;">Rp {{ number_format($sale->subtotal, 0, ',', '.') }}</td>
             </tr>
             @if($sale->ppn_amount > 0)
                 <tr>
-                    <td colspan="4" class="text-right">
+                    <td colspan="5" class="text-right">
                         {{ $sale->tax_name ?: 'Pajak' }}
                         @if($sale->tax_rate)
                             ({{ number_format($sale->tax_rate, 2, ',', '.') }}%)
@@ -143,7 +173,7 @@
                 </tr>
             @endif
             <tr class="total-row">
-                <td colspan="4" class="text-right" style="font-size: 16px;">Total Pembayaran</td>
+                <td colspan="5" class="text-right" style="font-size: 16px;">Total Pembayaran</td>
                 <td class="text-right" style="font-size: 16px;">Rp {{ number_format($sale->total, 0, ',', '.') }}</td>
             </tr>
         </tbody>

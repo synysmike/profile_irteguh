@@ -52,21 +52,34 @@ class ProjectTermWhatsAppInvoice
         $lines[] = '======================';
         $lines[] = 'Detail pesanan:';
 
-        $base = (float) ($project->base_subtotal ?? 0);
-        if ($base > 0) {
-            $portion = round($base * $factor, 2);
+        $jasaGross = (float) ($project->base_subtotal ?? 0);
+        $jasaDiscount = (float) ($project->discount_amount ?? 0);
+        $jasaNet = max(0, $jasaGross - $jasaDiscount);
+        $termDiscount = 0.0;
+
+        if ($jasaNet > 0 || $jasaGross > 0) {
+            $netPortion = round($jasaNet * $factor, 2);
+            $discPortion = round($jasaDiscount * $factor, 2);
+            $grossPortion = round($netPortion + $discPortion, 2);
+            $termDiscount += $discPortion;
             $lines[] = '';
             $lines[] = 'Item:';
             $lines[] = '✅ Jasa project: ' . $project->title . ', 1 PCS';
-            $lines[] = '@ ' . SaleWhatsAppInvoice::formatMoney($portion) . ', Total ' . SaleWhatsAppInvoice::formatMoney($portion);
+            $lines[] = '@ ' . SaleWhatsAppInvoice::formatMoney($grossPortion) . ', Total ' . SaleWhatsAppInvoice::formatMoney($netPortion);
+            if ($discPortion > 0) {
+                $lines[] = 'Diskon : -' . SaleWhatsAppInvoice::formatMoney($discPortion)
+                    . ($project->discount_name ? ' (' . $project->discount_name . ')' : '');
+            }
             $lines[] = 'Ket : ' . $project->code . ' · ' . $termLabel;
         }
 
         foreach ($project->saleTransactions as $allocation) {
-            $portion = round((float) $allocation->subtotal * $factor, 2);
+            $netPortion = round((float) $allocation->subtotal * $factor, 2);
+            $discPortion = round((float) ($allocation->discount_amount ?? 0) * $factor, 2);
+            $grossPortion = round($netPortion + $discPortion, 2);
             $qty = max(1, (int) $allocation->quantity);
-            $unitPrice = round($portion / $qty, 2);
-            $portion = round($unitPrice * $qty, 2);
+            $unitPrice = round($grossPortion / $qty, 2);
+            $termDiscount += $discPortion;
 
             $ket = $project->code . ' · Alokasi stok · ' . $termLabel;
             if ($allocation->purchase?->invoice_number) {
@@ -76,11 +89,15 @@ class ProjectTermWhatsAppInvoice
             $lines[] = '';
             $lines[] = 'Item:';
             $lines[] = '✅ ' . $allocation->description . ', ' . number_format($qty, 0, ',', '.') . ' PCS';
-            $lines[] = '@ ' . SaleWhatsAppInvoice::formatMoney($unitPrice) . ', Total ' . SaleWhatsAppInvoice::formatMoney($portion);
+            $lines[] = '@ ' . SaleWhatsAppInvoice::formatMoney($unitPrice) . ', Total ' . SaleWhatsAppInvoice::formatMoney($netPortion);
+            if ($discPortion > 0) {
+                $lines[] = 'Diskon : -' . SaleWhatsAppInvoice::formatMoney($discPortion)
+                    . ($allocation->discount_name ? ' (' . $allocation->discount_name . ')' : '');
+            }
             $lines[] = 'Ket : ' . $ket;
         }
 
-        if ($base <= 0 && $project->saleTransactions->isEmpty()) {
+        if ($jasaGross <= 0 && $project->saleTransactions->isEmpty()) {
             $lines[] = '';
             $lines[] = 'Item:';
             $lines[] = '✅ ' . $project->title . ' (' . $term->label . '), 1 PCS';
@@ -91,6 +108,10 @@ class ProjectTermWhatsAppInvoice
         $lines[] = '';
         $lines[] = '==============';
         $lines[] = 'Detail biaya :';
+        if ($termDiscount > 0) {
+            $lines[] = 'Subtotal kotor : ' . SaleWhatsAppInvoice::formatMoney((float) $term->subtotal_amount + $termDiscount);
+            $lines[] = 'Diskon : -' . SaleWhatsAppInvoice::formatMoney($termDiscount);
+        }
         $lines[] = 'Subtotal (DPP) : ' . SaleWhatsAppInvoice::formatMoney($term->subtotal_amount);
 
         if ((float) $term->tax_amount > 0) {

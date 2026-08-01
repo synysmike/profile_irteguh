@@ -142,6 +142,7 @@ class SaleController extends Controller
 
         $transactions = SaleTransaction::whereIn('id', $transactionIds)->get();
         $subtotal = $transactions->sum('subtotal');
+        $discountAmount = (float) $transactions->sum('discount_amount');
         $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
         $taxAmount = $tax ? $tax->calculateAmount((float) $subtotal) : 0;
         $validated['subtotal'] = $subtotal;
@@ -152,6 +153,16 @@ class SaleController extends Controller
         $validated['total'] = $tax && $tax->isDeduction()
             ? ($subtotal - $taxAmount)
             : ($subtotal + $taxAmount);
+        $validated['discount_amount'] = $discountAmount;
+        $validated['discount_name'] = $discountAmount > 0
+            ? ($transactions->pluck('discount_name')->filter()->unique()->count() === 1
+                ? $transactions->pluck('discount_name')->filter()->first()
+                : 'Diskon')
+            : null;
+        $firstDiscounted = $transactions->first(fn ($t) => (float) ($t->discount_amount ?? 0) > 0);
+        $validated['discount_id'] = $firstDiscounted?->discount_id;
+        $validated['discount_type'] = $firstDiscounted?->discount_type;
+        $validated['discount_value'] = $firstDiscounted?->discount_value;
 
         DB::beginTransaction();
         try {
@@ -164,6 +175,10 @@ class SaleController extends Controller
                     'description' => $transaction->description,
                     'quantity' => $transaction->quantity,
                     'unit_price' => $transaction->unit_price,
+                    'discount_name' => (float) ($transaction->discount_amount ?? 0) > 0
+                        ? ($transaction->discount_name ?: 'Diskon')
+                        : null,
+                    'discount_amount' => (float) ($transaction->discount_amount ?? 0),
                     'subtotal' => $transaction->subtotal,
                     'notes' => $transaction->notes,
                     'sort_order' => $index,
@@ -256,13 +271,31 @@ class SaleController extends Controller
 
         DB::beginTransaction();
         try {
-            $sale->update($validated);
-
             // Delete existing items
             $sale->saleItems()->delete();
 
             // Create new sale items from selected transactions
             $transactions = SaleTransaction::whereIn('id', $request->transaction_ids)->get();
+            $discountAmount = (float) $transactions->sum('discount_amount');
+            $firstDiscounted = $transactions->first(fn ($t) => (float) ($t->discount_amount ?? 0) > 0);
+            $validated['discount_amount'] = $discountAmount;
+            $validated['discount_name'] = $discountAmount > 0
+                ? ($transactions->pluck('discount_name')->filter()->unique()->count() === 1
+                    ? $transactions->pluck('discount_name')->filter()->first()
+                    : 'Diskon')
+                : null;
+            $validated['discount_id'] = $firstDiscounted?->discount_id;
+            $validated['discount_type'] = $firstDiscounted?->discount_type;
+            $validated['discount_value'] = $firstDiscounted?->discount_value;
+            $validated['subtotal'] = $transactions->sum('subtotal');
+            $taxAmount = $tax ? $tax->calculateAmount((float) $validated['subtotal']) : 0;
+            $validated['ppn_amount'] = $taxAmount;
+            $validated['total'] = $tax && $tax->isDeduction()
+                ? ($validated['subtotal'] - $taxAmount)
+                : ($validated['subtotal'] + $taxAmount);
+
+            $sale->update($validated);
+
             foreach ($transactions as $index => $transaction) {
                 $item = new SaleItem([
                     'sale_id' => $sale->id,
@@ -270,6 +303,10 @@ class SaleController extends Controller
                     'description' => $transaction->description,
                     'quantity' => $transaction->quantity,
                     'unit_price' => $transaction->unit_price,
+                    'discount_name' => (float) ($transaction->discount_amount ?? 0) > 0
+                        ? ($transaction->discount_name ?: 'Diskon')
+                        : null,
+                    'discount_amount' => (float) ($transaction->discount_amount ?? 0),
                     'subtotal' => $transaction->subtotal,
                     'notes' => $transaction->notes,
                     'sort_order' => $index,

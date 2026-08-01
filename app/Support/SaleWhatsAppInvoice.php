@@ -92,12 +92,22 @@ class SaleWhatsAppInvoice
             $lines[] = 'Item:';
             $lines[] = '✅ ' . $item->description . ', ' . number_format((int) $item->quantity, 0, ',', '.') . ' PCS';
             $lines[] = '@ ' . static::formatMoney($item->unit_price) . ', Total ' . static::formatMoney($item->subtotal);
+            if ((float) ($item->discount_amount ?? 0) > 0) {
+                $discLabel = $item->discount_name ?: 'Diskon';
+                $lines[] = 'Diskon : -' . static::formatMoney($item->discount_amount) . ' (' . $discLabel . ')';
+            }
             $lines[] = 'Ket : ' . trim((string) ($item->notes ?? ''));
         }
 
         $lines[] = '';
         $lines[] = '==============';
         $lines[] = 'Detail biaya :';
+        $invoiceDiscount = (float) ($sale->discount_amount ?? $sale->saleItems->sum('discount_amount'));
+        if ($invoiceDiscount > 0) {
+            $lines[] = 'Subtotal kotor : ' . static::formatMoney((float) $sale->subtotal + $invoiceDiscount);
+            $discName = $sale->discount_name ? ' (' . $sale->discount_name . ')' : '';
+            $lines[] = 'Diskon' . $discName . ' : -' . static::formatMoney($invoiceDiscount);
+        }
         $lines[] = 'Subtotal (DPP) : ' . static::formatMoney($sale->subtotal);
 
         if ((float) $sale->ppn_amount > 0) {

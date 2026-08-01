@@ -31,6 +31,22 @@
     </div>
 
     <div>
+        <label for="discount_id" class="block text-sm font-medium text-gray-700 mb-2">Diskon Jasa</label>
+        <select id="discount_id" name="discount_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">Tanpa Diskon</option>
+            @foreach(($discounts ?? collect()) as $discount)
+            <option value="{{ $discount->id }}"
+                    data-type="{{ $discount->type }}"
+                    data-value="{{ $discount->value }}"
+                    {{ (string) old('discount_id', $project->discount_id ?? '') === (string) $discount->id ? 'selected' : '' }}>
+                {{ $discount->label() }}
+            </option>
+            @endforeach
+        </select>
+        <p class="mt-1 text-xs text-gray-500">Diterapkan pada nilai jasa saja. Diskon stok diatur per alokasi.</p>
+    </div>
+
+    <div>
         <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status Progress *</label>
         <select id="status" name="status" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
             @foreach(\App\Models\Project::statusLabels() as $value => $label)
@@ -52,6 +68,12 @@
                value="{{ old('subtotal', isset($project) ? ($project->base_subtotal ?? $project->subtotal) : 0) }}"
                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
         <p class="mt-1 text-xs text-gray-500">Belum termasuk alokasi stok. Stok dilampirkan di halaman detail project dan otomatis diakumulasi ke total.</p>
+    </div>
+
+    <div>
+        <label for="discount_amount_display" class="block text-sm font-medium text-gray-700 mb-2">Nominal Diskon Jasa Rp</label>
+        <input type="text" id="discount_amount_display" readonly
+               class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50">
     </div>
 
     <div>

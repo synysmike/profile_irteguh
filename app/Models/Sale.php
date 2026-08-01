@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Sale extends Model
 {
     protected $fillable = [
-        'customer_id', 'project_id', 'project_payment_term_id', 'tax_id', 'invoice_number', 'sale_date',
+        'customer_id', 'project_id', 'project_payment_term_id', 'tax_id',
+        'discount_id', 'discount_name', 'discount_type', 'discount_value', 'discount_amount',
+        'invoice_number', 'sale_date',
         'subtotal', 'ppn_amount', 'tax_name', 'tax_rate', 'tax_calculation_type', 'total', 'notes',
         'is_posted', 'posted_at',
     ];
@@ -17,6 +19,8 @@ class Sale extends Model
         'subtotal' => 'decimal:2',
         'ppn_amount' => 'decimal:2',
         'tax_rate' => 'decimal:2',
+        'discount_value' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'total' => 'decimal:2',
         'is_posted' => 'boolean',
         'posted_at' => 'datetime',
@@ -45,6 +49,16 @@ class Sale extends Model
     public function tax()
     {
         return $this->belongsTo(Tax::class);
+    }
+
+    public function discount()
+    {
+        return $this->belongsTo(Discount::class);
+    }
+
+    public function grossSubtotal(): float
+    {
+        return round((float) $this->subtotal + (float) ($this->discount_amount ?? 0), 2);
     }
 
     public function saleItems()

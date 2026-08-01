@@ -664,6 +664,8 @@ document.addEventListener("click", function (e) {
 window.initProjectForm = function () {
     const subtotalInput = document.getElementById("subtotal");
     const taxSelect = document.getElementById("tax_id");
+    const discountSelect = document.getElementById("discount_id");
+    const discountAmountDisplay = document.getElementById("discount_amount_display");
     const taxAmountDisplay = document.getElementById("tax_amount_display");
     const totalDisplay = document.getElementById("total_display");
     const paymentMethod = document.getElementById("payment_method");
@@ -749,6 +751,23 @@ window.initProjectForm = function () {
         const stock = termsBaseEl
             ? parseNum(termsBaseEl.dataset.stock)
             : 0;
+
+        let discountAmount = 0;
+        if (discountSelect && discountSelect.value) {
+            const dOpt = discountSelect.options[discountSelect.selectedIndex];
+            const dType = dOpt ? dOpt.dataset.type : "";
+            const dValue = dOpt ? parseNum(dOpt.dataset.value) : 0;
+            if (dType === "percentage") {
+                discountAmount = Math.min(subtotal, Math.round((subtotal * dValue) / 100));
+            } else if (dType === "fixed") {
+                discountAmount = Math.min(subtotal, Math.round(dValue));
+            }
+        }
+        if (discountAmountDisplay) {
+            discountAmountDisplay.value = formatRupiah(discountAmount);
+        }
+        const jasaNet = Math.max(0, subtotal - discountAmount);
+
         const selected = taxSelect
             ? taxSelect.options[taxSelect.selectedIndex]
             : null;
@@ -760,16 +779,16 @@ window.initProjectForm = function () {
             ? selected.dataset.calculation || "addition"
             : "addition";
         // Display jasa-only tax/total in project form fields (existing UX).
-        const jasaTax = Math.round((subtotal * rate) / 100);
+        const jasaTax = Math.round((jasaNet * rate) / 100);
         const jasaTotal =
             calculation === "deduction"
-                ? subtotal - jasaTax
-                : subtotal + jasaTax;
+                ? jasaNet - jasaTax
+                : jasaNet + jasaTax;
         if (taxAmountDisplay) taxAmountDisplay.value = formatRupiah(jasaTax);
         if (totalDisplay) totalDisplay.value = formatRupiah(jasaTotal);
 
-        // Terms use full DPP (jasa + stok) + pajak, matching project.total.
-        const dpp = subtotal + stock;
+        // Terms use full DPP (jasa net + stok) + pajak, matching project.total.
+        const dpp = jasaNet + stock;
         const fullTax = Math.round((dpp * rate) / 100);
         const fullTotal =
             calculation === "deduction" ? dpp - fullTax : dpp + fullTax;
@@ -904,6 +923,10 @@ window.initProjectForm = function () {
         taxSelect.addEventListener("change", calculateTotals);
         taxSelect.dataset.projectCalcBound = "1";
     }
+    if (discountSelect && discountSelect.dataset.projectCalcBound !== "1") {
+        discountSelect.addEventListener("change", calculateTotals);
+        discountSelect.dataset.projectCalcBound = "1";
+    }
 
     const dpPercentage = document.getElementById("dp_percentage");
     const dpAmount = document.getElementById("dp_amount");
@@ -1009,6 +1032,8 @@ window.initSaleTransactionAllocationForm = function () {
     const descriptionInput = document.getElementById("description");
     const quantityInput = document.getElementById("quantity");
     const unitPriceInput = document.getElementById("unit_price");
+    const discountSelect = document.getElementById("discount_id");
+    const discountAmountDisplay = document.getElementById("discount_amount_display");
     const subtotalDisplay = document.getElementById("subtotal_display");
     const purchaseInfo = document.getElementById("purchase-info");
     const quantityHint = document.getElementById("quantity-hint");
@@ -1030,11 +1055,31 @@ window.initSaleTransactionAllocationForm = function () {
         );
     }
 
+    function calcDiscount(gross) {
+        if (!discountSelect || !discountSelect.value) return 0;
+        const opt = discountSelect.options[discountSelect.selectedIndex];
+        if (!opt) return 0;
+        const type = opt.dataset.type || "";
+        const value = parseFloat(opt.dataset.value || "0") || 0;
+        if (type === "percentage") {
+            return Math.min(gross, Math.round((gross * value) / 100));
+        }
+        if (type === "fixed") {
+            return Math.min(gross, Math.round(value));
+        }
+        return 0;
+    }
+
     function calculateSubtotal() {
         const qty = parseFloat(quantityInput?.value || 0) || 0;
         const price = parseFloat(unitPriceInput?.value || 0) || 0;
+        const gross = Math.round(qty * price);
+        const discount = calcDiscount(gross);
+        if (discountAmountDisplay) {
+            discountAmountDisplay.value = discount > 0 ? formatRp(discount) : "—";
+        }
         if (subtotalDisplay) {
-            subtotalDisplay.value = formatRp(qty * price);
+            subtotalDisplay.value = formatRp(Math.max(0, gross - discount));
         }
     }
 
@@ -1151,6 +1196,10 @@ window.initSaleTransactionAllocationForm = function () {
             calculateSubtotal();
         });
     });
+
+    if (discountSelect) {
+        discountSelect.addEventListener("change", calculateSubtotal);
+    }
 
     const initialOption = purchaseSelect.options[purchaseSelect.selectedIndex];
     if (initialOption && initialOption.value) {

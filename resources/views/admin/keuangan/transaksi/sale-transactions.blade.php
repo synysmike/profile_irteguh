@@ -25,6 +25,7 @@
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Harga Satuan</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Diskon</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -45,6 +46,13 @@
                 <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $transaction->description }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-600">{{ number_format($transaction->quantity, 0, ',', '.') }}</td>
                 <td class="px-4 py-3 text-sm text-right text-gray-600">Rp {{ number_format($transaction->unit_price, 0, ',', '.') }}</td>
+                <td class="px-4 py-3 text-sm text-right text-red-700">
+                    @if((float) ($transaction->discount_amount ?? 0) > 0)
+                    - Rp {{ number_format($transaction->discount_amount, 0, ',', '.') }}
+                    @else
+                    —
+                    @endif
+                </td>
                 <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">Rp {{ number_format($transaction->subtotal, 0, ',', '.') }}</td>
                 <td class="px-4 py-3 text-sm">
                     @if($transaction->is_active)
@@ -60,7 +68,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                <td colspan="9" class="px-4 py-8 text-center text-gray-500">
                     Belum ada transaksi. Pastikan data grosir sudah diinput terlebih dahulu.
                     <button type="button" onclick="openResourceModal('saleTransactionModal', 'keuangan/sale-transactions', 'Transaksi')" class="text-purple-600 hover:text-purple-800 ml-1">Tambah yang pertama</button>
                 </td>

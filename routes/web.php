@@ -67,6 +67,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
     Route::resource('projects', \App\Http\Controllers\Admin\ProjectController::class);
     Route::patch('/projects/{project}/status', [\App\Http\Controllers\Admin\ProjectController::class, 'updateStatus'])->name('projects.update-status');
+    Route::patch('/projects/{project}/discount', [\App\Http\Controllers\Admin\ProjectController::class, 'updateDiscount'])->name('projects.update-discount');
     Route::get('/projects/{project}/terms/edit', [\App\Http\Controllers\Admin\ProjectController::class, 'editTerms'])->name('projects.terms.edit');
     Route::patch('/projects/{project}/terms', [\App\Http\Controllers\Admin\ProjectController::class, 'updateTerms'])->name('projects.terms.update');
     Route::post('/projects/{project}/terms/{term}/pay', [\App\Http\Controllers\Admin\ProjectController::class, 'payTerm'])->name('projects.pay-term');
@@ -114,6 +115,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::post('/pajak', [\App\Http\Controllers\Admin\TaxController::class, 'store'])->name('pajak.store');
         Route::put('/pajak/{tax}', [\App\Http\Controllers\Admin\TaxController::class, 'update'])->name('pajak.update');
         Route::delete('/pajak/{tax}', [\App\Http\Controllers\Admin\TaxController::class, 'destroy'])->name('pajak.destroy');
+        Route::get('/diskon', [\App\Http\Controllers\Admin\DiscountController::class, 'index'])->name('diskon.index');
+        Route::post('/diskon', [\App\Http\Controllers\Admin\DiscountController::class, 'store'])->name('diskon.store');
+        Route::put('/diskon/{diskon}', [\App\Http\Controllers\Admin\DiscountController::class, 'update'])->name('diskon.update');
+        Route::delete('/diskon/{diskon}', [\App\Http\Controllers\Admin\DiscountController::class, 'destroy'])->name('diskon.destroy');
         Route::get('/laporan-pajak', [\App\Http\Controllers\Admin\KeuanganController::class, 'laporanPajak'])->name('laporan-pajak.index');
         Route::get('/utility', [\App\Http\Controllers\Admin\KeuanganController::class, 'utility'])->name('utility.index');
     });

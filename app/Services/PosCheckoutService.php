@@ -34,6 +34,7 @@ class PosCheckoutService
         return DB::transaction(function () use ($header, $cart) {
             $lines = [];
             $subtotal = 0;
+            $discountTotal = 0;
 
             foreach ($cart as $index => $row) {
                 $type = $row['type'] ?? 'purchase';
@@ -59,15 +60,19 @@ class PosCheckoutService
                     }
 
                     $lineSubtotal = (float) $transaction->subtotal;
+                    $lineDiscount = (float) ($transaction->discount_amount ?? 0);
                     $lines[] = [
                         'transaction' => $transaction,
                         'description' => $transaction->description,
                         'quantity' => (int) $transaction->quantity,
                         'unit_price' => (float) $transaction->unit_price,
+                        'discount_name' => $lineDiscount > 0 ? ($transaction->discount_name ?: 'Diskon') : null,
+                        'discount_amount' => $lineDiscount,
                         'subtotal' => $lineSubtotal,
                         'notes' => $notes ?: $transaction->notes,
                     ];
                     $subtotal += $lineSubtotal;
+                    $discountTotal += $lineDiscount;
                     continue;
                 }
 
@@ -93,6 +98,7 @@ class PosCheckoutService
                     'quantity' => $qty,
                     'unit_price' => $price,
                     'subtotal' => $lineSubtotal,
+                    'discount_amount' => 0,
                     'notes' => $notes,
                     'is_active' => false,
                 ]);
@@ -102,6 +108,8 @@ class PosCheckoutService
                     'description' => $transaction->description,
                     'quantity' => $qty,
                     'unit_price' => $price,
+                    'discount_name' => null,
+                    'discount_amount' => 0,
                     'subtotal' => $lineSubtotal,
                     'notes' => $notes,
                 ];
@@ -114,9 +122,19 @@ class PosCheckoutService
                 ? ($subtotal - $taxAmount)
                 : ($subtotal + $taxAmount);
 
+            $firstDiscounted = collect($lines)->first(fn ($l) => (float) ($l['discount_amount'] ?? 0) > 0);
             $sale = Sale::create([
                 'customer_id' => $header['customer_id'],
                 'tax_id' => $tax?->id,
+                'discount_id' => $firstDiscounted['transaction']->discount_id ?? null,
+                'discount_name' => $discountTotal > 0
+                    ? (collect($lines)->pluck('discount_name')->filter()->unique()->count() === 1
+                        ? collect($lines)->pluck('discount_name')->filter()->first()
+                        : 'Diskon')
+                    : null,
+                'discount_type' => $firstDiscounted['transaction']->discount_type ?? null,
+                'discount_value' => $firstDiscounted['transaction']->discount_value ?? null,
+                'discount_amount' => round($discountTotal, 2),
                 'invoice_number' => $header['invoice_number'],
                 'sale_date' => $header['sale_date'],
                 'subtotal' => $subtotal,
@@ -139,6 +157,8 @@ class PosCheckoutService
                     'description' => $line['description'],
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
+                    'discount_name' => $line['discount_name'],
+                    'discount_amount' => $line['discount_amount'],
                     'subtotal' => $line['subtotal'],
                     'notes' => $line['notes'],
                     'sort_order' => $index,

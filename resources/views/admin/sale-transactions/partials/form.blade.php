@@ -63,10 +63,31 @@
     </div>
 
     <div>
-        <label for="subtotal_display" class="block text-sm font-medium text-gray-700 mb-2">Subtotal Jual (Rp)</label>
+        <label for="discount_id" class="block text-sm font-medium text-gray-700 mb-2">Diskon</label>
+        <select id="discount_id" name="discount_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">Tanpa Diskon</option>
+            @foreach(($discounts ?? collect()) as $discount)
+            <option value="{{ $discount->id }}"
+                    data-type="{{ $discount->type }}"
+                    data-value="{{ $discount->value }}"
+                    {{ (string) old('discount_id', isset($transaction) && $transaction ? $transaction->discount_id : '') === (string) $discount->id ? 'selected' : '' }}>
+                {{ $discount->label() }}
+            </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div>
+        <label for="discount_amount_display" class="block text-sm font-medium text-gray-700 mb-2">Nominal Diskon (Rp)</label>
+        <input type="text" id="discount_amount_display" value="—" readonly
+               class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-red-700">
+    </div>
+
+    <div>
+        <label for="subtotal_display" class="block text-sm font-medium text-gray-700 mb-2">Subtotal Net (Rp)</label>
         <input type="text" id="subtotal_display" value="0" readonly
                class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 font-semibold text-gray-900">
-        <p class="mt-1 text-xs text-gray-500">Otomatis: Qty × Harga Jual</p>
+        <p class="mt-1 text-xs text-gray-500">Otomatis: (Qty × Harga Jual) − Diskon</p>
     </div>
 
     <div>

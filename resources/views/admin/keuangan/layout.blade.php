@@ -137,6 +137,7 @@
                 <li class="mt-2">
                     <div class="px-4 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Menu Pajak</div>
                     <a href="{{ route('admin.keuangan.pajak.index') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.pajak.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Master Pajak</a>
+                    <a href="{{ route('admin.keuangan.diskon.index') }}" class="block px-4 py-2 pl-5 {{ request()->routeIs('admin.keuangan.diskon.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">Master Diskon</a>
                 </li>
                 <li>
                     <a href="{{ route('admin.keuangan.laporan-pajak.index') }}" class="block px-4 py-2 {{ request()->routeIs('admin.keuangan.laporan-pajak.*') ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}">📋 Laporan Pajak</a>

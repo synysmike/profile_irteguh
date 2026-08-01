@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CashTransaction;
 use App\Models\ChartOfAccount;
+use App\Models\Discount;
 use App\Models\Project;
 use App\Models\ProjectPaymentTerm;
 use App\Models\Purchase;
@@ -16,6 +17,43 @@ use Illuminate\Validation\ValidationException;
 
 class ProjectFinanceService
 {
+    public static function applyDiscount(float $baseAmount, ?Discount $discount): array
+    {
+        $gross = max(0, round($baseAmount, 2));
+        $discountAmount = $discount ? $discount->calculateAmount($gross) : 0;
+
+        return [
+            'gross' => $gross,
+            'discount_amount' => $discountAmount,
+            'net' => max(0, round($gross - $discountAmount, 2)),
+            'discount_id' => $discount?->id,
+            'discount_name' => $discount?->name,
+            'discount_type' => $discount?->type,
+            'discount_value' => $discount?->value,
+        ];
+    }
+
+    public static function lineTotals(int $quantity, float $unitPrice, ?Discount $discount = null): array
+    {
+        $gross = round(max(0, $quantity) * max(0, $unitPrice), 2);
+        $discounted = static::applyDiscount($gross, $discount);
+
+        return array_merge($discounted, [
+            'subtotal' => $discounted['net'],
+        ]);
+    }
+
+    public static function discountSnapshot(?Discount $discount, float $discountAmount = 0): array
+    {
+        return [
+            'discount_id' => $discount?->id,
+            'discount_name' => $discount?->name,
+            'discount_type' => $discount?->type,
+            'discount_value' => $discount?->value,
+            'discount_amount' => round($discountAmount, 2),
+        ];
+    }
+
     public static function applyTax(float $subtotal, ?Tax $tax): array
     {
         $taxAmount = $tax ? $tax->calculateAmount($subtotal) : 0;
@@ -113,7 +151,8 @@ class ProjectFinanceService
     }
 
     /**
-     * Recalculate project DPP/tax/total from base_subtotal + attached stock allocations,
+     * Recalculate project DPP/tax/total from base_subtotal (minus jasa discount)
+     * + attached stock allocations (already net of line discounts),
      * then refresh unpaid payment terms (keep paid terms as-is).
      */
     public static function recalculateFromAllocations(Project $project): void
@@ -121,22 +160,26 @@ class ProjectFinanceService
         $project->refresh();
         $stockSubtotal = (float) $project->saleTransactions()->sum('subtotal');
         $base = (float) ($project->base_subtotal ?? 0);
+        $discount = $project->discount_id ? Discount::find($project->discount_id) : null;
+        $jasa = static::applyDiscount($base, $discount);
         $tax = $project->tax_id ? Tax::find($project->tax_id) : null;
-        $amounts = static::applyTax($base + $stockSubtotal, $tax);
+        $amounts = static::applyTax($jasa['net'] + $stockSubtotal, $tax);
 
-        $project->update([
-            'subtotal' => $amounts['subtotal'],
-            'ppn_amount' => $amounts['ppn_amount'],
-            'tax_name' => $amounts['tax_name'],
-            'tax_rate' => $amounts['tax_rate'],
-            'tax_calculation_type' => $amounts['tax_calculation_type'],
-            'total' => $amounts['total'],
-        ]);
+        $project->update(array_merge(
+            static::discountSnapshot($discount, $jasa['discount_amount']),
+            [
+                'subtotal' => $amounts['subtotal'],
+                'ppn_amount' => $amounts['ppn_amount'],
+                'tax_name' => $amounts['tax_name'],
+                'tax_rate' => $amounts['tax_rate'],
+                'tax_calculation_type' => $amounts['tax_calculation_type'],
+                'total' => $amounts['total'],
+            ]
+        ));
 
         $project->refresh();
 
         // Refresh unpaid term nominals to match new totals (percentages unchanged).
-        $tax = $project->tax_id ? Tax::find($project->tax_id) : null;
         $fresh = static::applyTax((float) $project->subtotal, $tax);
 
         foreach ($project->paymentTerms()->where('status', '!=', 'paid')->get() as $term) {
@@ -156,7 +199,8 @@ class ProjectFinanceService
         Purchase $purchase,
         int $quantity,
         float $unitPrice,
-        ?string $notes = null
+        ?string $notes = null,
+        ?Discount $discount = null
     ): SaleTransaction {
         $remaining = $purchase->remainingQuantity();
         if ($quantity < 1) {
@@ -175,18 +219,18 @@ class ProjectFinanceService
             ]);
         }
 
-        return DB::transaction(function () use ($project, $purchase, $quantity, $unitPrice, $notes) {
-            $lineSubtotal = $quantity * $unitPrice;
-            $transaction = SaleTransaction::create([
+        return DB::transaction(function () use ($project, $purchase, $quantity, $unitPrice, $notes, $discount) {
+            $line = static::lineTotals($quantity, $unitPrice, $discount);
+            $transaction = SaleTransaction::create(array_merge([
                 'purchase_id' => $purchase->id,
                 'project_id' => $project->id,
                 'description' => $purchase->displayDescription(),
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
-                'subtotal' => $lineSubtotal,
+                'subtotal' => $line['subtotal'],
                 'notes' => $notes,
                 'is_active' => false,
-            ]);
+            ], static::discountSnapshot($discount, $line['discount_amount'])));
 
             static::recalculateFromAllocations($project);
 
@@ -250,6 +294,11 @@ class ProjectFinanceService
                 'project_id' => $project->id,
                 'project_payment_term_id' => $term->id,
                 'tax_id' => $project->tax_id,
+                'discount_id' => $project->discount_id,
+                'discount_name' => $project->discount_name,
+                'discount_type' => $project->discount_type,
+                'discount_value' => $project->discount_value,
+                'discount_amount' => 0,
                 'invoice_number' => $invoiceNumber,
                 'sale_date' => $paymentDate,
                 'subtotal' => $term->subtotal_amount,
@@ -299,6 +348,7 @@ class ProjectFinanceService
     /**
      * Build invoice lines for a project term: jasa/dasar + each stock allocation,
      * proportional to the term percentage. Line DPP sums to term.subtotal_amount.
+     * Diskon jasa & stok disimpan per baris dan diagregasi ke header invoice.
      */
     public static function createTermSaleItems(Sale $sale, Project $project, ProjectPaymentTerm $term): void
     {
@@ -307,25 +357,51 @@ class ProjectFinanceService
         $targetDpp = round((float) $term->subtotal_amount, 2);
         $termLabel = $term->label . ' (' . number_format($percentage, 2, ',', '.') . '%)';
         $lines = [];
+        $totalDiscount = 0.0;
+        $discountLabels = [];
 
-        $base = (float) ($project->base_subtotal ?? 0);
-        if ($base > 0) {
-            $portion = round($base * $factor, 2);
+        $jasaGross = (float) ($project->base_subtotal ?? 0);
+        $jasaDiscount = (float) ($project->discount_amount ?? 0);
+        $jasaNet = max(0, $jasaGross - $jasaDiscount);
+        if ($jasaNet > 0 || $jasaGross > 0) {
+            $netPortion = round($jasaNet * $factor, 2);
+            $discountPortion = round($jasaDiscount * $factor, 2);
+            $totalDiscount += $discountPortion;
+            if ($discountPortion > 0 && $project->discount_name) {
+                $discountLabels[$project->discount_name] = true;
+            }
+
+            $notes = $project->code . ' · ' . $termLabel;
+            if ($discountPortion > 0) {
+                $notes .= ' · Diskon Rp ' . number_format($discountPortion, 0, ',', '.');
+            }
+
             $lines[] = [
                 'sale_transaction_id' => null,
                 'description' => 'Jasa project: ' . $project->title,
                 'quantity' => 1,
-                'unit_price' => $portion,
-                'subtotal' => $portion,
-                'notes' => $project->code . ' · ' . $termLabel,
+                'unit_price' => $netPortion + $discountPortion,
+                'discount_name' => $discountPortion > 0 ? ($project->discount_name ?: 'Diskon jasa') : null,
+                'discount_amount' => $discountPortion,
+                'subtotal' => $netPortion,
+                'notes' => $notes,
             ];
         }
 
         foreach ($project->saleTransactions as $allocation) {
-            $portion = round((float) $allocation->subtotal * $factor, 2);
+            $netPortion = round((float) $allocation->subtotal * $factor, 2);
+            $discountPortion = round((float) ($allocation->discount_amount ?? 0) * $factor, 2);
             $qty = max(1, (int) $allocation->quantity);
-            $unitPrice = round($portion / $qty, 2);
-            $portion = round($unitPrice * $qty, 2);
+            // Keep unit_price as pre-discount unit so invoice shows harga & diskon jelas.
+            $grossPortion = round($netPortion + $discountPortion, 2);
+            $unitPrice = round($grossPortion / $qty, 2);
+            $grossPortion = round($unitPrice * $qty, 2);
+            $netPortion = round($grossPortion - $discountPortion, 2);
+
+            $totalDiscount += $discountPortion;
+            if ($discountPortion > 0 && $allocation->discount_name) {
+                $discountLabels[$allocation->discount_name] = true;
+            }
 
             $notesParts = [
                 $project->code,
@@ -334,6 +410,9 @@ class ProjectFinanceService
             ];
             if ($allocation->purchase?->invoice_number) {
                 $notesParts[] = 'Grosir ' . $allocation->purchase->invoice_number;
+            }
+            if ($discountPortion > 0) {
+                $notesParts[] = 'Diskon Rp ' . number_format($discountPortion, 0, ',', '.');
             }
             if ($allocation->notes) {
                 $notesParts[] = $allocation->notes;
@@ -344,7 +423,9 @@ class ProjectFinanceService
                 'description' => $allocation->description,
                 'quantity' => $qty,
                 'unit_price' => $unitPrice,
-                'subtotal' => $portion,
+                'discount_name' => $discountPortion > 0 ? ($allocation->discount_name ?: 'Diskon stok') : null,
+                'discount_amount' => $discountPortion,
+                'subtotal' => $netPortion,
                 'notes' => implode(' · ', $notesParts),
             ];
         }
@@ -355,6 +436,8 @@ class ProjectFinanceService
                 'description' => $project->title . ' (' . $term->label . ')',
                 'quantity' => 1,
                 'unit_price' => $targetDpp,
+                'discount_name' => null,
+                'discount_amount' => 0,
                 'subtotal' => $targetDpp,
                 'notes' => $project->code,
             ];
@@ -369,14 +452,11 @@ class ProjectFinanceService
             }
         }
         $lines[$last]['subtotal'] = round($targetDpp - $sum, 2);
-        if ((int) $lines[$last]['quantity'] <= 1) {
-            $lines[$last]['quantity'] = 1;
-            $lines[$last]['unit_price'] = $lines[$last]['subtotal'];
-        } else {
-            $qty = (int) $lines[$last]['quantity'];
-            $lines[$last]['unit_price'] = round($lines[$last]['subtotal'] / $qty, 2);
-            // Prefer exact subtotal over qty*price drift
-        }
+        $lines[$last]['unit_price'] = round(
+            ((float) $lines[$last]['subtotal'] + (float) $lines[$last]['discount_amount'])
+            / max(1, (int) $lines[$last]['quantity']),
+            2
+        );
 
         foreach ($lines as $sort => $line) {
             SaleItem::create([
@@ -385,11 +465,24 @@ class ProjectFinanceService
                 'description' => $line['description'],
                 'quantity' => $line['quantity'],
                 'unit_price' => $line['unit_price'],
+                'discount_name' => $line['discount_name'],
+                'discount_amount' => $line['discount_amount'],
                 'subtotal' => $line['subtotal'],
                 'notes' => $line['notes'],
                 'sort_order' => $sort,
             ]);
         }
+
+        $label = $project->discount_name
+            ?: (count($discountLabels) === 1 ? array_key_first($discountLabels) : (count($discountLabels) > 1 ? 'Diskon gabungan' : null));
+
+        $sale->update([
+            'discount_id' => $project->discount_id,
+            'discount_name' => $totalDiscount > 0 ? ($label ?: 'Diskon') : null,
+            'discount_type' => $project->discount_type,
+            'discount_value' => $project->discount_value,
+            'discount_amount' => round($totalDiscount, 2),
+        ]);
     }
 
     /**

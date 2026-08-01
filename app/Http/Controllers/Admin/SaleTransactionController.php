@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Discount;
 use App\Models\Purchase;
 use App\Models\SaleTransaction;
+use App\Services\ProjectFinanceService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -17,7 +19,7 @@ class SaleTransactionController extends Controller
 
     public function index()
     {
-        $transactions = SaleTransaction::with(['purchase.supplier'])
+        $transactions = SaleTransaction::with(['purchase.supplier', 'discount'])
             ->orderBy('description')
             ->get();
 
@@ -31,6 +33,7 @@ class SaleTransactionController extends Controller
                 'html' => view('admin.sale-transactions.partials.form', [
                     'transaction' => null,
                     'purchases' => $this->availablePurchases(),
+                    'discounts' => $this->activeDiscounts(),
                 ])->render(),
             ]);
         }
@@ -40,22 +43,20 @@ class SaleTransactionController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'purchase_id' => 'required|exists:purchases,id',
-            'code' => 'nullable|string|max:50|unique:sale_transactions,code',
-            'description' => 'required|string|max:255',
-            'quantity' => 'required|integer|min:1',
-            'unit_price' => 'required|numeric|min:0',
-            'notes' => 'nullable|string',
-            'is_active' => 'nullable|string|in:0,1',
+        $validated = $this->validateTransaction($request);
+        $discount = !empty($validated['discount_id']) ? Discount::find($validated['discount_id']) : null;
+        $line = ProjectFinanceService::lineTotals(
+            (int) $validated['quantity'],
+            (float) $validated['unit_price'],
+            $discount
+        );
+
+        $payload = array_merge($validated, ProjectFinanceService::discountSnapshot($discount, $line['discount_amount']), [
+            'subtotal' => $line['subtotal'],
+            'is_active' => $request->input('is_active', '0') == '1',
         ]);
 
-        $this->validatePurchaseQuantity($validated['purchase_id'], (int) $validated['quantity']);
-
-        $validated['subtotal'] = $validated['quantity'] * $validated['unit_price'];
-        $validated['is_active'] = $request->input('is_active', '0') == '1';
-
-        SaleTransaction::create($validated);
+        SaleTransaction::create($payload);
 
         if ($request->ajax()) {
             return response()->json([
@@ -77,6 +78,7 @@ class SaleTransactionController extends Controller
                 'html' => view('admin.sale-transactions.partials.form', [
                     'transaction' => $transaction,
                     'purchases' => $this->availablePurchases($transaction->id),
+                    'discounts' => $this->activeDiscounts($transaction->discount_id),
                 ])->render(),
                 'data' => $transaction,
             ]);
@@ -88,27 +90,25 @@ class SaleTransactionController extends Controller
     public function update(Request $request, string $id)
     {
         $transaction = SaleTransaction::findOrFail($id);
+        $validated = $this->validateTransaction($request, $transaction);
 
-        $validated = $request->validate([
-            'purchase_id' => 'required|exists:purchases,id',
-            'code' => 'nullable|string|max:50|unique:sale_transactions,code,' . $id,
-            'description' => 'required|string|max:255',
-            'quantity' => 'required|integer|min:1',
-            'unit_price' => 'required|numeric|min:0',
-            'notes' => 'nullable|string',
-            'is_active' => 'nullable|string|in:0,1',
-        ]);
-
-        $this->validatePurchaseQuantity(
-            (int) $validated['purchase_id'],
+        $discount = !empty($validated['discount_id']) ? Discount::find($validated['discount_id']) : null;
+        $line = ProjectFinanceService::lineTotals(
             (int) $validated['quantity'],
-            (int) $transaction->id
+            (float) $validated['unit_price'],
+            $discount
         );
 
-        $validated['subtotal'] = $validated['quantity'] * $validated['unit_price'];
-        $validated['is_active'] = $request->input('is_active', '0') == '1';
+        $payload = array_merge($validated, ProjectFinanceService::discountSnapshot($discount, $line['discount_amount']), [
+            'subtotal' => $line['subtotal'],
+            'is_active' => $request->input('is_active', '0') == '1',
+        ]);
 
-        $transaction->update($validated);
+        $transaction->update($payload);
+
+        if ($transaction->project_id) {
+            ProjectFinanceService::recalculateFromAllocations($transaction->project);
+        }
 
         if ($request->ajax()) {
             return response()->json([
@@ -124,7 +124,12 @@ class SaleTransactionController extends Controller
     public function destroy(string $id)
     {
         $transaction = SaleTransaction::findOrFail($id);
+        $project = $transaction->project_id ? $transaction->project : null;
         $transaction->delete();
+
+        if ($project) {
+            ProjectFinanceService::recalculateFromAllocations($project);
+        }
 
         if (request()->ajax()) {
             return response()->json([
@@ -155,6 +160,42 @@ class SaleTransactionController extends Controller
         ]);
     }
 
+    private function validateTransaction(Request $request, ?SaleTransaction $transaction = null): array
+    {
+        $id = $transaction?->id;
+        $validated = $request->validate([
+            'purchase_id' => 'required|exists:purchases,id',
+            'code' => 'nullable|string|max:50|unique:sale_transactions,code' . ($id ? ',' . $id : ''),
+            'description' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0',
+            'discount_id' => 'nullable|exists:discounts,id',
+            'notes' => 'nullable|string',
+            'is_active' => 'nullable|string|in:0,1',
+        ]);
+
+        $this->validatePurchaseQuantity(
+            (int) $validated['purchase_id'],
+            (int) $validated['quantity'],
+            $id ? (int) $id : null
+        );
+
+        return $validated;
+    }
+
+    private function activeDiscounts(?int $includeId = null)
+    {
+        return Discount::query()
+            ->where(function ($q) use ($includeId) {
+                $q->where('is_active', true);
+                if ($includeId) {
+                    $q->orWhere('id', $includeId);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
     private function availablePurchases(?int $includeForSaleTransactionId = null): \Illuminate\Support\Collection
     {
         $currentPurchaseId = null;
@@ -179,10 +220,9 @@ class SaleTransactionController extends Controller
     {
         $purchase = Purchase::findOrFail($purchaseId);
         $remaining = $purchase->remainingQuantity($excludeSaleTransactionId);
-
         if ($quantity > $remaining) {
             throw ValidationException::withMessages([
-                'quantity' => ["Stok grosir tersisa {$remaining} unit untuk {$purchase->displayDescription()}."],
+                'quantity' => ["Stok tersisa hanya {$remaining} unit."],
             ]);
         }
     }

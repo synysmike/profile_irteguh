@@ -42,14 +42,33 @@
         </form>
     </div>
     <div class="bg-white rounded-lg shadow border border-gray-200 p-5">
-        <div class="text-sm text-gray-500 mb-1">Nilai & Pajak</div>
+        <div class="text-sm text-gray-500 mb-1">Nilai, Diskon & Pajak</div>
         <div class="space-y-1 text-sm">
-            <div class="flex justify-between"><span>DPP jasa</span><span>Rp {{ number_format($project->base_subtotal ?? 0, 0, ',', '.') }}</span></div>
+            <div class="flex justify-between"><span>Jasa kotor</span><span>Rp {{ number_format($project->base_subtotal ?? 0, 0, ',', '.') }}</span></div>
+            <div class="flex justify-between text-red-700">
+                <span>Diskon jasa{{ $project->discount_name ? ' ('.$project->discount_name.')' : '' }}</span>
+                <span>- Rp {{ number_format($project->discount_amount ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between"><span>Jasa net</span><span>Rp {{ number_format($project->jasaNetSubtotal(), 0, ',', '.') }}</span></div>
             <div class="flex justify-between"><span>DPP stok</span><span>Rp {{ number_format($project->stockSubtotal(), 0, ',', '.') }}</span></div>
             <div class="flex justify-between font-medium"><span>DPP total</span><span>Rp {{ number_format($project->subtotal, 0, ',', '.') }}</span></div>
             <div class="flex justify-between"><span>{{ $project->tax_name ?: 'Pajak' }}</span><span>Rp {{ number_format($project->ppn_amount, 0, ',', '.') }}</span></div>
             <div class="flex justify-between font-semibold border-t pt-2"><span>Total</span><span>Rp {{ number_format($project->total, 0, ',', '.') }}</span></div>
         </div>
+        <form method="POST" action="{{ route('admin.projects.update-discount', $project) }}" class="mt-4 space-y-2 border-t pt-3">
+            @csrf
+            @method('PATCH')
+            <label class="block text-xs font-medium text-gray-600">Diskon jasa</label>
+            <select name="discount_id" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white">
+                <option value="">Tanpa Diskon</option>
+                @foreach(($discounts ?? collect()) as $discount)
+                <option value="{{ $discount->id }}" {{ (string) $project->discount_id === (string) $discount->id ? 'selected' : '' }}>
+                    {{ $discount->label() }}
+                </option>
+                @endforeach
+            </select>
+            <button type="submit" class="w-full px-3 py-2 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700">Terapkan Diskon Jasa</button>
+        </form>
     </div>
     <div class="bg-white rounded-lg shadow border border-gray-200 p-5">
         <div class="text-sm text-gray-500 mb-1">Pembayaran</div>
@@ -79,6 +98,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Harga</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Diskon</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
@@ -93,6 +113,14 @@
                     <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $allocation->description }}</td>
                     <td class="px-4 py-3 text-sm text-right">{{ number_format($allocation->quantity, 0, ',', '.') }}</td>
                     <td class="px-4 py-3 text-sm text-right">Rp {{ number_format($allocation->unit_price, 0, ',', '.') }}</td>
+                    <td class="px-4 py-3 text-sm text-right text-red-700">
+                        @if((float) ($allocation->discount_amount ?? 0) > 0)
+                        - Rp {{ number_format($allocation->discount_amount, 0, ',', '.') }}
+                        <span class="block text-xs text-gray-400">{{ $allocation->discount_name }}</span>
+                        @else
+                        —
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-sm text-right font-medium">Rp {{ number_format($allocation->subtotal, 0, ',', '.') }}</td>
                     <td class="px-4 py-3 text-right text-sm">
                         <form method="POST" action="{{ route('admin.projects.sale-transactions.detach', [$project, $allocation]) }}" onsubmit="return confirm('Lepas alokasi stok ini dari project? Nilai & termin akan dihitung ulang.')">
@@ -104,14 +132,14 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="px-4 py-6 text-center text-gray-500 text-sm">Belum ada stok terpasang. Gunakan form di bawah untuk melampirkan.</td>
+                    <td colspan="7" class="px-4 py-6 text-center text-gray-500 text-sm">Belum ada stok terpasang. Gunakan form di bawah untuk melampirkan.</td>
                 </tr>
                 @endforelse
             </tbody>
             @if($project->saleTransactions->isNotEmpty())
             <tfoot class="bg-gray-50">
                 <tr>
-                    <td colspan="4" class="px-4 py-3 text-sm font-semibold text-right text-gray-700">Total alokasi stok</td>
+                    <td colspan="5" class="px-4 py-3 text-sm font-semibold text-right text-gray-700">Total alokasi stok</td>
                     <td class="px-4 py-3 text-sm font-semibold text-right">Rp {{ number_format($project->stockSubtotal(), 0, ',', '.') }}</td>
                     <td></td>
                 </tr>
@@ -131,7 +159,7 @@
                 <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="underline font-medium">Grosir</a>.
             </p>
             @else
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium text-gray-600 mb-1">Barang grosir *</label>
                     <select name="purchase_id" id="project-purchase-select" required class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white">
@@ -153,6 +181,15 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Harga jual *</label>
                     <input type="number" name="unit_price" id="project-purchase-price" min="0" step="1" value="0" required class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Diskon stok</label>
+                    <select name="discount_id" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white">
+                        <option value="">Tanpa Diskon</option>
+                        @foreach(($discounts ?? collect()) as $discount)
+                        <option value="{{ $discount->id }}">{{ $discount->label() }}</option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
             <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-md text-sm font-semibold hover:bg-purple-700">Lampirkan dari Grosir</button>

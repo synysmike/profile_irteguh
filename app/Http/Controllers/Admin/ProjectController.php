@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Discount;
 use App\Models\Project;
 use App\Models\ProjectPaymentTerm;
 use App\Models\Purchase;
@@ -53,10 +54,13 @@ class ProjectController extends Controller
             ->filter(fn (Purchase $p) => $p->remainingQuantity() > 0)
             ->values();
 
+        $discounts = Discount::where('is_active', true)->orderBy('name')->get();
+
         return view('admin.projects.show', compact(
             'project',
             'availableAllocations',
-            'availablePurchases'
+            'availablePurchases',
+            'discounts'
         ));
     }
 
@@ -64,6 +68,7 @@ class ProjectController extends Controller
     {
         $customers = Customer::active()->orderBy('name')->get();
         $taxes = Tax::where('is_active', true)->orderBy('name')->get();
+        $discounts = Discount::where('is_active', true)->orderBy('name')->get();
 
         if (request()->ajax()) {
             return response()->json([
@@ -71,11 +76,12 @@ class ProjectController extends Controller
                     'project' => null,
                     'customers' => $customers,
                     'taxes' => $taxes,
+                    'discounts' => $discounts,
                 ])->render(),
             ]);
         }
 
-        return view('admin.projects.create', compact('customers', 'taxes'));
+        return view('admin.projects.create', compact('customers', 'taxes', 'discounts'));
     }
 
     public function store(Request $request)
@@ -85,10 +91,12 @@ class ProjectController extends Controller
         DB::beginTransaction();
         try {
             $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
+            $discount = !empty($validated['discount_id']) ? Discount::find($validated['discount_id']) : null;
             $baseSubtotal = (float) $validated['subtotal'];
-            $amounts = ProjectFinanceService::applyTax($baseSubtotal, $tax);
+            $jasa = ProjectFinanceService::applyDiscount($baseSubtotal, $discount);
+            $amounts = ProjectFinanceService::applyTax($jasa['net'], $tax);
 
-            $project = Project::create([
+            $project = Project::create(array_merge([
                 'code' => Project::generateCode(),
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
@@ -107,7 +115,7 @@ class ProjectController extends Controller
                 'start_date' => $validated['start_date'] ?? null,
                 'due_date' => $validated['due_date'] ?? null,
                 'notes' => $validated['notes'] ?? null,
-            ]);
+            ], ProjectFinanceService::discountSnapshot($discount, $jasa['discount_amount'])));
 
             $this->syncTermsForProject($project, $validated);
 
@@ -125,15 +133,16 @@ class ProjectController extends Controller
         $project = Project::with('paymentTerms')->findOrFail($id);
         $customers = Customer::active()->orderBy('name')->get();
         $taxes = Tax::where('is_active', true)->orderBy('name')->get();
+        $discounts = Discount::where('is_active', true)->orderBy('name')->get();
 
         if (request()->ajax()) {
             return response()->json([
-                'html' => view('admin.projects.partials.form', compact('project', 'customers', 'taxes'))->render(),
+                'html' => view('admin.projects.partials.form', compact('project', 'customers', 'taxes', 'discounts'))->render(),
                 'data' => $project,
             ]);
         }
 
-        return view('admin.projects.edit', compact('project', 'customers', 'taxes'));
+        return view('admin.projects.edit', compact('project', 'customers', 'taxes', 'discounts'));
     }
 
     public function update(Request $request, string $id)
@@ -143,7 +152,6 @@ class ProjectController extends Controller
 
         DB::beginTransaction();
         try {
-            $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
             $baseSubtotal = (float) $validated['subtotal'];
 
             $project->update([
@@ -151,6 +159,7 @@ class ProjectController extends Controller
                 'description' => $validated['description'] ?? null,
                 'customer_id' => $validated['customer_id'],
                 'tax_id' => $validated['tax_id'] ?? null,
+                'discount_id' => $validated['discount_id'] ?? null,
                 'status' => $validated['status'],
                 'progress_percent' => $validated['progress_percent'] ?? 0,
                 'base_subtotal' => $baseSubtotal,
@@ -160,7 +169,7 @@ class ProjectController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            // DPP final = base + alokasi stok; pajak & termin unpaid ikut dihitung ulang.
+            // DPP final = jasa net + alokasi stok; pajak & termin unpaid ikut dihitung ulang.
             ProjectFinanceService::recalculateFromAllocations($project);
             $project->refresh();
 
@@ -363,6 +372,7 @@ class ProjectController extends Controller
             'description' => 'nullable|string',
             'customer_id' => 'required|exists:customers,id',
             'tax_id' => 'nullable|exists:taxes,id',
+            'discount_id' => 'nullable|exists:discounts,id',
             'status' => ['required', Rule::in(array_keys(Project::statusLabels()))],
             'progress_percent' => 'nullable|integer|min:0|max:100',
             'subtotal' => 'required|numeric|min:0',
@@ -492,6 +502,27 @@ class ProjectController extends Controller
         return $validated;
     }
 
+    public function updateDiscount(Request $request, string $projectId)
+    {
+        $project = Project::findOrFail($projectId);
+        $validated = $request->validate([
+            'discount_id' => 'nullable|exists:discounts,id',
+        ]);
+
+        try {
+            $project->update([
+                'discount_id' => $validated['discount_id'] ?? null,
+            ]);
+            ProjectFinanceService::recalculateFromAllocations($project);
+
+            return redirect()
+                ->route('admin.projects.show', $project)
+                ->with('success', 'Diskon jasa project diperbarui. DPP, pajak, dan termin dihitung ulang.');
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
     public function attachSaleTransaction(Request $request, string $projectId)
     {
         $project = Project::findOrFail($projectId);
@@ -502,6 +533,7 @@ class ProjectController extends Controller
             'purchase_id' => 'nullable|exists:purchases,id',
             'quantity' => 'nullable|integer|min:1',
             'unit_price' => 'nullable|numeric|min:0',
+            'discount_id' => 'nullable|exists:discounts,id',
             'notes' => 'nullable|string|max:500',
         ]);
 
@@ -515,12 +547,14 @@ class ProjectController extends Controller
                     'unit_price' => 'required|numeric|min:0',
                 ]);
                 $purchase = Purchase::findOrFail($validated['purchase_id']);
+                $discount = !empty($validated['discount_id']) ? Discount::find($validated['discount_id']) : null;
                 ProjectFinanceService::allocateFromPurchase(
                     $project,
                     $purchase,
                     (int) $validated['quantity'],
                     (float) $validated['unit_price'],
-                    $validated['notes'] ?? null
+                    $validated['notes'] ?? null,
+                    $discount
                 );
             } else {
                 $request->validate([
