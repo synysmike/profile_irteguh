@@ -22,6 +22,13 @@ Route::get('/berita/{slug}', [\App\Http\Controllers\NewsController::class, 'show
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 
+// Public project term billing invoice (belum lunas) — harus di atas /invoice/{sale}
+Route::get('/invoice/term/{term}', [\App\Http\Controllers\PublicProjectTermInvoiceController::class, 'show'])
+    ->name('invoice.project-terms.show');
+Route::post('/invoice/term/{term}/verify', [\App\Http\Controllers\PublicProjectTermInvoiceController::class, 'verify'])
+    ->middleware('throttle:8,1')
+    ->name('invoice.project-terms.verify');
+
 // Public sales invoice — akses lewat verifikasi nomor HP customer
 Route::get('/invoice/{sale}', [\App\Http\Controllers\PublicSaleInvoiceController::class, 'show'])
     ->name('invoice.sales.show');
@@ -74,6 +81,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::patch('/projects/{project}/terms', [\App\Http\Controllers\Admin\ProjectController::class, 'updateTerms'])->name('projects.terms.update');
     Route::post('/projects/{project}/terms/{term}/pay', [\App\Http\Controllers\Admin\ProjectController::class, 'payTerm'])->name('projects.pay-term');
     Route::post('/projects/{project}/terms/{term}/unpay', [\App\Http\Controllers\Admin\ProjectController::class, 'unpayTerm'])->name('projects.unpay-term');
+    Route::get('/projects/{project}/terms/{term}/invoice', [\App\Http\Controllers\Admin\ProjectController::class, 'termInvoice'])->name('projects.term-invoice');
     Route::get('/projects/{project}/terms/{term}/whatsapp', [\App\Http\Controllers\Admin\ProjectController::class, 'whatsappTerm'])->name('projects.whatsapp-term');
     Route::post('/projects/{project}/sale-transactions', [\App\Http\Controllers\Admin\ProjectController::class, 'attachSaleTransaction'])->name('projects.sale-transactions.attach');
     Route::delete('/projects/{project}/sale-transactions/{transaction}', [\App\Http\Controllers\Admin\ProjectController::class, 'detachSaleTransaction'])->name('projects.sale-transactions.detach');

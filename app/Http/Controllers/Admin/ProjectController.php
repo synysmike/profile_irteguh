@@ -336,6 +336,17 @@ class ProjectController extends Controller
     }
 
     /**
+     * Halaman invoice penagihan (cetak / PDF) untuk termin yang belum diposting.
+     * Arahkan ke URL publik (admin bypass verifikasi HP saat login).
+     */
+    public function termInvoice(string $projectId, string $termId)
+    {
+        $term = ProjectPaymentTerm::where('project_id', $projectId)->with('sale')->findOrFail($termId);
+
+        return redirect()->to($term->publicInvoiceUrl());
+    }
+
+    /**
      * Kirim draft invoice termin (belum posting) via WhatsApp ke customer.
      * Status pembayaran dalam pesan selalu "Belum Lunas".
      */

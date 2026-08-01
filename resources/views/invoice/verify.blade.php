@@ -127,7 +127,7 @@
             Nomor HP customer belum tercatat pada invoice ini. Hubungi admin untuk membuka invoice.
         </div>
         @else
-        <form method="POST" action="{{ route('invoice.sales.verify', $sale) }}">
+        <form method="POST" action="{{ $verifyRoute }}">
             @csrf
             <label for="phone">Nomor HP pelanggan</label>
             <input

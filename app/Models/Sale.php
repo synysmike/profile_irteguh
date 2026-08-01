@@ -84,6 +84,6 @@ class Sale extends Model
      */
     public function publicInvoiceUrl(): string
     {
-        return route('invoice.sales.show', ['sale' => $this->id]);
+        return url()->route('invoice.sales.show', ['sale' => $this->id]);
     }
 }

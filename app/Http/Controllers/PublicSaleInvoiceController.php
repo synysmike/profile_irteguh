@@ -25,6 +25,7 @@ class PublicSaleInvoiceController extends Controller
             'invoiceNumber' => $sale->invoice_number,
             'customerName' => $sale->customer?->name,
             'hasCustomerPhone' => (bool) SaleWhatsAppInvoice::normalizePhone($sale->customer?->phone),
+            'verifyRoute' => route('invoice.sales.verify', $sale),
         ]);
     }
 

@@ -290,6 +290,7 @@
                     <a href="{{ route('admin.sales.whatsapp', $term->sale_id) }}" target="_blank" rel="noopener" class="text-green-600 hover:text-green-800 mr-3">WA</a>
                     @endif
                     @if($term->status !== 'paid')
+                    <a href="{{ $term->publicInvoiceUrl() }}" target="_blank" class="text-blue-600 hover:text-blue-800 mr-3" title="Invoice penagihan (cetak / PDF)">Invoice</a>
                     @if($project->customer?->phone)
                     <a href="{{ route('admin.projects.whatsapp-term', [$project, $term]) }}" target="_blank" rel="noopener" class="text-green-600 hover:text-green-800 mr-3" title="Kirim draft invoice (Belum Lunas) ke {{ $project->customer->phone }}">Kirim WA</a>
                     @else

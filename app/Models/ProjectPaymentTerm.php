@@ -44,4 +44,13 @@ class ProjectPaymentTerm extends Model
     {
         return $this->status === 'paid';
     }
+
+    /**
+     * Public billing invoice URL (customer must verify phone before viewing).
+     * Paid terms redirect via public controller to the sale invoice.
+     */
+    public function publicInvoiceUrl(): string
+    {
+        return url()->route('invoice.project-terms.show', ['term' => $this->id]);
+    }
 }
