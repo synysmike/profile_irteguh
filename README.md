@@ -1,9 +1,19 @@
-# Profile Site - Laravel 11 with FrankenPHP
+# Ir Teguh Solution — Laravel 11 + FrankenPHP
 
-A modern profile management application built with Laravel 11, FrankenPHP, MySQL, Tailwind CSS, and jQuery.
+Aplikasi website profil + **modul admin keuangan** (grosir, alokasi stok, kasir POS, project, pajak, diskon, kas, laporan) berbasis Laravel 11, FrankenPHP, MySQL, Tailwind CSS, dan Vite.
+
+## Dokumentasi terkait
+
+| Dokumen | Isi |
+|---------|-----|
+| [README.md](README.md) (bagian di bawah) | Alur sistem keuangan end-to-end |
+| [checklist.md](checklist.md) | Daftar isu & perbaikan yang perlu dikerjakan |
+| [prd.md](prd.md) | Product Requirements Document modul keuangan |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Panduan deployment |
 
 ## 📋 Table of Contents
 
+- [Alur Sistem Keuangan](#alur-sistem-keuangan)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Quick Start](#quick-start)
@@ -14,15 +24,126 @@ A modern profile management application built with Laravel 11, FrankenPHP, MySQL
 - [Docker Commands](#docker-commands)
 - [Troubleshooting](#troubleshooting)
 
+---
+
+## Alur Sistem Keuangan
+
+Alur uang utama di aplikasi:
+
+```
+Grosir (Purchase)
+   ↓ sisa stok
+Alokasi Stok (SaleTransaction) ──→ Kasir POS ──→ Invoice Sale ──→ Kas (CashTransaction)
+   ↓ tempel ke project
+Project (jasa ± diskon + stok)
+   ↓ termin pembayaran
+Posting termin → Invoice Sale → Kas
+   ↓
+Laporan (arus kas / laba rugi / dashboard)
+```
+
+### 1. Master data
+
+| Modul | Tujuan | Lokasi menu |
+|-------|--------|-------------|
+| **Chart of Accounts (COA)** | Akun; akun tipe `kas` dipakai auto-post kas | Keuangan → Master Akun |
+| **Pajak** | Rate % + tipe hitung (`addition` / `deduction`) | Keuangan → Master Pajak |
+| **Diskon** | % atau nominal; dipakai jasa project & baris alokasi | Keuangan → Diskon |
+| **Customer / Supplier / Karyawan** | Pihak transaksi; HP customer dinormalisasi otomatis | Admin / Keuangan |
+
+Nomor HP customer dinormalisasi saat simpan (`App\Support\PhoneNumber`) agar paste dari WhatsApp (`+62`, spasi, `tel:`, `08…`) tersimpan seragam (`628…`) — dipakai juga untuk verifikasi invoice publik.
+
+### 2. Grosir (`Purchase`)
+
+1. Input pembelian (supplier, qty, harga, pajak).
+2. Subtotal = qty × harga → pajak → total.
+3. Mencatat **pengeluaran kas** (jika akun kas tersedia).
+4. **Sisa stok** = qty beli − qty yang sudah dialokasi ke `SaleTransaction`.
+
+Menu: **Keuangan → Grosir / Pembelian**.
+
+### 3. Alokasi stok (`SaleTransaction`)
+
+Cadangan jual dari sisa stok grosir. Bisa:
+
+- masuk **Kasir POS** (invoice retail), atau
+- ditempel ke **Project** (masuk DPP project).
+
+Subtotal alokasi = net setelah **diskon baris**. Field harga grosir di form alokasi read-only (referensi).
+
+Menu: **Keuangan → Alokasi / Sale Transactions**.
+
+### 4. Kasir POS / penjualan (`Sale` + `SaleItem`)
+
+1. Keranjang dari stok grosir langsung atau alokasi siap invoice.
+2. Checkout (`PosCheckoutService`) → buat invoice `Sale` + item + kurangi stok/alokasi.
+3. Pajak dari master → total → **penerimaan kas**.
+4. Invoice bisa dikirim WhatsApp (`SaleWhatsAppInvoice`).
+
+**Invoice publik** (`/invoice/{sale}`):
+
+1. Customer buka link (dari WA / cetak).
+2. Halaman **verifikasi nomor HP** (bukan signed URL).
+3. HP cocok dengan customer invoice → akses diberikan (tersimpan di session).
+4. Admin yang login bisa langsung lihat tanpa verifikasi.
+5. GET publik **tidak** mengubah baris invoice di database.
+
+Menu: **Keuangan → Penjualan / Kasir**. Path lama `/admin/sales/{id}/invoice` diarahkan ke URL publik.
+
+### 5. Project
+
+Komposisi nilai:
+
+1. **Jasa** (`base_subtotal`) − diskon jasa  
+2. **+ stok** (Σ alokasi net yang ditempel)  
+3. **= DPP** → pajak → **total project**  
+4. Dibagi **termin** (DP + cicilan, total % = 100%)
+
+Alur operasional:
+
+- CRUD project + status progress.
+- **Edit Termin** khusus (`projects.terms.edit`) — sync % ↔ nominal dari total project.
+- **Posting ke Keuangan** per termin → `Sale` + `CashTransaction`.
+- Surat tugas, WhatsApp invoice termin, unpay (admin).
+- Diskon jasa bisa diubah di detail project; kalkulasi di `ProjectFinanceService`.
+
+Menu: **Admin → Project** (juga shortcut dari sidebar Keuangan).
+
+### 6. Kas & laporan
+
+| Fitur | Status |
+|-------|--------|
+| **Kas/Bank** (`CashTransaction`) | Hidup — auto dari sale/purchase + input manual |
+| **Dashboard keuangan** | Omzet, kas masuk/keluar, ringkasan pajak |
+| **Laba rugi / arus kas** | Hidup, masih sederhana |
+| **Neraca / buku besar / laporan pajak (SPT)** | Masih placeholder |
+| **Jurnal** | Manual; belum auto dari penjualan/pembelian |
+
+### Entitas inti (ringkas)
+
+```
+Purchase ──< SaleTransaction ──< SaleItem >── Sale ── CashTransaction
+                │                              │
+                └── Project ── ProjectPaymentTerm ──(post)──┘
+Tax / Discount ── dipakai di Purchase, Sale, Project, SaleTransaction
+Customer.phone ── verifikasi invoice publik
+```
+
+Detail requirement produk: lihat [prd.md](prd.md).  
+Daftar bug & perbaikan: lihat [checklist.md](checklist.md).
+
+---
+
 ## ✨ Features
 
 - **Laravel 11** - Modern PHP framework
 - **FrankenPHP** - High-performance PHP application server with built-in Caddy
 - **MySQL 8.0** - Reliable database
 - **Tailwind CSS** - Utility-first CSS framework
-- **jQuery** - JavaScript library for API interactions
+- **jQuery / vanilla JS** - Interaksi admin (AJAX modal, POS, form project)
 - **Vite** - Fast asset bundler
-- **RESTful API** - Complete CRUD operations for profiles
+- **Modul Keuangan** - Grosir, alokasi stok, kasir POS, project + termin, pajak, diskon, kas, laporan
+- **Invoice publik** - Verifikasi nomor HP + kirim WhatsApp
 - **Dev Containers** - VS Code development environment
 - **Docker** - Containerized deployment
 

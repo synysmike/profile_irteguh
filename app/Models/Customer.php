@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PhoneNumber;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -23,6 +24,11 @@ class Customer extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function setPhoneAttribute(?string $value): void
+    {
+        $this->attributes['phone'] = PhoneNumber::normalize($value);
+    }
 
     public function scopeActive($query)
     {

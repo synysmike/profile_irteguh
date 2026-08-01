@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Sale;
 use App\Models\Setting;
+use App\Support\PhoneNumber;
 
 class SaleWhatsAppInvoice
 {
@@ -19,18 +20,7 @@ class SaleWhatsAppInvoice
 
     public static function normalizePhone(?string $phone): ?string
     {
-        $digits = preg_replace('/\D+/', '', (string) $phone);
-        if ($digits === '') {
-            return null;
-        }
-
-        if (str_starts_with($digits, '0')) {
-            $digits = '62' . substr($digits, 1);
-        } elseif (! str_starts_with($digits, '62')) {
-            $digits = '62' . $digits;
-        }
-
-        return $digits;
+        return PhoneNumber::normalize($phone);
     }
 
     /**
@@ -143,6 +133,7 @@ class SaleWhatsAppInvoice
         $lines[] = '=================';
         $lines[] = 'Link invoice:';
         $lines[] = $sale->publicInvoiceUrl();
+        $lines[] = '(Buka link, lalu masukkan nomor HP Anda untuk melihat invoice)';
         $lines[] = '';
         $lines[] = 'Terima kasih';
 

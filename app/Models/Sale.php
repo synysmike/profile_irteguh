@@ -80,12 +80,10 @@ class Sale extends Model
     }
 
     /**
-     * Public invoice URL (signed, no login required) for sharing with customers.
+     * Public invoice URL (customer must verify phone before viewing).
      */
     public function publicInvoiceUrl(): string
     {
-        return \Illuminate\Support\Facades\URL::signedRoute('invoice.sales.show', [
-            'sale' => $this->id,
-        ]);
+        return route('invoice.sales.show', ['sale' => $this->id]);
     }
 }

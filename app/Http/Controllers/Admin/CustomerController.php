@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerCategory;
 use App\Models\CustomerType;
+use App\Support\PhoneNumber;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class CustomerController extends Controller
 {
@@ -52,6 +54,8 @@ class CustomerController extends Controller
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
+
+        $validated['phone'] = $this->normalizePhoneOrFail($validated['phone'] ?? null);
 
         $selectedType = CustomerType::with('category')->findOrFail($validated['customer_type_id']);
         $validated['customer_type'] = $selectedType->resolveLegacyKey();
@@ -107,6 +111,8 @@ class CustomerController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        $validated['phone'] = $this->normalizePhoneOrFail($validated['phone'] ?? null);
+
         $selectedType = CustomerType::with('category')->findOrFail($validated['customer_type_id']);
         $validated['customer_type'] = $selectedType->resolveLegacyKey();
         $validated['is_active'] = $request->has('is_active');
@@ -138,5 +144,25 @@ class CustomerController extends Controller
 
         return redirect()->route('admin.customers.index')
             ->with('success', 'Customer berhasil dihapus.');
+    }
+
+    /**
+     * Normalisasi nomor HP (paste WhatsApp dll). Kosong = null; isi tidak valid = error.
+     */
+    private function normalizePhoneOrFail(?string $phone): ?string
+    {
+        $raw = trim((string) $phone);
+        if ($raw === '') {
+            return null;
+        }
+
+        $normalized = PhoneNumber::normalize($raw);
+        if (! $normalized) {
+            throw ValidationException::withMessages([
+                'phone' => ['Nomor HP tidak valid. Tempel dari WhatsApp atau isi seperti 08xxxxxxxxxx / +62…'],
+            ]);
+        }
+
+        return $normalized;
     }
 }

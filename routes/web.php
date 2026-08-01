@@ -22,10 +22,12 @@ Route::get('/berita/{slug}', [\App\Http\Controllers\NewsController::class, 'show
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 
-// Public sales invoice (signed URL — no login; for customer share / WhatsApp)
+// Public sales invoice — akses lewat verifikasi nomor HP customer
 Route::get('/invoice/{sale}', [\App\Http\Controllers\PublicSaleInvoiceController::class, 'show'])
-    ->middleware('signed')
     ->name('invoice.sales.show');
+Route::post('/invoice/{sale}/verify', [\App\Http\Controllers\PublicSaleInvoiceController::class, 'verify'])
+    ->middleware('throttle:8,1')
+    ->name('invoice.sales.verify');
 
 // Path lama tetap di luar grup auth supaya link yang sudah dikirim ke customer tidak jatuh ke login.
 Route::get('/admin/sales/{id}/invoice', [\App\Http\Controllers\Admin\SaleController::class, 'invoice'])
