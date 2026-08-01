@@ -46,6 +46,12 @@ class SaleWhatsAppInvoice
 
     public static function buildMessage(Sale $sale): string
     {
+        // Project-term invoices: rebuild line items from current jasa surat tugas + stok
+        // so WhatsApp text matches the latest invoice format (not legacy single "Jasa project" line).
+        if ($sale->project_id && $sale->project_payment_term_id) {
+            \App\Services\ProjectFinanceService::refreshTermInvoiceItems($sale);
+        }
+
         $sale->loadMissing(['customer', 'saleItems', 'cashTransaction', 'project']);
 
         $appName = Setting::appName();
@@ -77,16 +83,21 @@ class SaleWhatsAppInvoice
         $lines[] = '======================';
         $lines[] = 'Detail pesanan:';
 
-        foreach ($sale->saleItems as $item) {
+        foreach ($sale->saleItems->sortBy('sort_order')->values() as $item) {
             $lines[] = '';
             $lines[] = 'Item:';
-            $lines[] = '✅ ' . $item->description . ', ' . number_format((int) $item->quantity, 0, ',', '.') . ' PCS';
-            $lines[] = '@ ' . static::formatMoney($item->unit_price) . ', Total ' . static::formatMoney($item->subtotal);
+            $lines[] = '✅ ' . $item->description;
+            $lines[] = 'Qty : ' . number_format((int) $item->quantity, 0, ',', '.') . ' PCS';
+            $lines[] = 'Harga : ' . static::formatMoney($item->unit_price);
             if ((float) ($item->discount_amount ?? 0) > 0) {
                 $discLabel = $item->discount_name ?: 'Diskon';
                 $lines[] = 'Diskon : -' . static::formatMoney($item->discount_amount) . ' (' . $discLabel . ')';
             }
-            $lines[] = 'Ket : ' . trim((string) ($item->notes ?? ''));
+            $lines[] = 'Total : ' . static::formatMoney($item->subtotal);
+            $ket = trim((string) ($item->notes ?? ''));
+            if ($ket !== '') {
+                $lines[] = 'Ket : ' . $ket;
+            }
         }
 
         $lines[] = '';

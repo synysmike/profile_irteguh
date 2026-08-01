@@ -318,7 +318,12 @@ class ProjectFinanceService
             throw new \RuntimeException('Termin ini sudah dibayar.');
         }
 
-        $project = $term->project()->with(['customer', 'tax', 'saleTransactions.purchase'])->firstOrFail();
+        $project = $term->project()->with([
+            'customer',
+            'tax',
+            'saleTransactions.purchase',
+            'assignmentLetters.jasaItems',
+        ])->firstOrFail();
         $paymentDate = $paymentDate ?? now()->toDateString();
 
         return DB::transaction(function () use ($term, $project, $paymentDate) {
@@ -381,6 +386,85 @@ class ProjectFinanceService
     }
 
     /**
+     * Build proportional jasa lines for a term invoice.
+     * Prefer itemized assignment-letter jasa; fall back to single lump-sum jasa line.
+     *
+     * @return list<array{description: string, quantity: int, unit_price: float, discount_amount: float, discount_name: ?string, subtotal: float, notes: string, sale_transaction_id: null}>
+     */
+    public static function buildTermJasaLines(Project $project, float $factor, string $termLabel): array
+    {
+        $project->loadMissing(['assignmentLetters.jasaItems']);
+
+        $jasaItems = $project->assignmentLetters->flatMap->jasaItems->values();
+        $jasaGross = (float) ($project->base_subtotal ?? 0);
+        $jasaDiscount = (float) ($project->discount_amount ?? 0);
+        $jasaNet = max(0, $jasaGross - $jasaDiscount);
+        $discountName = $jasaDiscount > 0 ? ($project->discount_name ?: 'Diskon jasa') : null;
+
+        $lines = [];
+
+        if ($jasaItems->isNotEmpty()) {
+            $itemsGrossSum = round((float) $jasaItems->sum('subtotal'), 2);
+            // Prefer live letter totals; if empty/desynced, use project base.
+            $basisGross = $itemsGrossSum > 0 ? $itemsGrossSum : $jasaGross;
+
+            foreach ($jasaItems as $item) {
+                $itemGross = (float) $item->subtotal;
+                if ($itemGross <= 0 && (int) $item->quantity <= 0) {
+                    continue;
+                }
+
+                $share = $basisGross > 0 ? ($itemGross / $basisGross) : 0;
+                $grossPortion = round($itemGross * $factor, 2);
+                $discountPortion = round($jasaDiscount * $factor * $share, 2);
+                $netPortion = max(0, round($grossPortion - $discountPortion, 2));
+                $qty = max(1, (int) $item->quantity);
+                $unitPrice = round(($netPortion + $discountPortion) / $qty, 2);
+
+                $notes = $project->code . ' · ' . $termLabel;
+                if ($discountPortion > 0) {
+                    $notes .= ' · Diskon Rp ' . number_format($discountPortion, 0, ',', '.');
+                }
+
+                $lines[] = [
+                    'sale_transaction_id' => null,
+                    'description' => $item->description ?: 'Jasa',
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'discount_name' => $discountPortion > 0 ? $discountName : null,
+                    'discount_amount' => $discountPortion,
+                    'subtotal' => $netPortion,
+                    'notes' => $notes,
+                ];
+            }
+
+            return $lines;
+        }
+
+        if ($jasaNet > 0 || $jasaGross > 0) {
+            $netPortion = round($jasaNet * $factor, 2);
+            $discountPortion = round($jasaDiscount * $factor, 2);
+            $notes = $project->code . ' · ' . $termLabel;
+            if ($discountPortion > 0) {
+                $notes .= ' · Diskon Rp ' . number_format($discountPortion, 0, ',', '.');
+            }
+
+            $lines[] = [
+                'sale_transaction_id' => null,
+                'description' => 'Jasa project: ' . $project->title,
+                'quantity' => 1,
+                'unit_price' => $netPortion + $discountPortion,
+                'discount_name' => $discountPortion > 0 ? $discountName : null,
+                'discount_amount' => $discountPortion,
+                'subtotal' => $netPortion,
+                'notes' => $notes,
+            ];
+        }
+
+        return $lines;
+    }
+
+    /**
      * Build invoice lines for a project term: jasa/dasar + each stock allocation,
      * proportional to the term percentage. Line DPP sums to term.subtotal_amount.
      * Diskon jasa & stok disimpan per baris dan diagregasi ke header invoice.
@@ -395,32 +479,12 @@ class ProjectFinanceService
         $totalDiscount = 0.0;
         $discountLabels = [];
 
-        $jasaGross = (float) ($project->base_subtotal ?? 0);
-        $jasaDiscount = (float) ($project->discount_amount ?? 0);
-        $jasaNet = max(0, $jasaGross - $jasaDiscount);
-        if ($jasaNet > 0 || $jasaGross > 0) {
-            $netPortion = round($jasaNet * $factor, 2);
-            $discountPortion = round($jasaDiscount * $factor, 2);
-            $totalDiscount += $discountPortion;
-            if ($discountPortion > 0 && $project->discount_name) {
-                $discountLabels[$project->discount_name] = true;
+        foreach (static::buildTermJasaLines($project, $factor, $termLabel) as $line) {
+            $totalDiscount += (float) $line['discount_amount'];
+            if ((float) $line['discount_amount'] > 0 && $line['discount_name']) {
+                $discountLabels[$line['discount_name']] = true;
             }
-
-            $notes = $project->code . ' · ' . $termLabel;
-            if ($discountPortion > 0) {
-                $notes .= ' · Diskon Rp ' . number_format($discountPortion, 0, ',', '.');
-            }
-
-            $lines[] = [
-                'sale_transaction_id' => null,
-                'description' => 'Jasa project: ' . $project->title,
-                'quantity' => 1,
-                'unit_price' => $netPortion + $discountPortion,
-                'discount_name' => $discountPortion > 0 ? ($project->discount_name ?: 'Diskon jasa') : null,
-                'discount_amount' => $discountPortion,
-                'subtotal' => $netPortion,
-                'notes' => $notes,
-            ];
+            $lines[] = $line;
         }
 
         foreach ($project->saleTransactions as $allocation) {
@@ -529,7 +593,7 @@ class ProjectFinanceService
             return;
         }
 
-        $project = Project::with('saleTransactions.purchase')->find($sale->project_id);
+        $project = Project::with(['saleTransactions.purchase', 'assignmentLetters.jasaItems'])->find($sale->project_id);
         $term = ProjectPaymentTerm::find($sale->project_payment_term_id);
         if (! $project || ! $term) {
             return;

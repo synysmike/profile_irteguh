@@ -29,34 +29,27 @@ class ProjectTermWhatsAppInvoice
      */
     public static function billingPayload(Project $project, ProjectPaymentTerm $term): array
     {
-        $project->loadMissing(['customer', 'saleTransactions.purchase', 'tax']);
+        $project->loadMissing(['customer', 'saleTransactions.purchase', 'tax', 'assignmentLetters.jasaItems']);
 
         $percentage = (float) $term->percentage;
         $factor = $percentage > 0 ? ($percentage / 100) : 1.0;
         $termLabel = $term->label . ' (' . number_format($percentage, 2, ',', '.') . '%)';
         $nota = $project->code . '-T' . $term->term_number;
+        $targetDpp = round((float) $term->subtotal_amount, 2);
 
         $items = [];
         $termDiscount = 0.0;
 
-        $jasaGross = (float) ($project->base_subtotal ?? 0);
-        $jasaDiscount = (float) ($project->discount_amount ?? 0);
-        $jasaNet = max(0, $jasaGross - $jasaDiscount);
-
-        if ($jasaNet > 0 || $jasaGross > 0) {
-            $netPortion = round($jasaNet * $factor, 2);
-            $discPortion = round($jasaDiscount * $factor, 2);
-            $grossPortion = round($netPortion + $discPortion, 2);
-            $termDiscount += $discPortion;
-
+        foreach (\App\Services\ProjectFinanceService::buildTermJasaLines($project, $factor, $termLabel) as $line) {
+            $termDiscount += (float) $line['discount_amount'];
             $items[] = [
-                'description' => 'Jasa project: ' . $project->title,
-                'quantity' => 1,
-                'unit_price' => $grossPortion,
-                'discount_amount' => $discPortion,
-                'discount_name' => $discPortion > 0 ? ($project->discount_name ?: 'Diskon') : null,
-                'subtotal' => $netPortion,
-                'notes' => $project->code . ' · ' . $termLabel,
+                'description' => $line['description'],
+                'quantity' => (int) $line['quantity'],
+                'unit_price' => (float) $line['unit_price'],
+                'discount_amount' => (float) $line['discount_amount'],
+                'discount_name' => $line['discount_name'],
+                'subtotal' => (float) $line['subtotal'],
+                'notes' => $line['notes'],
             ];
         }
 
@@ -88,12 +81,27 @@ class ProjectTermWhatsAppInvoice
             $items[] = [
                 'description' => $project->title . ' (' . $term->label . ')',
                 'quantity' => 1,
-                'unit_price' => (float) $term->subtotal_amount,
+                'unit_price' => $targetDpp,
                 'discount_amount' => 0.0,
                 'discount_name' => null,
-                'subtotal' => (float) $term->subtotal_amount,
+                'subtotal' => $targetDpp,
                 'notes' => $project->code,
             ];
+        } else {
+            // Align last line DPP with term subtotal (same as paid invoice builder).
+            $sum = 0.0;
+            $last = count($items) - 1;
+            foreach ($items as $i => $item) {
+                if ($i < $last) {
+                    $sum += $item['subtotal'];
+                }
+            }
+            $items[$last]['subtotal'] = round($targetDpp - $sum, 2);
+            $items[$last]['unit_price'] = round(
+                ($items[$last]['subtotal'] + $items[$last]['discount_amount'])
+                / max(1, $items[$last]['quantity']),
+                2
+            );
         }
 
         return [
@@ -102,7 +110,7 @@ class ProjectTermWhatsAppInvoice
             'percentage' => $percentage,
             'items' => $items,
             'discount_total' => $termDiscount,
-            'subtotal' => (float) $term->subtotal_amount,
+            'subtotal' => $targetDpp,
             'tax_amount' => (float) $term->tax_amount,
             'tax_name' => $project->tax_name,
             'tax_rate' => $project->tax_rate !== null ? (float) $project->tax_rate : null,
@@ -154,14 +162,17 @@ class ProjectTermWhatsAppInvoice
         foreach ($payload['items'] as $item) {
             $lines[] = '';
             $lines[] = 'Item:';
-            $lines[] = '✅ ' . $item['description'] . ', ' . number_format($item['quantity'], 0, ',', '.') . ' PCS';
-            $lines[] = '@ ' . SaleWhatsAppInvoice::formatMoney($item['unit_price'])
-                . ', Total ' . SaleWhatsAppInvoice::formatMoney($item['subtotal']);
+            $lines[] = '✅ ' . $item['description'];
+            $lines[] = 'Qty : ' . number_format($item['quantity'], 0, ',', '.') . ' PCS';
+            $lines[] = 'Harga : ' . SaleWhatsAppInvoice::formatMoney($item['unit_price']);
             if ($item['discount_amount'] > 0) {
                 $lines[] = 'Diskon : -' . SaleWhatsAppInvoice::formatMoney($item['discount_amount'])
                     . ($item['discount_name'] ? ' (' . $item['discount_name'] . ')' : '');
             }
-            $lines[] = 'Ket : ' . $item['notes'];
+            $lines[] = 'Total : ' . SaleWhatsAppInvoice::formatMoney($item['subtotal']);
+            if (! empty($item['notes'])) {
+                $lines[] = 'Ket : ' . $item['notes'];
+            }
         }
 
         $lines[] = '';

@@ -461,17 +461,18 @@ class SaleController extends Controller
     {
         $sale = Sale::with(['customer', 'saleItems', 'cashTransaction', 'project'])->findOrFail($id);
 
-        if ($sale->project_id && $sale->project_payment_term_id) {
-            \App\Services\ProjectFinanceService::refreshTermInvoiceItems($sale);
-            $sale->load(['customer', 'saleItems', 'cashTransaction', 'project']);
-        }
-
         if (! SaleWhatsAppInvoice::destinationPhone($sale)) {
             return redirect()
                 ->route('admin.keuangan.transaksi.penjualan')
                 ->with('error', 'Customer pada invoice ini belum memiliki nomor HP. Lengkapi data customer terlebih dahulu.');
         }
 
-        return redirect()->away(SaleWhatsAppInvoice::shareUrl($sale));
+        try {
+            return redirect()->away(SaleWhatsAppInvoice::shareUrl($sale));
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('admin.keuangan.transaksi.penjualan')
+                ->with('error', $e->getMessage());
+        }
     }
 }
