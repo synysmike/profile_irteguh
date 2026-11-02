@@ -14,7 +14,14 @@
             <h2 class="text-2xl font-bold text-gray-800">{{ $project->title }}</h2>
             <p class="text-gray-600 mt-1">{{ $project->code }} · {{ $project->customer?->name }}</p>
         </div>
-        <button type="button" onclick="openResourceModal('projectModal', 'projects', 'Project', {{ $project->id }})" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-semibold">Edit Project</button>
+        <div class="flex flex-wrap gap-2">
+            <button type="button"
+                    onclick="openResourceModal('customerModal', 'customers', 'Customer', null, '?quick=1')"
+                    class="px-4 py-2 bg-white border border-purple-300 text-purple-700 rounded-md hover:bg-purple-50 text-sm font-semibold">
+                + Customer
+            </button>
+            <button type="button" onclick="openResourceModal('projectModal', 'projects', 'Project', {{ $project->id }})" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-semibold">Edit Project</button>
+        </div>
     </div>
 </div>
 
@@ -199,7 +206,12 @@
             <h3 class="text-lg font-semibold text-gray-800">Alokasi Stok untuk Project</h3>
             <p class="text-sm text-gray-600 mt-1">Ambil unit dari stok grosir. Subtotal otomatis masuk ke DPP, pajak, dan termin pembayaran.</p>
         </div>
-        <a href="{{ route('admin.keuangan.sale-transactions.index') }}" class="text-sm text-purple-700 hover:text-purple-900 font-medium">Kelola Alokasi Stok →</a>
+        <div class="flex flex-wrap items-center gap-3">
+            <button type="button" onclick="openResourceModal('purchaseModal', 'purchases', 'Grosir')" class="px-3 py-1.5 bg-purple-600 text-white rounded-md text-sm font-semibold hover:bg-purple-700">
+                + Tambah Grosir
+            </button>
+            <a href="{{ route('admin.keuangan.sale-transactions.index') }}" class="text-sm text-purple-700 hover:text-purple-900 font-medium">Kelola Alokasi Stok →</a>
+        </div>
     </div>
 
     <div class="overflow-x-auto">
@@ -264,11 +276,18 @@
         <form method="POST" action="{{ route('admin.projects.sale-transactions.attach', $project) }}" class="space-y-3">
             @csrf
             <input type="hidden" name="mode" value="purchase">
-            <div class="text-sm font-semibold text-gray-800">1. Tambah dari stok grosir</div>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="text-sm font-semibold text-gray-800">1. Tambah dari stok grosir</div>
+                <button type="button" onclick="openResourceModal('purchaseModal', 'purchases', 'Grosir')" class="text-xs text-purple-700 hover:text-purple-900 font-medium">
+                    + Input barang grosir baru
+                </button>
+            </div>
             @if($availablePurchases->isEmpty())
             <p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                Stok grosir tersisa kosong. Input dulu di
-                <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="underline font-medium">Grosir</a>.
+                Stok grosir tersisa kosong.
+                <button type="button" onclick="openResourceModal('purchaseModal', 'purchases', 'Grosir')" class="underline font-medium text-purple-700 hover:text-purple-900">Tambah Grosir</button>
+                di sini, atau buka
+                <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="underline font-medium">halaman Grosir</a>.
             </p>
             @else
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -487,6 +506,8 @@
 @endif
 
 @include('admin.components.modal', ['modalId' => 'projectModal', 'title' => 'Edit Project'])
+@include('admin.components.modal', ['modalId' => 'purchaseModal', 'title' => 'Tambah Grosir'])
+@include('admin.components.modal', ['modalId' => 'customerModal', 'title' => 'Tambah Customer'])
 @endsection
 
 @push('scripts')

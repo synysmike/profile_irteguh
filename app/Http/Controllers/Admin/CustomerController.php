@@ -29,10 +29,11 @@ class CustomerController extends Controller
     public function create()
     {
         $customerTypes = CustomerType::with('category')->orderBy('name')->get();
+        $quick = request()->boolean('quick');
 
         if (request()->ajax()) {
             return response()->json([
-                'html' => view('admin.customers.partials.form', [
+                'html' => view($quick ? 'admin.customers.partials.form-quick' : 'admin.customers.partials.form', [
                     'customer' => null,
                     'customerTypes' => $customerTypes,
                 ])->render(),
@@ -43,30 +44,39 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $quick = $request->boolean('quick');
+
+        $rules = [
             'name' => 'required|string|max:255',
             'company_name' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:255',
+            'phone' => ($quick ? 'required' : 'nullable') . '|string|max:255',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:255',
             'customer_type_id' => 'required|exists:customer_types,id',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
+        ];
+
+        $validated = $request->validate($rules, [
+            'phone.required' => 'Nomor HP / WhatsApp wajib diisi.',
         ]);
 
         $validated['phone'] = $this->normalizePhoneOrFail($validated['phone'] ?? null);
 
         $selectedType = CustomerType::with('category')->findOrFail($validated['customer_type_id']);
         $validated['customer_type'] = $selectedType->resolveLegacyKey();
-        $validated['is_active'] = $request->has('is_active');
+        $validated['is_active'] = $request->boolean('is_active', true);
+        if ($quick) {
+            $validated['is_active'] = true;
+        }
         $customer = Customer::create($validated);
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Customer berhasil ditambahkan.',
-                'data' => $customer
+                'data' => $customer,
             ]);
         }
 

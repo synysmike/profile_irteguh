@@ -234,6 +234,7 @@ window.openResourceModal = function (
     resourceName,
     singularName,
     id = null,
+    createQuery = "",
 ) {
     const formContent = document.getElementById(modalId + "_form_content");
     const title = document.querySelector(`#${modalId} h3`);
@@ -382,7 +383,15 @@ window.openResourceModal = function (
         if (methodInput) methodInput.remove();
         if (submitText) submitText.textContent = "Simpan";
 
-        fetch(`/admin/${resourceName}/create`, {
+        const createUrl =
+            `/admin/${resourceName}/create` +
+            (createQuery
+                ? createQuery.startsWith("?")
+                    ? createQuery
+                    : `?${createQuery}`
+                : "");
+
+        fetch(createUrl, {
             headers: {
                 "X-Requested-With": "XMLHttpRequest",
                 Accept: "application/json",
@@ -412,6 +421,20 @@ window.openResourceModal = function (
                     if (form && (!form.action || form.action === '#')) {
                         form.action = `/admin/${resourceName}`;
                     }
+                    // Carry quick-create flag so store can apply short-form rules.
+                    if (createQuery && createQuery.indexOf("quick") !== -1) {
+                        let quickInput = form.querySelector('input[name="quick"]');
+                        if (!quickInput) {
+                            quickInput = document.createElement("input");
+                            quickInput.type = "hidden";
+                            quickInput.name = "quick";
+                            form.appendChild(quickInput);
+                        }
+                        quickInput.value = "1";
+                    } else {
+                        const quickInput = form.querySelector('input[name="quick"]');
+                        if (quickInput) quickInput.remove();
+                    }
                     // Open modal first, then setup form after a short delay to ensure DOM is ready
                     openModal(modalId);
                     setTimeout(() => {
@@ -419,6 +442,9 @@ window.openResourceModal = function (
                     }, 50);
                     // Setup PPN calculator setelah form dimuat
                     setTimeout(function () {
+                        if (typeof window.initQuickCustomerForm === "function") {
+                            window.initQuickCustomerForm();
+                        }
                         if (typeof window.setupPPNCalculator === "function") {
                             window.setupPPNCalculator();
                         }

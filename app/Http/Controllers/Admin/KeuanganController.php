@@ -20,72 +20,128 @@ class KeuanganController extends Controller
         $this->middleware('auth');
     }
 
-    /** 1. Dashboard */
+    /** 1. Dashboard — angka diselaraskan dengan daftar faktur & transaksi keuangan */
     public function dashboard()
     {
-        $currentMonth = date('Y-m');
         $monthStart = date('Y-m-01');
         $monthEnd = date('Y-m-t');
-        
-        // Kas masuk/keluar bulan ini dari cash transactions
-        $kasMasukBulan = CashTransaction::where('transaction_type', 'debit')
-            ->whereBetween('transaction_date', [$monthStart, $monthEnd])
-            ->sum('amount');
-        
-        $kasKeluarBulan = CashTransaction::where('transaction_type', 'credit')
-            ->whereBetween('transaction_date', [$monthStart, $monthEnd])
-            ->sum('amount');
-        
-        // Omzet bulan ini dari penjualan (subtotal, bukan total karena total sudah termasuk PPN)
-        $omzetBulan = Sale::whereBetween('sale_date', [$monthStart, $monthEnd])->sum('subtotal');
-        
-        // Status PPN
-        $ppnKeluaran = Sale::whereBetween('sale_date', [$monthStart, $monthEnd])->sum('ppn_amount');
-        $ppnMasukan = Purchase::whereBetween('purchase_date', [$monthStart, $monthEnd])->sum('ppn_amount');
-        $ppnTerutang = $ppnKeluaran - $ppnMasukan;
-        $ppnStatus = $ppnTerutang > 0 ? 'Terutang: Rp ' . number_format($ppnTerutang, 0, ',', '.') : 'Lebih Bayar';
-        
-        // Status PPh (sederhana, bisa dikembangkan)
-        $labaKotor = $omzetBulan - Purchase::whereBetween('purchase_date', [$monthStart, $monthEnd])->sum('subtotal');
-        $pphStatus = $labaKotor > 0 ? 'Estimasi: Rp ' . number_format($labaKotor * 0.22, 0, ',', '.') : 'Belum ada laba';
-        
+
+        $salesMonth = Sale::whereBetween('sale_date', [$monthStart, $monthEnd]);
+        $purchasesMonth = Purchase::whereBetween('purchase_date', [$monthStart, $monthEnd]);
+        $kasMasukMonth = CashTransaction::where('transaction_type', 'debit')
+            ->whereBetween('transaction_date', [$monthStart, $monthEnd]);
+        $kasKeluarMonth = CashTransaction::where('transaction_type', 'credit')
+            ->whereBetween('transaction_date', [$monthStart, $monthEnd]);
+
+        // Omzet = DPP (subtotal) faktur penjualan — sama sumber dengan daftar faktur.
+        $omzetBulan = (float) (clone $salesMonth)->sum('subtotal');
+        $totalFakturBulan = (float) (clone $salesMonth)->sum('total');
+        $jumlahFakturBulan = (clone $salesMonth)->count();
+        $fakturTerkaitKasBulan = (clone $salesMonth)->whereHas('cashTransaction')->count();
+        $fakturBelumKasBulan = max(0, $jumlahFakturBulan - $fakturTerkaitKasBulan);
+
+        $grosirBulanSubtotal = (float) (clone $purchasesMonth)->sum('subtotal');
+        $grosirBulanTotal = (float) (clone $purchasesMonth)->sum('total');
+        $jumlahGrosirBulan = (clone $purchasesMonth)->count();
+
+        $kasMasukBulan = (float) (clone $kasMasukMonth)->sum('amount');
+        $kasKeluarBulan = (float) (clone $kasKeluarMonth)->sum('amount');
+
+        // Pajak: bedakan tambahan (PPN-like) vs potongan (PPh-like) dari snapshot faktur.
+        $pajakTambahanBulan = (float) Sale::whereBetween('sale_date', [$monthStart, $monthEnd])
+            ->where(function ($q) {
+                $q->where('tax_calculation_type', 'addition')->orWhereNull('tax_calculation_type');
+            })
+            ->sum('ppn_amount');
+        $pajakPotonganBulan = (float) Sale::whereBetween('sale_date', [$monthStart, $monthEnd])
+            ->where('tax_calculation_type', 'deduction')
+            ->sum('ppn_amount');
+        $pajakMasukanBulan = (float) (clone $purchasesMonth)->sum('ppn_amount');
+
+        // Ringkasan seluruh periode (sinkron dengan journal/daftar faktur penuh).
+        $omzetSemua = (float) Sale::sum('subtotal');
+        $totalFakturSemua = (float) Sale::sum('total');
+        $jumlahFakturSemua = Sale::count();
+        $grosirSemuaTotal = (float) Purchase::sum('total');
+        $kasMasukSemua = (float) CashTransaction::where('transaction_type', 'debit')->sum('amount');
+        $kasKeluarSemua = (float) CashTransaction::where('transaction_type', 'credit')->sum('amount');
+
         $stats = [
+            'periode_label' => now()->locale('id')->translatedFormat('F Y'),
             'kas_masuk_bulan' => $kasMasukBulan,
             'kas_keluar_bulan' => $kasKeluarBulan,
+            'arus_kas_bersih_bulan' => $kasMasukBulan - $kasKeluarBulan,
             'omzet_bulan' => $omzetBulan,
-            'pph_status' => $pphStatus,
-            'ppn_status' => $ppnStatus,
+            'total_faktur_bulan' => $totalFakturBulan,
+            'jumlah_faktur_bulan' => $jumlahFakturBulan,
+            'faktur_terkait_kas_bulan' => $fakturTerkaitKasBulan,
+            'faktur_belum_kas_bulan' => $fakturBelumKasBulan,
+            'grosir_bulan_subtotal' => $grosirBulanSubtotal,
+            'grosir_bulan_total' => $grosirBulanTotal,
+            'jumlah_grosir_bulan' => $jumlahGrosirBulan,
+            'pajak_tambahan_bulan' => $pajakTambahanBulan,
+            'pajak_potongan_bulan' => $pajakPotonganBulan,
+            'pajak_masukan_bulan' => $pajakMasukanBulan,
+            'omzet_semua' => $omzetSemua,
+            'total_faktur_semua' => $totalFakturSemua,
+            'jumlah_faktur_semua' => $jumlahFakturSemua,
+            'grosir_semua_total' => $grosirSemuaTotal,
+            'kas_masuk_semua' => $kasMasukSemua,
+            'kas_keluar_semua' => $kasKeluarSemua,
+            'arus_kas_bersih_semua' => $kasMasukSemua - $kasKeluarSemua,
         ];
-        
-        // Grafik omzet dan arus kas 6 bulan terakhir
+
+        // Grafik 6 bulan: omzet DPP + total faktur + arus kas (sumber sama dengan transaksi).
         $grafikBulanan = [];
         for ($i = 5; $i >= 0; $i--) {
             $date = \Carbon\Carbon::now()->subMonths($i);
             $mStart = $date->format('Y-m-01');
             $mEnd = $date->format('Y-m-t');
-            
-            // Omzet dari penjualan
-            $omzet = Sale::whereBetween('sale_date', [$mStart, $mEnd])->sum('subtotal');
-            
-            // Arus kas dari transaksi kas
-            $kasMasuk = CashTransaction::where('transaction_type', 'debit')
+
+            $omzet = (float) Sale::whereBetween('sale_date', [$mStart, $mEnd])->sum('subtotal');
+            $totalFaktur = (float) Sale::whereBetween('sale_date', [$mStart, $mEnd])->sum('total');
+            $jumlahFaktur = Sale::whereBetween('sale_date', [$mStart, $mEnd])->count();
+            $kasMasuk = (float) CashTransaction::where('transaction_type', 'debit')
                 ->whereBetween('transaction_date', [$mStart, $mEnd])
                 ->sum('amount');
-            $kasKeluar = CashTransaction::where('transaction_type', 'credit')
+            $kasKeluar = (float) CashTransaction::where('transaction_type', 'credit')
                 ->whereBetween('transaction_date', [$mStart, $mEnd])
                 ->sum('amount');
-            $arusKasBersih = $kasMasuk - $kasKeluar;
-            
+
             $grafikBulanan[] = [
                 'bulan' => $date->locale('id')->translatedFormat('M Y'),
                 'omzet' => $omzet,
+                'total_faktur' => $totalFaktur,
+                'jumlah_faktur' => $jumlahFaktur,
                 'kas_masuk' => $kasMasuk,
                 'kas_keluar' => $kasKeluar,
-                'arus_kas_bersih' => $arusKasBersih,
+                'arus_kas_bersih' => $kasMasuk - $kasKeluar,
             ];
         }
-        
-        return view('admin.keuangan.dashboard', compact('stats', 'grafikBulanan'));
+
+        // Daftar faktur terbaru — query yang sama dengan halaman penjualan.
+        $recentSales = Sale::with(['customer', 'cashTransaction', 'project'])
+            ->latestFirst()
+            ->limit(10)
+            ->get();
+
+        $recentPurchases = Purchase::with(['supplier', 'cashTransaction'])
+            ->latestFirst()
+            ->limit(5)
+            ->get();
+
+        $recentKas = CashTransaction::with(['chartOfAccount', 'sale', 'purchase', 'project'])
+            ->latestFirst()
+            ->limit(8)
+            ->get();
+
+        return view('admin.keuangan.dashboard', compact(
+            'stats',
+            'grafikBulanan',
+            'recentSales',
+            'recentPurchases',
+            'recentKas'
+        ));
     }
 
     /** 2. Master Data - Akun Perkiraan (Chart of Accounts) */
@@ -229,46 +285,64 @@ class KeuanganController extends Controller
 
     public function laporanArusKas(Request $request)
     {
-        // Filter periode (default: bulan ini)
-        $startDate = $request->input('start_date', date('Y-m-01'));
-        $endDate = $request->input('end_date', date('Y-m-t'));
-        
-        // Arus Kas Operasi dari transaksi kas
-        $kasMasukOperasi = CashTransaction::where('transaction_type', 'debit')
-            ->whereBetween('transaction_date', [$startDate, $endDate])
-            ->sum('amount');
-        
-        $kasKeluarOperasi = CashTransaction::where('transaction_type', 'credit')
-            ->whereBetween('transaction_date', [$startDate, $endDate])
-            ->sum('amount');
-        
-        // Detail dari penjualan dan pembelian
-        $kasDariPenjualan = CashTransaction::where('transaction_type', 'debit')
-            ->whereNotNull('sale_id')
-            ->whereBetween('transaction_date', [$startDate, $endDate])
-            ->sum('amount');
-        
-        $kasUntukPembelian = CashTransaction::where('transaction_type', 'credit')
-            ->whereNotNull('purchase_id')
-            ->whereBetween('transaction_date', [$startDate, $endDate])
-            ->sum('amount');
-        
-        $kasManual = CashTransaction::whereNull('sale_id')
-            ->whereNull('purchase_id')
-            ->whereBetween('transaction_date', [$startDate, $endDate])
-            ->get();
-        
-        $kasMasukManual = $kasManual->where('transaction_type', 'debit')->sum('amount');
-        $kasKeluarManual = $kasManual->where('transaction_type', 'credit')->sum('amount');
-        
-        // Arus Kas Bersih
-        $arusKasBersih = $kasMasukOperasi - $kasKeluarOperasi;
-        
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $search = trim((string) $request->input('search', ''));
+        $type = $request->input('type'); // debit|credit|null
+
+        $applyFilters = function ($query) use ($startDate, $endDate, $search, $type) {
+            if ($startDate) {
+                $query->whereDate('transaction_date', '>=', $startDate);
+            }
+            if ($endDate) {
+                $query->whereDate('transaction_date', '<=', $endDate);
+            }
+            if (in_array($type, ['debit', 'credit'], true)) {
+                $query->where('transaction_type', $type);
+            }
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('description', 'like', "%{$search}%")
+                        ->orWhere('reference', 'like', "%{$search}%")
+                        ->orWhereHas('chartOfAccount', function ($coa) use ($search) {
+                            $coa->where('code', 'like', "%{$search}%")
+                                ->orWhere('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('sale', function ($sale) use ($search) {
+                            $sale->where('invoice_number', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('purchase', function ($purchase) use ($search) {
+                            $purchase->where('invoice_number', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('project', function ($project) use ($search) {
+                            $project->where('code', 'like', "%{$search}%")
+                                ->orWhere('title', 'like', "%{$search}%");
+                        });
+                });
+            }
+
+            return $query;
+        };
+
+        $kasMasuk = (float) $applyFilters(CashTransaction::query())->where('transaction_type', 'debit')->sum('amount');
+        $kasKeluar = (float) $applyFilters(CashTransaction::query())->where('transaction_type', 'credit')->sum('amount');
+        $arusKasBersih = $kasMasuk - $kasKeluar;
+        $jumlahTransaksi = $applyFilters(CashTransaction::query())->count();
+
+        $transactions = $applyFilters(
+            CashTransaction::with(['chartOfAccount', 'sale', 'purchase', 'project'])->latestFirst()
+        )->paginate(25)->withQueryString();
+
         return view('admin.keuangan.laporan.arus-kas', compact(
-            'startDate', 'endDate',
-            'kasMasukOperasi', 'kasKeluarOperasi', 'arusKasBersih',
-            'kasDariPenjualan', 'kasUntukPembelian',
-            'kasMasukManual', 'kasKeluarManual'
+            'transactions',
+            'startDate',
+            'endDate',
+            'search',
+            'type',
+            'kasMasuk',
+            'kasKeluar',
+            'arusKasBersih',
+            'jumlahTransaksi'
         ));
     }
 

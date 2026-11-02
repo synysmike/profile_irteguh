@@ -9,7 +9,10 @@
         <p class="text-gray-600 mt-1 text-sm sm:text-base">Alur: Grosir (stok masuk) → Kasir (jual) → Faktur. Pilih barang, isi keranjang, lalu cetak/kirim invoice.</p>
     </div>
     <div class="flex flex-wrap gap-2">
-        <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="flex-1 sm:flex-none text-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium">← Grosir</a>
+        <button type="button" onclick="openResourceModal('purchaseModal', 'purchases', 'Grosir')" class="flex-1 sm:flex-none px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-semibold">
+            + Tambah Grosir
+        </button>
+        <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="flex-1 sm:flex-none text-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium">Daftar Grosir</a>
         <a href="#faktur-list" class="flex-1 sm:flex-none text-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium">Daftar Faktur</a>
     </div>
 </div>
@@ -30,7 +33,10 @@
         <div class="p-4 border-b border-gray-200 space-y-3">
             <div class="flex items-center justify-between gap-2">
                 <h3 class="font-semibold text-gray-800">Stok Siap Jual</h3>
-                <button type="button" id="pos-refresh" class="text-xs text-purple-600 hover:text-purple-800 font-medium">Refresh</button>
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="openResourceModal('purchaseModal', 'purchases', 'Grosir')" class="text-xs text-purple-600 hover:text-purple-800 font-medium">+ Grosir</button>
+                    <button type="button" id="pos-refresh" class="text-xs text-gray-600 hover:text-gray-800 font-medium">Refresh</button>
+                </div>
             </div>
             <input type="search" id="pos-search" placeholder="Cari barang / no. PO / supplier..."
                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
@@ -51,7 +57,14 @@
         </div>
         <div class="p-4 space-y-3 border-b border-gray-100">
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Customer *</label>
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <label class="block text-xs font-medium text-gray-600">Customer *</label>
+                    <button type="button"
+                            onclick="openResourceModal('customerModal', 'customers', 'Customer', null, '?quick=1')"
+                            class="text-xs text-purple-600 hover:text-purple-800 font-medium">
+                        + Tambah
+                    </button>
+                </div>
                 <select id="pos-customer" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
                     <option value="">-- Pilih customer --</option>
                     @foreach($customers as $c)
@@ -167,6 +180,8 @@
 </div>
 
 @include('admin.components.modal', ['modalId' => 'saleModal', 'title' => 'Edit Penjualan'])
+@include('admin.components.modal', ['modalId' => 'purchaseModal', 'title' => 'Tambah Grosir'])
+@include('admin.components.modal', ['modalId' => 'customerModal', 'title' => 'Tambah Customer'])
 @endsection
 
 @push('scripts')
@@ -215,11 +230,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!rows.length) {
-            elCatalog.innerHTML = '<p class="p-6 text-sm text-gray-500 text-center">' +
-                (activeTab === 'ready'
+            elCatalog.innerHTML = '<div class="p-6 text-sm text-gray-500 text-center space-y-3">' +
+                '<p>' + (activeTab === 'ready'
                     ? 'Tidak ada alokasi siap invoice. Tambah dari stok grosir, atau buat alokasi di menu Alokasi Stok.'
-                    : 'Stok grosir kosong. Input barang di menu Grosir terlebih dahulu.') +
-                '</p>';
+                    : 'Stok grosir kosong. Tambah barang grosir dulu.') + '</p>' +
+                (activeTab === 'stock'
+                    ? '<button type="button" onclick="openResourceModal(\'purchaseModal\', \'purchases\', \'Grosir\')" class="px-4 py-2 bg-purple-600 text-white rounded-md text-sm font-semibold hover:bg-purple-700">+ Tambah Grosir</button>'
+                    : '') +
+                '</div>';
             return;
         }
 

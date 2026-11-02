@@ -5,6 +5,25 @@
     "workspaceFolder": "/var/www/html",
     "shutdownAction": "stopCompose",
     "forwardPorts": [4240, 4241],
+    "updateRemoteUserUID": true,
+    "mounts": [
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/tmp/host-gitconfig,type=bind,readonly,consistency=cached",
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.config/gh,target=/tmp/host-gh-config,type=bind,readonly,consistency=cached"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "bmewburn.vscode-intelephense-client",
+                "onecentlin.laravel-blade",
+                "bradlc.vscode-tailwindcss",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode"
+            ],
+            "settings": {
+                "git.enabled": true
+            }
+        }
+    },
     "extensions": [
         "bmewburn.vscode-intelephense-client",
         "onecentlin.laravel-blade",
@@ -13,10 +32,12 @@
         "esbenp.prettier-vscode"
     ],
     "initializeCommand": "bash .devcontainer/cleanup.sh || true",
-    "postCreateCommand": "composer install || true && php artisan key:generate || true && npm install || true && npm run build || true",
-    "postStartCommand": "php artisan migrate --force || true",
+    "postCreateCommand": "bash .devcontainer/prepare-gh-config.sh && bash .devcontainer/setup-github.sh && (composer install || true) && (php artisan key:generate || true) && (npm install || true) && (npm run build || true)",
+    "postStartCommand": "bash .devcontainer/prepare-gh-config.sh && bash .devcontainer/setup-github.sh && (php artisan migrate --force || true)",
     "remoteUser": "www-data",
     "remoteEnv": {
+        "HOME": "/var/www",
+        "GH_CONFIG_DIR": "/var/www/.config/gh-runtime",
         "APP_ENV": "local",
         "DB_CONNECTION": "mysql",
         "DB_HOST": "mysql",
