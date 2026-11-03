@@ -10,8 +10,10 @@ use App\Models\Sale;
 use App\Models\Purchase;
 use App\Models\JournalEntry;
 use App\Models\CashTransaction;
+use App\Models\SumberDana;
 use App\Models\Tax;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class KeuanganController extends Controller
 {
@@ -183,14 +185,14 @@ class KeuanganController extends Controller
     /** 3. Transaksi - Pembelian */
     public function transaksiPembelian()
     {
-        $purchases = Purchase::with('supplier', 'cashTransaction', 'saleTransactions')->latestFirst()->get();
+        $purchases = Purchase::with('supplier', 'cashTransaction.sumberDana', 'saleTransactions')->latestFirst()->get();
         return view('admin.keuangan.transaksi.pembelian', compact('purchases'));
     }
 
     /** 3. Transaksi - Kas/Bank */
     public function transaksiKasBank()
     {
-        $cashTransactions = CashTransaction::with('chartOfAccount', 'sale', 'purchase', 'project')->latestFirst()->get();
+        $cashTransactions = CashTransaction::with('chartOfAccount', 'sumberDana', 'sale', 'purchase', 'project')->latestFirst()->get();
         return view('admin.keuangan.transaksi.kas-bank', compact('cashTransactions'));
     }
 
@@ -317,6 +319,10 @@ class KeuanganController extends Controller
                         ->orWhereHas('project', function ($project) use ($search) {
                             $project->where('code', 'like', "%{$search}%")
                                 ->orWhere('title', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('sumberDana', function ($sd) use ($search) {
+                            $sd->where('code', 'like', "%{$search}%")
+                                ->orWhere('name', 'like', "%{$search}%");
                         });
                 });
             }
@@ -330,7 +336,7 @@ class KeuanganController extends Controller
         $jumlahTransaksi = $applyFilters(CashTransaction::query())->count();
 
         $transactions = $applyFilters(
-            CashTransaction::with(['chartOfAccount', 'sale', 'purchase', 'project'])->latestFirst()
+            CashTransaction::with(['chartOfAccount', 'sumberDana', 'sale', 'purchase', 'project'])->latestFirst()
         )->paginate(25)->withQueryString();
 
         return view('admin.keuangan.laporan.arus-kas', compact(
@@ -343,6 +349,94 @@ class KeuanganController extends Controller
             'kasKeluar',
             'arusKasBersih',
             'jumlahTransaksi'
+        ));
+    }
+
+    public function laporanSumberDana(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $search = trim((string) $request->input('search', ''));
+        $sumberDanaId = $request->input('sumber_dana_id');
+
+        $applyFilters = function ($query) use ($startDate, $endDate, $search, $sumberDanaId) {
+            if ($startDate) {
+                $query->whereDate('transaction_date', '>=', $startDate);
+            }
+            if ($endDate) {
+                $query->whereDate('transaction_date', '<=', $endDate);
+            }
+            if ($sumberDanaId) {
+                $query->where('sumber_dana_id', $sumberDanaId);
+            }
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('description', 'like', "%{$search}%")
+                        ->orWhere('reference', 'like', "%{$search}%")
+                        ->orWhereHas('sumberDana', function ($sd) use ($search) {
+                            $sd->where('code', 'like', "%{$search}%")
+                                ->orWhere('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('chartOfAccount', function ($coa) use ($search) {
+                            $coa->where('code', 'like', "%{$search}%")
+                                ->orWhere('name', 'like', "%{$search}%");
+                        });
+                });
+            }
+
+            return $query;
+        };
+
+        $summaryRows = $applyFilters(CashTransaction::query())
+            ->select(
+                'sumber_dana_id',
+                DB::raw("SUM(CASE WHEN transaction_type = 'debit' THEN amount ELSE 0 END) as total_masuk"),
+                DB::raw("SUM(CASE WHEN transaction_type = 'credit' THEN amount ELSE 0 END) as total_keluar"),
+                DB::raw('COUNT(*) as jumlah')
+            )
+            ->groupBy('sumber_dana_id')
+            ->get();
+
+        $sumberMap = SumberDana::ordered()->get()->keyBy('id');
+
+        $ringkasan = $summaryRows->map(function ($row) use ($sumberMap) {
+            $sd = $row->sumber_dana_id ? $sumberMap->get($row->sumber_dana_id) : null;
+            $masuk = (float) $row->total_masuk;
+            $keluar = (float) $row->total_keluar;
+
+            return [
+                'sumber_dana_id' => $row->sumber_dana_id,
+                'code' => $sd?->code ?? '—',
+                'name' => $sd?->name ?? 'Belum diklasifikasi',
+                'flow_type' => $sd?->flow_type,
+                'jumlah' => (int) $row->jumlah,
+                'total_masuk' => $masuk,
+                'total_keluar' => $keluar,
+                'netto' => $masuk - $keluar,
+            ];
+        })->sortBy('name')->values();
+
+        $kasMasuk = (float) $ringkasan->sum('total_masuk');
+        $kasKeluar = (float) $ringkasan->sum('total_keluar');
+        $arusKasBersih = $kasMasuk - $kasKeluar;
+
+        $transactions = $applyFilters(
+            CashTransaction::with(['chartOfAccount', 'sumberDana', 'sale', 'purchase', 'project'])->latestFirst()
+        )->paginate(25)->withQueryString();
+
+        $sumberDanas = SumberDana::active()->ordered()->get();
+
+        return view('admin.keuangan.laporan.sumber-dana', compact(
+            'ringkasan',
+            'transactions',
+            'sumberDanas',
+            'startDate',
+            'endDate',
+            'search',
+            'sumberDanaId',
+            'kasMasuk',
+            'kasKeluar',
+            'arusKasBersih'
         ));
     }
 

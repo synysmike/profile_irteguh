@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CashTransaction;
 use App\Models\ChartOfAccount;
+use App\Models\SumberDana;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class CashTransactionController extends Controller
 {
@@ -24,24 +26,23 @@ class CashTransactionController extends Controller
     {
         if (request()->ajax()) {
             $accounts = ChartOfAccount::active()->where('type', 'kas')->ordered()->get();
+            $sumberDanas = SumberDana::active()->ordered()->get(['id', 'code', 'name', 'flow_type']);
+
             return response()->json([
-                'html' => view('admin.cash-transactions.partials.form', ['cashTransaction' => null, 'accounts' => $accounts])->render()
+                'html' => view('admin.cash-transactions.partials.form', [
+                    'cashTransaction' => null,
+                    'accounts' => $accounts,
+                    'sumberDanas' => $sumberDanas,
+                ])->render(),
             ]);
         }
+
         return redirect()->route('admin.keuangan.transaksi.kas-bank');
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'transaction_date' => 'required|date',
-            'transaction_type' => 'required|in:debit,credit',
-            'chart_of_account_id' => 'required|exists:chart_of_accounts,id',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-            'reference' => 'nullable|string|max:100',
-            'document' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120', // max 5MB
-        ]);
+        $validated = $this->validateCashTransaction($request);
 
         if ($request->hasFile('document')) {
             $file = $request->file('document');
@@ -67,13 +68,19 @@ class CashTransactionController extends Controller
 
     public function edit(string $id)
     {
-        $cashTransaction = CashTransaction::with('chartOfAccount')->findOrFail($id);
+        $cashTransaction = CashTransaction::with(['chartOfAccount', 'sumberDana'])->findOrFail($id);
 
         if (request()->ajax()) {
             $accounts = ChartOfAccount::active()->where('type', 'kas')->ordered()->get();
+            $sumberDanas = SumberDana::active()->ordered()->get(['id', 'code', 'name', 'flow_type']);
+
             return response()->json([
-                'html' => view('admin.cash-transactions.partials.form', ['cashTransaction' => $cashTransaction, 'accounts' => $accounts])->render(),
-                'data' => $cashTransaction
+                'html' => view('admin.cash-transactions.partials.form', [
+                    'cashTransaction' => $cashTransaction,
+                    'accounts' => $accounts,
+                    'sumberDanas' => $sumberDanas,
+                ])->render(),
+                'data' => $cashTransaction,
             ]);
         }
 
@@ -84,30 +91,17 @@ class CashTransactionController extends Controller
     {
         $cashTransaction = CashTransaction::findOrFail($id);
 
-        $validated = $request->validate([
-            'transaction_date' => 'required|date',
-            'transaction_type' => 'required|in:debit,credit',
-            'chart_of_account_id' => 'required|exists:chart_of_accounts,id',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-            'reference' => 'nullable|string|max:100',
-            'document' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120', // max 5MB
-            'remove_document' => 'nullable|boolean',
-        ]);
+        $validated = $this->validateCashTransaction($request);
 
-        // Handle file upload
         if ($request->hasFile('document')) {
-            // Hapus file lama jika ada
             if ($cashTransaction->document_path && Storage::disk('public')->exists($cashTransaction->document_path)) {
                 Storage::disk('public')->delete($cashTransaction->document_path);
             }
-            // Upload file baru
             $file = $request->file('document');
             $filename = 'cash_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('cash-transactions', $filename, 'public');
             $validated['document_path'] = $path;
         } elseif ($request->has('remove_document') && $request->remove_document) {
-            // Hapus file jika user memilih hapus
             if ($cashTransaction->document_path && Storage::disk('public')->exists($cashTransaction->document_path)) {
                 Storage::disk('public')->delete($cashTransaction->document_path);
             }
@@ -132,12 +126,11 @@ class CashTransactionController extends Controller
     public function destroy(string $id)
     {
         $cashTransaction = CashTransaction::findOrFail($id);
-        
-        // Hapus file jika ada
+
         if ($cashTransaction->document_path && Storage::disk('public')->exists($cashTransaction->document_path)) {
             Storage::disk('public')->delete($cashTransaction->document_path);
         }
-        
+
         $cashTransaction->delete();
 
         if (request()->ajax()) {
@@ -154,11 +147,39 @@ class CashTransactionController extends Controller
     public function download(string $id)
     {
         $cashTransaction = CashTransaction::findOrFail($id);
-        
+
         if (!$cashTransaction->document_path || !Storage::disk('public')->exists($cashTransaction->document_path)) {
             abort(404, 'File tidak ditemukan.');
         }
 
         return Storage::disk('public')->download($cashTransaction->document_path);
+    }
+
+    private function validateCashTransaction(Request $request): array
+    {
+        $validated = $request->validate([
+            'transaction_date' => 'required|date',
+            'transaction_type' => 'required|in:debit,credit',
+            'chart_of_account_id' => 'required|exists:chart_of_accounts,id',
+            'sumber_dana_id' => [
+                'required',
+                'exists:sumber_danas,id',
+                Rule::exists('sumber_danas', 'id')->where(function ($q) use ($request) {
+                    $q->where('is_active', true);
+                    if ($request->input('transaction_type') === 'debit') {
+                        $q->whereIn('flow_type', ['masuk', 'both']);
+                    } elseif ($request->input('transaction_type') === 'credit') {
+                        $q->whereIn('flow_type', ['keluar', 'both']);
+                    }
+                }),
+            ],
+            'amount' => 'required|numeric|min:0',
+            'description' => 'nullable|string',
+            'reference' => 'nullable|string|max:100',
+            'document' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'remove_document' => 'nullable|boolean',
+        ]);
+
+        return $validated;
     }
 }

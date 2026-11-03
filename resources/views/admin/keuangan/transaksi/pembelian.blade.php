@@ -26,6 +26,7 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Pajak</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sumber Dana</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
             </tr>
@@ -44,6 +45,14 @@
                     {{ $purchase->tax_name ? $purchase->tax_name . ': ' : '' }}Rp {{ number_format($purchase->ppn_amount, 0, ',', '.') }}
                 </td>
                 <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">Rp {{ number_format($purchase->total, 0, ',', '.') }}</td>
+                <td class="px-4 py-3 text-sm text-gray-700">
+                    @if($purchase->cashTransaction?->sumberDana)
+                    <div class="font-medium">{{ $purchase->cashTransaction->sumberDana->name }}</div>
+                    <div class="text-xs text-gray-400">{{ $purchase->cashTransaction->sumberDana->code }}</div>
+                    @else
+                    <span class="text-gray-400">—</span>
+                    @endif
+                </td>
                 <td class="px-4 py-3 text-sm">
                     @if($purchase->cashTransaction)
                     <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">Terkait Kas</span>
@@ -59,7 +68,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="10" class="px-4 py-8 text-center text-gray-500">
+                <td colspan="12" class="px-4 py-8 text-center text-gray-500">
                     Belum ada transaksi grosir.
                     <button type="button" onclick="openResourceModal('purchaseModal', 'purchases', 'Grosir')" class="text-purple-600 hover:text-purple-800 ml-1">Tambah yang pertama</button>
                 </td>

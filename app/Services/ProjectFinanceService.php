@@ -358,6 +358,7 @@ class ProjectFinanceService
                     'transaction_date' => $paymentDate,
                     'transaction_type' => 'debit',
                     'chart_of_account_id' => $cashAccount->id,
+                    'sumber_dana_id' => app(SumberDanaResolver::class)->projectTerminId(),
                     'amount' => $term->amount,
                     'description' => 'Penerimaan project: ' . $project->code . ' - ' . $term->label,
                     'reference' => $invoiceNumber,

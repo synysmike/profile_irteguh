@@ -29,12 +29,38 @@ Route::post('/invoice/term/{term}/verify', [\App\Http\Controllers\PublicProjectT
     ->middleware('throttle:8,1')
     ->name('invoice.project-terms.verify');
 
+// Invoice modal investor (harus sebelum /invoice/{sale})
+Route::get('/invoice/investor/{injection}', [\App\Http\Controllers\PublicInvestorInvoiceController::class, 'show'])
+    ->middleware('signed')
+    ->name('invoice.investor.show');
+Route::post('/invoice/investor/{injection}/verify', [\App\Http\Controllers\PublicInvestorInvoiceController::class, 'verify'])
+    ->middleware(['signed', 'throttle:8,1'])
+    ->name('invoice.investor.verify');
+Route::post('/invoice/investor/{injection}/approve', [\App\Http\Controllers\PublicInvestorInvoiceController::class, 'approve'])
+    ->middleware(['signed', 'throttle:8,1'])
+    ->name('invoice.investor.approve');
+Route::post('/invoice/investor/{injection}/pay', [\App\Http\Controllers\PublicInvestorInvoiceController::class, 'pay'])
+    ->middleware(['signed', 'throttle:8,1'])
+    ->name('invoice.investor.pay');
+Route::post('/invoice/investor/{injection}/reject', [\App\Http\Controllers\PublicInvestorInvoiceController::class, 'reject'])
+    ->middleware(['signed', 'throttle:8,1'])
+    ->name('invoice.investor.reject');
+
 // Public sales invoice — akses lewat verifikasi nomor HP customer
 Route::get('/invoice/{sale}', [\App\Http\Controllers\PublicSaleInvoiceController::class, 'show'])
     ->name('invoice.sales.show');
 Route::post('/invoice/{sale}/verify', [\App\Http\Controllers\PublicSaleInvoiceController::class, 'verify'])
     ->middleware('throttle:8,1')
     ->name('invoice.sales.verify');
+
+Route::get('/investor-portal', [\App\Http\Controllers\InvestorPortalController::class, 'loginForm'])->name('investor.portal.login');
+Route::post('/investor-portal/login', [\App\Http\Controllers\InvestorPortalController::class, 'login'])
+    ->middleware('throttle:10,1')
+    ->name('investor.portal.login.submit');
+Route::post('/investor-portal/logout', [\App\Http\Controllers\InvestorPortalController::class, 'logout'])->name('investor.portal.logout');
+Route::get('/investor-portal/dashboard', [\App\Http\Controllers\InvestorPortalController::class, 'dashboard'])->name('investor.portal.dashboard');
+Route::get('/investor-portal/documents/{document}/download', [\App\Http\Controllers\InvestorPortalController::class, 'downloadDocument'])
+    ->name('investor.portal.documents.download');
 
 // Path lama tetap di luar grup auth supaya link yang sudah dikirim ke customer tidak jatuh ke login.
 Route::get('/admin/sales/{id}/invoice', [\App\Http\Controllers\Admin\SaleController::class, 'invoice'])
@@ -134,6 +160,38 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::post('/jasa', [\App\Http\Controllers\Admin\JasaController::class, 'store'])->name('jasa.store');
         Route::put('/jasa/{jasa}', [\App\Http\Controllers\Admin\JasaController::class, 'update'])->name('jasa.update');
         Route::delete('/jasa/{jasa}', [\App\Http\Controllers\Admin\JasaController::class, 'destroy'])->name('jasa.destroy');
+        Route::get('/sumber-dana', [\App\Http\Controllers\Admin\SumberDanaController::class, 'index'])->name('sumber-dana.index');
+        Route::post('/sumber-dana', [\App\Http\Controllers\Admin\SumberDanaController::class, 'store'])->name('sumber-dana.store');
+        Route::put('/sumber-dana/{sumberDana}', [\App\Http\Controllers\Admin\SumberDanaController::class, 'update'])->name('sumber-dana.update');
+        Route::delete('/sumber-dana/{sumberDana}', [\App\Http\Controllers\Admin\SumberDanaController::class, 'destroy'])->name('sumber-dana.destroy');
+
+        Route::get('/investor', [\App\Http\Controllers\Admin\InvestorController::class, 'index'])->name('investor.index');
+        Route::post('/investor', [\App\Http\Controllers\Admin\InvestorController::class, 'store'])->name('investor.store');
+        Route::put('/investor/{investor}', [\App\Http\Controllers\Admin\InvestorController::class, 'update'])->name('investor.update');
+        Route::delete('/investor/{investor}', [\App\Http\Controllers\Admin\InvestorController::class, 'destroy'])->name('investor.destroy');
+        Route::post('/investor/{investor}/documents', [\App\Http\Controllers\Admin\InvestorController::class, 'storeDocument'])->name('investor.documents.store');
+        Route::delete('/investor-documents/{document}', [\App\Http\Controllers\Admin\InvestorController::class, 'destroyDocument'])->name('investor.documents.destroy');
+
+        Route::get('/benefit-investor', [\App\Http\Controllers\Admin\InvestorBenefitPackageController::class, 'index'])->name('benefit-investor.index');
+        Route::post('/benefit-investor', [\App\Http\Controllers\Admin\InvestorBenefitPackageController::class, 'store'])->name('benefit-investor.store');
+        Route::put('/benefit-investor/{package}', [\App\Http\Controllers\Admin\InvestorBenefitPackageController::class, 'update'])->name('benefit-investor.update');
+        Route::delete('/benefit-investor/{package}', [\App\Http\Controllers\Admin\InvestorBenefitPackageController::class, 'destroy'])->name('benefit-investor.destroy');
+
+        Route::get('/modal-investor', [\App\Http\Controllers\Admin\InvestorCapitalInjectionController::class, 'index'])->name('modal-investor.index');
+        Route::post('/modal-investor', [\App\Http\Controllers\Admin\InvestorCapitalInjectionController::class, 'store'])->name('modal-investor.store');
+        Route::put('/modal-investor/payment-account', [\App\Http\Controllers\Admin\InvestorCapitalInjectionController::class, 'updatePaymentAccount'])->name('modal-investor.payment-account');
+        Route::put('/modal-investor/{injection}', [\App\Http\Controllers\Admin\InvestorCapitalInjectionController::class, 'update'])->name('modal-investor.update');
+        Route::delete('/modal-investor/{injection}', [\App\Http\Controllers\Admin\InvestorCapitalInjectionController::class, 'destroy'])->name('modal-investor.destroy');
+
+        Route::get('/dividen-investor', [\App\Http\Controllers\Admin\InvestorDividendController::class, 'index'])->name('dividen-investor.index');
+        Route::post('/dividen-investor', [\App\Http\Controllers\Admin\InvestorDividendController::class, 'store'])->name('dividen-investor.store');
+        Route::get('/dividen-investor/{period}', [\App\Http\Controllers\Admin\InvestorDividendController::class, 'show'])->name('dividen-investor.show');
+        Route::post('/dividen-investor/{period}/calculate', [\App\Http\Controllers\Admin\InvestorDividendController::class, 'calculate'])->name('dividen-investor.calculate');
+        Route::post('/dividen-investor/{period}/pay-all', [\App\Http\Controllers\Admin\InvestorDividendController::class, 'payAll'])->name('dividen-investor.pay-all');
+        Route::put('/dividen-allocations/{allocation}', [\App\Http\Controllers\Admin\InvestorDividendController::class, 'updateAllocation'])->name('dividen-investor.allocations.update');
+        Route::post('/dividen-allocations/{allocation}/pay', [\App\Http\Controllers\Admin\InvestorDividendController::class, 'payAllocation'])->name('dividen-investor.allocations.pay');
+
+        Route::get('/laporan/sumber-dana', [\App\Http\Controllers\Admin\KeuanganController::class, 'laporanSumberDana'])->name('laporan.sumber-dana');
         Route::get('/laporan-pajak', [\App\Http\Controllers\Admin\KeuanganController::class, 'laporanPajak'])->name('laporan-pajak.index');
         Route::get('/utility', [\App\Http\Controllers\Admin\KeuanganController::class, 'utility'])->name('utility.index');
     });

@@ -97,11 +97,12 @@
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sumber Dana</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Akun</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referensi</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sumber</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dokumen Relasi</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -115,6 +116,14 @@
                         <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">Penerimaan</span>
                         @else
                         <span class="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-800">Pengeluaran</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        @if($trans->sumberDana)
+                        <div class="font-medium">{{ $trans->sumberDana->name }}</div>
+                        <div class="text-xs text-gray-400">{{ $trans->sumberDana->code }}</div>
+                        @else
+                        <span class="text-gray-400">Belum diklasifikasi</span>
                         @endif
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-600">
@@ -154,7 +163,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="px-4 py-10 text-center text-gray-500 text-sm">
+                    <td colspan="8" class="px-4 py-10 text-center text-gray-500 text-sm">
                         Tidak ada transaksi yang cocok dengan filter.
                         <a href="{{ route('admin.keuangan.laporan.arus-kas') }}" class="text-purple-600 hover:text-purple-800 font-medium ml-1">Reset filter</a>
                         atau

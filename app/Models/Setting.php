@@ -181,4 +181,19 @@ class Setting extends Model
         $number = preg_replace('/\D+/', '', static::contactWhatsapp());
         return $number ? 'https://wa.me/' . $number : '#';
     }
+
+    public static function investorBankName(): string
+    {
+        return (string) static::get('investor_bank_name', '');
+    }
+
+    public static function investorBankAccount(): string
+    {
+        return (string) static::get('investor_bank_account', '');
+    }
+
+    public static function investorBankHolder(): string
+    {
+        return (string) static::get('investor_bank_holder', '');
+    }
 }

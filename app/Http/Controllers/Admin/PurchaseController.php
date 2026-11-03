@@ -8,7 +8,10 @@ use App\Models\Supplier;
 use App\Models\Tax;
 use App\Models\CashTransaction;
 use App\Models\ChartOfAccount;
+use App\Models\SumberDana;
+use App\Services\SumberDanaResolver;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PurchaseController extends Controller
 {
@@ -25,10 +28,8 @@ class PurchaseController extends Controller
     public function create()
     {
         if (request()->ajax()) {
-            $suppliers = Supplier::active()->orderBy('name')->get();
-            $taxes = Tax::where('is_active', true)->orderBy('name')->get();
             return response()->json([
-                'html' => view('admin.purchases.partials.form', ['purchase' => null, 'suppliers' => $suppliers, 'taxes' => $taxes])->render()
+                'html' => view('admin.purchases.partials.form', $this->formData())->render(),
             ]);
         }
         return redirect()->route('admin.keuangan.transaksi.pembelian');
@@ -45,7 +46,11 @@ class PurchaseController extends Controller
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
+            'sumber_dana_id' => $this->sumberDanaRules(),
         ]);
+
+        $sumberDanaId = (int) $validated['sumber_dana_id'];
+        unset($validated['sumber_dana_id']);
 
         $validated['subtotal'] = $validated['quantity'] * $validated['unit_price'];
 
@@ -68,6 +73,7 @@ class PurchaseController extends Controller
                 'transaction_date' => $purchase->purchase_date,
                 'transaction_type' => 'credit',
                 'chart_of_account_id' => $cashAccount->id,
+                'sumber_dana_id' => $sumberDanaId,
                 'amount' => $purchase->total,
                 'description' => 'Pengeluaran kas untuk pembelian: ' . $purchase->invoice_number,
                 'reference' => $purchase->invoice_number,
@@ -88,14 +94,12 @@ class PurchaseController extends Controller
 
     public function edit(string $id)
     {
-        $purchase = Purchase::with('supplier')->findOrFail($id);
+        $purchase = Purchase::with(['supplier', 'cashTransaction.sumberDana'])->findOrFail($id);
 
         if (request()->ajax()) {
-            $suppliers = Supplier::active()->orderBy('name')->get();
-            $taxes = Tax::where('is_active', true)->orderBy('name')->get();
             return response()->json([
-                'html' => view('admin.purchases.partials.form', ['purchase' => $purchase, 'suppliers' => $suppliers, 'taxes' => $taxes])->render(),
-                'data' => $purchase
+                'html' => view('admin.purchases.partials.form', $this->formData($purchase))->render(),
+                'data' => $purchase,
             ]);
         }
 
@@ -115,7 +119,11 @@ class PurchaseController extends Controller
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
+            'sumber_dana_id' => $this->sumberDanaRules(),
         ]);
+
+        $sumberDanaId = (int) $validated['sumber_dana_id'];
+        unset($validated['sumber_dana_id']);
 
         $allocated = $purchase->allocatedQuantity();
         if ($validated['quantity'] < $allocated) {
@@ -150,6 +158,7 @@ class PurchaseController extends Controller
             $purchase->cashTransaction->update([
                 'transaction_date' => $purchase->purchase_date,
                 'amount' => $purchase->total,
+                'sumber_dana_id' => $sumberDanaId,
                 'description' => 'Pengeluaran kas untuk pembelian: ' . $purchase->invoice_number,
                 'reference' => $purchase->invoice_number,
             ]);
@@ -161,6 +170,7 @@ class PurchaseController extends Controller
                     'transaction_date' => $purchase->purchase_date,
                     'transaction_type' => 'credit',
                     'chart_of_account_id' => $cashAccount->id,
+                    'sumber_dana_id' => $sumberDanaId,
                     'amount' => $purchase->total,
                     'description' => 'Pengeluaran kas untuk pembelian: ' . $purchase->invoice_number,
                     'reference' => $purchase->invoice_number,
@@ -220,5 +230,31 @@ class PurchaseController extends Controller
     {
         $purchase = Purchase::with('supplier')->findOrFail($id);
         return view('admin.purchases.invoice', compact('purchase'));
+    }
+
+    private function formData(?Purchase $purchase = null): array
+    {
+        $defaultSumberDanaId = $purchase?->cashTransaction?->sumber_dana_id
+            ?: app(SumberDanaResolver::class)->grosirId();
+
+        return [
+            'purchase' => $purchase,
+            'suppliers' => Supplier::active()->orderBy('name')->get(),
+            'taxes' => Tax::where('is_active', true)->orderBy('name')->get(),
+            'sumberDanas' => SumberDana::active()->forFlow('credit')->ordered()->get(),
+            'selectedSumberDanaId' => $defaultSumberDanaId,
+        ];
+    }
+
+    private function sumberDanaRules(): array
+    {
+        return [
+            'required',
+            'exists:sumber_danas,id',
+            Rule::exists('sumber_danas', 'id')->where(function ($q) {
+                $q->where('is_active', true)
+                    ->whereIn('flow_type', ['keluar', 'both']);
+            }),
+        ];
     }
 }

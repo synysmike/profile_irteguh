@@ -8,8 +8,10 @@ class CashTransaction extends Model
 {
     protected $fillable = [
         'transaction_date', 'transaction_type', 'chart_of_account_id',
+        'sumber_dana_id',
         'amount', 'description', 'reference', 'document_path',
         'sale_id', 'purchase_id', 'project_id', 'project_payment_term_id',
+        'investor_capital_injection_id', 'investor_dividend_allocation_id',
         'is_posted', 'posted_at',
     ];
 
@@ -23,6 +25,11 @@ class CashTransaction extends Model
     public function chartOfAccount()
     {
         return $this->belongsTo(ChartOfAccount::class, 'chart_of_account_id');
+    }
+
+    public function sumberDana()
+    {
+        return $this->belongsTo(SumberDana::class, 'sumber_dana_id');
     }
 
     public function sale()
@@ -43,6 +50,16 @@ class CashTransaction extends Model
     public function projectPaymentTerm()
     {
         return $this->belongsTo(ProjectPaymentTerm::class);
+    }
+
+    public function investorCapitalInjection()
+    {
+        return $this->belongsTo(InvestorCapitalInjection::class, 'investor_capital_injection_id');
+    }
+
+    public function investorDividendAllocation()
+    {
+        return $this->belongsTo(InvestorDividendAllocation::class, 'investor_dividend_allocation_id');
     }
 
     public function scopeLatestFirst($query)

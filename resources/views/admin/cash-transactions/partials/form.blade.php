@@ -1,3 +1,8 @@
+@php
+    $sumberDanas = $sumberDanas ?? collect();
+    $selectedType = old('transaction_type', isset($cashTransaction) && $cashTransaction ? $cashTransaction->transaction_type : 'debit');
+    $selectedSumber = old('sumber_dana_id', isset($cashTransaction) && $cashTransaction ? $cashTransaction->sumber_dana_id : '');
+@endphp
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div>
         <label for="transaction_date" class="block text-sm font-medium text-gray-700 mb-2">Tanggal *</label>
@@ -8,8 +13,8 @@
     <div>
         <label for="transaction_type" class="block text-sm font-medium text-gray-700 mb-2">Jenis Transaksi *</label>
         <select id="transaction_type" name="transaction_type" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-            <option value="debit" {{ old('transaction_type', isset($cashTransaction) && $cashTransaction ? $cashTransaction->transaction_type : '') == 'debit' ? 'selected' : '' }}>Penerimaan Kas (Debit)</option>
-            <option value="credit" {{ old('transaction_type', isset($cashTransaction) && $cashTransaction ? $cashTransaction->transaction_type : '') == 'credit' ? 'selected' : '' }}>Pengeluaran Kas (Credit)</option>
+            <option value="debit" {{ $selectedType == 'debit' ? 'selected' : '' }}>Penerimaan Kas (Debit)</option>
+            <option value="credit" {{ $selectedType == 'credit' ? 'selected' : '' }}>Pengeluaran Kas (Credit)</option>
         </select>
     </div>
 
@@ -22,6 +27,23 @@
             @endforeach
         </select>
         <p class="mt-1 text-xs text-gray-500">Akun dari Master Keuangan → Akun Perkiraan (tipe: Kas)</p>
+    </div>
+
+    <div class="md:col-span-2">
+        <label for="sumber_dana_id" class="block text-sm font-medium text-gray-700 mb-2">Sumber Dana *</label>
+        <select id="sumber_dana_id" name="sumber_dana_id" required
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                data-selected="{{ $selectedSumber }}">
+            <option value="">-- Pilih Sumber Dana --</option>
+            @foreach($sumberDanas as $sd)
+            <option value="{{ $sd->id }}"
+                    data-flow="{{ $sd->flow_type }}"
+                    {{ (string) $selectedSumber === (string) $sd->id ? 'selected' : '' }}>
+                {{ $sd->code }} — {{ $sd->name }}
+            </option>
+            @endforeach
+        </select>
+        <p class="mt-1 text-xs text-gray-500">Opsi difilter sesuai jenis transaksi (masuk/keluar). Kelola di Master → Sumber Dana.</p>
     </div>
 
     <div>
@@ -47,7 +69,7 @@
         <input type="file" id="document" name="document" accept="image/*,.pdf"
                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
         <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG, PDF. Maksimal 5MB.</p>
-        
+
         @if(isset($cashTransaction) && $cashTransaction && $cashTransaction->document_path)
         <div class="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
             <div class="flex items-center justify-between">
@@ -75,3 +97,51 @@
         @endif
     </div>
 </div>
+
+<script>
+(function () {
+    var typeEl = document.getElementById('transaction_type');
+    var sumberEl = document.getElementById('sumber_dana_id');
+    if (!typeEl || !sumberEl) return;
+
+    function allowedFlows(type) {
+        if (type === 'debit') return ['masuk', 'both'];
+        if (type === 'credit') return ['keluar', 'both'];
+        return ['masuk', 'keluar', 'both'];
+    }
+
+    function filterSumberDana() {
+        var allowed = allowedFlows(typeEl.value);
+        var preferred = sumberEl.getAttribute('data-selected') || '';
+        var current = sumberEl.value;
+        var keep = null;
+
+        Array.prototype.forEach.call(sumberEl.options, function (opt) {
+            if (!opt.value) {
+                opt.hidden = false;
+                opt.disabled = false;
+                return;
+            }
+            var flow = opt.getAttribute('data-flow') || '';
+            var ok = allowed.indexOf(flow) !== -1;
+            opt.hidden = !ok;
+            opt.disabled = !ok;
+            if (ok && (String(opt.value) === String(preferred) || String(opt.value) === String(current))) {
+                keep = opt.value;
+            }
+        });
+
+        if (keep) {
+            sumberEl.value = keep;
+        } else {
+            sumberEl.value = '';
+        }
+    }
+
+    typeEl.addEventListener('change', function () {
+        sumberEl.setAttribute('data-selected', '');
+        filterSumberDana();
+    });
+    filterSumberDana();
+})();
+</script>

@@ -32,12 +32,13 @@
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
             <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jenis</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sumber Dana</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Akun</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Jumlah (Rp)</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sumber</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dokumen Relasi</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dokumen</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
             </tr>
@@ -51,6 +52,14 @@
                     <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">Penerimaan</span>
                     @else
                     <span class="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-800">Pengeluaran</span>
+                    @endif
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-700">
+                    @if($trans->sumberDana)
+                    <div class="font-medium">{{ $trans->sumberDana->name }}</div>
+                    <div class="text-xs text-gray-400">{{ $trans->sumberDana->code }}</div>
+                    @else
+                    <span class="text-gray-400">Belum diklasifikasi</span>
                     @endif
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-600">{{ $trans->chartOfAccount?->code ?? '—' }} - {{ $trans->chartOfAccount?->name ?? '—' }}</td>
@@ -68,6 +77,14 @@
                     <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Pembelian: {{ $trans->purchase->invoice_number }}
+                    </a>
+                    @elseif($trans->investor_capital_injection_id)
+                    <a href="{{ route('admin.keuangan.modal-investor.index') }}" class="text-emerald-700 hover:text-emerald-900">
+                        Modal Investor #{{ $trans->investor_capital_injection_id }}
+                    </a>
+                    @elseif($trans->investor_dividend_allocation_id)
+                    <a href="{{ route('admin.keuangan.dividen-investor.index') }}" class="text-rose-700 hover:text-rose-900">
+                        Dividen #{{ $trans->investor_dividend_allocation_id }}
                     </a>
                     @elseif($trans->project)
                     <a href="{{ route('admin.projects.show', $trans->project_id) }}" class="text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1">
@@ -94,7 +111,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                <td colspan="9" class="px-4 py-8 text-center text-gray-500">
                     Belum ada transaksi kas.
                     <button type="button" onclick="openResourceModal('cashTransactionModal', 'cash-transactions', 'Transaksi Kas')" class="text-purple-600 hover:text-purple-800 ml-1">Tambah yang pertama</button>
                 </td>

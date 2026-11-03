@@ -171,6 +171,7 @@ class PosCheckoutService
                     'transaction_date' => $sale->sale_date,
                     'transaction_type' => 'debit',
                     'chart_of_account_id' => $cashAccount->id,
+                    'sumber_dana_id' => app(SumberDanaResolver::class)->penjualanId(),
                     'amount' => $sale->total,
                     'description' => 'Penerimaan kas dari penjualan: ' . $sale->invoice_number,
                     'reference' => $sale->invoice_number,

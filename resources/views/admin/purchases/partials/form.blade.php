@@ -23,6 +23,21 @@
     </div>
 
     <div class="md:col-span-2">
+        <label for="sumber_dana_id" class="block text-sm font-medium text-gray-700 mb-2">Sumber Dana (Pemakaian) *</label>
+        <select id="sumber_dana_id" name="sumber_dana_id" required
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">-- Pilih Sumber Dana --</option>
+            @foreach(($sumberDanas ?? collect()) as $sd)
+            <option value="{{ $sd->id }}"
+                {{ (string) old('sumber_dana_id', $selectedSumberDanaId ?? '') === (string) $sd->id ? 'selected' : '' }}>
+                {{ $sd->code }} — {{ $sd->name }}
+            </option>
+            @endforeach
+        </select>
+        <p class="mt-1 text-xs text-gray-500">Menentukan klasifikasi pengeluaran kas untuk grosir ini (Laporan Sumber Dana).</p>
+    </div>
+
+    <div class="md:col-span-2">
         <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Nama Barang *</label>
         <input type="text" id="description" name="description" value="{{ old('description', isset($purchase) && $purchase ? $purchase->description : '') }}" required
                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"

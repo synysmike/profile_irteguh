@@ -3,23 +3,13 @@
 @section('title', $title ?? 'Keuangan - Admin')
 
 @section('content')
-@php
-    $penjualanOpen = request()->routeIs(
-        'admin.keuangan.transaksi.penjualan',
-        'admin.keuangan.sale-transactions.*',
-        'admin.projects.*'
-    );
-@endphp
 <style>
 .keuangan-layout { display: flex; flex-direction: row; gap: 1.5rem; align-items: flex-start; }
 .keuangan-sidebar { width: 15rem; min-width: 15rem; flex-shrink: 0; position: sticky; top: 4.5rem; }
 .keuangan-main { flex: 1; min-width: 0; }
-.keuangan-sidebar .nav-dropdown { display: none; }
-.keuangan-sidebar .nav-dropdown-wrap.open > .nav-dropdown { display: block; }
-.keuangan-sidebar .nav-dropdown-wrap.open > .nav-dropdown-btn .nav-dropdown-chevron { transform: rotate(180deg); }
 .keuangan-sidebar .nav-link {
     display: block;
-    padding: 0.5rem 1rem 0.5rem 1.25rem;
+    padding: 0.5rem 1rem;
     color: #374151;
     border-left: 2px solid transparent;
 }
@@ -29,58 +19,18 @@
     color: #6d28d9;
     font-weight: 500;
     border-left-color: #7c3aed;
-    padding-left: calc(1.25rem - 2px);
-}
-.keuangan-sidebar .nav-link.nav-link-root {
-    padding-left: 1rem;
-}
-.keuangan-sidebar .nav-link.nav-link-root.active {
     padding-left: calc(1rem - 2px);
 }
-.keuangan-sidebar .nav-link.nav-link-child {
-    padding-left: 1.75rem;
-    font-size: 0.8125rem;
-}
-.keuangan-sidebar .nav-link.nav-link-child.active {
-    padding-left: calc(1.75rem - 2px);
-}
 .keuangan-sidebar .nav-section {
-    margin-top: 0.5rem;
-    padding: 0.35rem 1rem;
+    margin-top: 0.75rem;
+    padding: 0.4rem 1rem 0.25rem;
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: #6b7280;
 }
-.keuangan-sidebar .nav-dropdown-btn {
-    width: 100%;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem 0.5rem 1.25rem;
-    color: #374151;
-    border-left: 2px solid transparent;
-    background: transparent;
-    cursor: pointer;
-}
-.keuangan-sidebar .nav-dropdown-btn:hover { background: #f3f4f6; }
-.keuangan-sidebar .nav-dropdown-wrap.open > .nav-dropdown-btn,
-.keuangan-sidebar .nav-dropdown-btn.is-active {
-    background: #f5f3ff;
-    color: #6d28d9;
-    font-weight: 500;
-    border-left-color: #7c3aed;
-    padding-left: calc(1.25rem - 2px);
-}
-.keuangan-sidebar .nav-dropdown-chevron {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-    transition: transform 0.15s ease;
-}
+.keuangan-sidebar .nav-section:first-of-type { margin-top: 0.25rem; }
 .keuangan-menu-toggle { display: none; }
 .keuangan-sidebar-backdrop { display: none; }
 
@@ -167,7 +117,7 @@
             </div>
             <ul class="py-2 text-sm max-h-[calc(100vh-12rem)] overflow-y-auto">
                 <li>
-                    <a href="{{ route('admin.keuangan.dashboard') }}" class="nav-link nav-link-root {{ request()->routeIs('admin.keuangan.dashboard') ? 'active' : '' }}">Dashboard</a>
+                    <a href="{{ route('admin.keuangan.dashboard') }}" class="nav-link {{ request()->routeIs('admin.keuangan.dashboard') ? 'active' : '' }}">Dashboard</a>
                 </li>
 
                 <li>
@@ -178,27 +128,26 @@
                     <a href="{{ route('admin.keuangan.pajak.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.pajak.*') ? 'active' : '' }}">Pajak</a>
                     <a href="{{ route('admin.keuangan.diskon.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.diskon.*') ? 'active' : '' }}">Diskon</a>
                     <a href="{{ route('admin.keuangan.jasa.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.jasa.*') ? 'active' : '' }}">Jasa</a>
+                    <a href="{{ route('admin.keuangan.sumber-dana.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.sumber-dana.*') ? 'active' : '' }}">Sumber Dana</a>
+                </li>
+
+                <li>
+                    <div class="nav-section">Investor</div>
+                    <a href="{{ route('admin.keuangan.investor.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.investor.*') ? 'active' : '' }}">Master Investor</a>
+                    <a href="{{ route('admin.keuangan.benefit-investor.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.benefit-investor.*') ? 'active' : '' }}">Benefit Investor</a>
+                    <a href="{{ route('admin.keuangan.modal-investor.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.modal-investor.*') ? 'active' : '' }}">Modal Investor</a>
+                    <a href="{{ route('admin.keuangan.dividen-investor.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.dividen-investor.*') ? 'active' : '' }}">Dividen & Pembayaran</a>
+                </li>
+
+                <li>
+                    <div class="nav-section">Penjualan</div>
+                    <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" class="nav-link {{ request()->routeIs('admin.keuangan.transaksi.penjualan') ? 'active' : '' }}">Kasir POS</a>
+                    <a href="{{ route('admin.projects.index') }}" class="nav-link {{ request()->routeIs('admin.projects.*') ? 'active' : '' }}">Project</a>
+                    <a href="{{ route('admin.keuangan.sale-transactions.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.sale-transactions.*') ? 'active' : '' }}">Alokasi Stok</a>
                 </li>
 
                 <li>
                     <div class="nav-section">Transaksi</div>
-                    <div id="penjualan-dropdown-wrap" class="nav-dropdown-wrap {{ $penjualanOpen ? 'open' : '' }}">
-                        <button type="button"
-                                id="penjualan-dropdown-btn"
-                                class="nav-dropdown-btn {{ $penjualanOpen ? 'is-active' : '' }}"
-                                aria-expanded="{{ $penjualanOpen ? 'true' : 'false' }}"
-                                aria-controls="penjualan-dropdown-panel">
-                            <span>Penjualan</span>
-                            <svg class="nav-dropdown-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                        </button>
-                        <div id="penjualan-dropdown-panel" class="nav-dropdown" role="region" aria-label="Submenu Penjualan">
-                            <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" class="nav-link nav-link-child {{ request()->routeIs('admin.keuangan.transaksi.penjualan') ? 'active' : '' }}">Kasir POS</a>
-                            <a href="{{ route('admin.projects.index') }}" class="nav-link nav-link-child {{ request()->routeIs('admin.projects.*') ? 'active' : '' }}">Project</a>
-                            <a href="{{ route('admin.keuangan.sale-transactions.index') }}" class="nav-link nav-link-child {{ request()->routeIs('admin.keuangan.sale-transactions.*') ? 'active' : '' }}">Alokasi Stok</a>
-                        </div>
-                    </div>
                     <a href="{{ route('admin.keuangan.transaksi.pembelian') }}" class="nav-link {{ request()->routeIs('admin.keuangan.transaksi.pembelian') ? 'active' : '' }}">Grosir</a>
                     <a href="{{ route('admin.keuangan.transaksi.kas-bank') }}" class="nav-link {{ request()->routeIs('admin.keuangan.transaksi.kas-bank') ? 'active' : '' }}">Kas / Bank</a>
                     <a href="{{ route('admin.keuangan.transaksi.gaji') }}" class="nav-link {{ request()->routeIs('admin.keuangan.transaksi.gaji') ? 'active' : '' }}">Gaji & Payroll</a>
@@ -210,6 +159,7 @@
                     <a href="{{ route('admin.keuangan.laporan.neraca') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan.neraca') ? 'active' : '' }}">Neraca</a>
                     <a href="{{ route('admin.keuangan.laporan.laba-rugi') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan.laba-rugi') ? 'active' : '' }}">Laba Rugi</a>
                     <a href="{{ route('admin.keuangan.laporan.arus-kas') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan.arus-kas') ? 'active' : '' }}">Arus Kas</a>
+                    <a href="{{ route('admin.keuangan.laporan.sumber-dana') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan.sumber-dana') ? 'active' : '' }}">Sumber Dana</a>
                     <a href="{{ route('admin.keuangan.laporan.buku-besar') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan.buku-besar') ? 'active' : '' }}">Buku Besar</a>
                     <a href="{{ route('admin.keuangan.laporan-pajak.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.laporan-pajak.*') ? 'active' : '' }}">Laporan Pajak</a>
                 </li>
@@ -244,19 +194,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (openBtn) openBtn.addEventListener('click', function () { setSidebarOpen(true); });
     if (closeBtn) closeBtn.addEventListener('click', function () { setSidebarOpen(false); });
     if (backdrop) backdrop.addEventListener('click', function () { setSidebarOpen(false); });
-
-    var btn = document.getElementById('penjualan-dropdown-btn');
-    var wrap = document.getElementById('penjualan-dropdown-wrap');
-    if (btn && wrap) {
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var willOpen = !wrap.classList.contains('open');
-            wrap.classList.toggle('open', willOpen);
-            btn.classList.toggle('is-active', willOpen || {{ $penjualanOpen ? 'true' : 'false' }});
-            btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-        });
-    }
 });
 </script>
 @endsection

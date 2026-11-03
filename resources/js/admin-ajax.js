@@ -306,6 +306,9 @@ window.openResourceModal = function (
                     }, 50);
                     // Setup PPN calculator setelah form dimuat
                     setTimeout(function () {
+                        if (typeof window.initCashTransactionSumberDanaFilter === "function") {
+                            window.initCashTransactionSumberDanaFilter();
+                        }
                         if (typeof window.setupPPNCalculator === "function") {
                             window.setupPPNCalculator();
                         }
@@ -442,6 +445,9 @@ window.openResourceModal = function (
                     }, 50);
                     // Setup PPN calculator setelah form dimuat
                     setTimeout(function () {
+                        if (typeof window.initCashTransactionSumberDanaFilter === "function") {
+                            window.initCashTransactionSumberDanaFilter();
+                        }
                         if (typeof window.initQuickCustomerForm === "function") {
                             window.initQuickCustomerForm();
                         }
@@ -1236,4 +1242,59 @@ window.initSaleTransactionAllocationForm = function () {
     }
 
     window.initSubtotalCalculator = calculateSubtotal;
+};
+
+/**
+ * Cash transaction modal: filter Sumber Dana options by debit/credit.
+ * Inline <script> in AJAX-loaded form HTML does not run.
+ */
+window.initCashTransactionSumberDanaFilter = function () {
+    const typeEl = document.getElementById("transaction_type");
+    const sumberEl = document.getElementById("sumber_dana_id");
+    if (!typeEl || !sumberEl || sumberEl.hasAttribute("data-sumber-filter-setup")) {
+        return;
+    }
+    sumberEl.setAttribute("data-sumber-filter-setup", "true");
+
+    function allowedFlows(type) {
+        if (type === "debit") return ["masuk", "both"];
+        if (type === "credit") return ["keluar", "both"];
+        return ["masuk", "keluar", "both"];
+    }
+
+    function filterSumberDana(resetPreferred) {
+        const allowed = allowedFlows(typeEl.value);
+        const preferred = resetPreferred
+            ? ""
+            : sumberEl.getAttribute("data-selected") || "";
+        const current = sumberEl.value;
+        let keep = null;
+
+        Array.prototype.forEach.call(sumberEl.options, function (opt) {
+            if (!opt.value) {
+                opt.hidden = false;
+                opt.disabled = false;
+                return;
+            }
+            const flow = opt.getAttribute("data-flow") || "";
+            const ok = allowed.indexOf(flow) !== -1;
+            opt.hidden = !ok;
+            opt.disabled = !ok;
+            if (
+                ok &&
+                (String(opt.value) === String(preferred) ||
+                    String(opt.value) === String(current))
+            ) {
+                keep = opt.value;
+            }
+        });
+
+        sumberEl.value = keep || "";
+    }
+
+    typeEl.addEventListener("change", function () {
+        sumberEl.setAttribute("data-selected", "");
+        filterSumberDana(true);
+    });
+    filterSumberDana(false);
 };
