@@ -58,6 +58,11 @@ class PublicSaleInvoiceController extends Controller
 
         $request->session()->put($this->sessionKey($sale), true);
 
+        // Setelah verifikasi invoice, customer juga bisa langsung isi ulasan project.
+        if ($sale->project_id) {
+            $request->session()->put('project_review_verified.' . $sale->project_id, true);
+        }
+
         return redirect()->route('invoice.sales.show', $sale);
     }
 

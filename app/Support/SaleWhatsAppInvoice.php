@@ -145,6 +145,14 @@ class SaleWhatsAppInvoice
         $lines[] = 'Link invoice:';
         $lines[] = $sale->publicInvoiceUrl();
         $lines[] = '(Buka link, lalu masukkan nomor HP Anda untuk melihat invoice)';
+
+        if ($sale->project_id && $sale->project) {
+            $lines[] = '';
+            $lines[] = 'Link ulasan project:';
+            $lines[] = $sale->project->publicReviewUrl();
+            $lines[] = '(Verifikasi nomor HP yang sama, lalu isi rating & komentar)';
+        }
+
         $lines[] = '';
         $lines[] = 'Terima kasih';
 

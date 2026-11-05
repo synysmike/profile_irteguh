@@ -62,6 +62,7 @@
 <body>
     <div class="no-print">
         <button type="button" class="btn-print" onclick="window.print();">Cetak / Simpan PDF</button>
+        <a href="{{ $project->publicReviewUrl() }}" class="btn-wa" style="background:#059669;">⭐ Beri Ulasan Project</a>
         @if(empty($isPublic) && auth()->check())
             @if($project->customer?->phone)
             <a href="{{ route('admin.projects.whatsapp-term', [$project, $term]) }}" target="_blank" rel="noopener" class="btn-wa">Kirim WA</a>

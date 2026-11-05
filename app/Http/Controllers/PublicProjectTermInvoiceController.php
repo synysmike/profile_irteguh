@@ -77,6 +77,10 @@ class PublicProjectTermInvoiceController extends Controller
 
         $request->session()->put($this->sessionKey($term), true);
 
+        if ($term->project_id) {
+            $request->session()->put('project_review_verified.' . $term->project_id, true);
+        }
+
         return redirect()->route('invoice.project-terms.show', $term);
     }
 

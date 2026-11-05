@@ -206,6 +206,10 @@ class ProjectTermWhatsAppInvoice
         $lines[] = $term->publicInvoiceUrl();
         $lines[] = '(Buka link, lalu masukkan nomor HP Anda untuk melihat invoice)';
         $lines[] = '';
+        $lines[] = 'Link ulasan project:';
+        $lines[] = $project->publicReviewUrl();
+        $lines[] = '(Verifikasi nomor HP yang sama, lalu isi rating & komentar)';
+        $lines[] = '';
         $lines[] = 'Catatan: Invoice ini belum diposting ke keuangan. Lakukan pembayaran sesuai tagihan.';
         $lines[] = '';
         $lines[] = 'Terima kasih';

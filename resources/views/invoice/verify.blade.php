@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Verifikasi Invoice {{ $invoiceNumber }}</title>
+    <title>{{ $verifyTitle ?? 'Verifikasi Invoice' }} {{ $invoiceNumber }}</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -108,11 +108,11 @@
     <div class="card">
         <div class="brand">
             <h1>{{ \App\Models\Setting::appName() }}</h1>
-            <p>Verifikasi akses invoice</p>
+            <p>{{ $verifyTitle ?? 'Verifikasi akses invoice' }}</p>
         </div>
 
         <div class="meta">
-            <div>No. Faktur: <strong>{{ $invoiceNumber }}</strong></div>
+            <div>{{ $metaLabel ?? 'No. Faktur' }}: <strong>{{ $invoiceNumber }}</strong></div>
             @if(!empty($customerName))
             <div style="margin-top:4px;">Pelanggan: <strong>{{ $customerName }}</strong></div>
             @endif
@@ -124,7 +124,7 @@
 
         @if(!$hasCustomerPhone)
         <div class="alert alert-warn">
-            Nomor HP customer belum tercatat pada invoice ini. Hubungi admin untuk membuka invoice.
+            Nomor HP customer belum tercatat. Hubungi admin untuk membuka halaman ini.
         </div>
         @else
         <form method="POST" action="{{ $verifyRoute }}">
@@ -140,11 +140,11 @@
                 autocomplete="tel"
                 inputmode="tel"
             >
-            <p class="hint">Masukkan nomor HP yang terdaftar pada invoice (boleh format 08… atau 62…).</p>
+            <p class="hint">{{ $verifySubtitle ?? 'Masukkan nomor HP yang terdaftar pada invoice (boleh format 08… atau 62…).' }}</p>
             @error('phone')
             <div class="alert alert-error">{{ $message }}</div>
             @enderror
-            <button type="submit">Buka Invoice</button>
+            <button type="submit">{{ $verifyButton ?? 'Buka Invoice' }}</button>
         </form>
         @endif
     </div>

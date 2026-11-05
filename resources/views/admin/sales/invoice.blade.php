@@ -55,6 +55,12 @@
 <body>
     <div class="no-print">
         <button type="button" class="btn-print" onclick="window.print();">🖨 Cetak Invoice</button>
+        @if($sale->project_id && $sale->project)
+        <a href="{{ $sale->project->publicReviewUrl() }}"
+           style="margin-left: 8px; display: inline-block; padding: 10px 16px; background: #059669; color: #fff; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none;">
+            ⭐ Beri Ulasan Project
+        </a>
+        @endif
         @if(empty($isPublic) && auth()->check())
         <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" style="margin-left: 8px; color: #6b7280; font-size: 14px;">← Kembali ke Daftar Penjualan</a>
         @endif

@@ -157,6 +157,30 @@ class Project extends Model
         return $this->hasMany(ProjectProgressMedia::class)->orderBy('sort_order')->orderByDesc('id');
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProjectReview::class)->latest('submitted_at');
+    }
+
+    public function publishedReviews(): HasMany
+    {
+        return $this->hasMany(ProjectReview::class)
+            ->where('is_published', true)
+            ->latest('submitted_at');
+    }
+
+    public function publicReviewUrl(): string
+    {
+        return url()->route('project.review.show', ['project' => $this->id]);
+    }
+
+    public function averageRating(): ?float
+    {
+        $avg = $this->publishedReviews()->avg('rating');
+
+        return $avg !== null ? round((float) $avg, 1) : null;
+    }
+
     public function portfolioMedia(): HasMany
     {
         return $this->hasMany(ProjectProgressMedia::class)

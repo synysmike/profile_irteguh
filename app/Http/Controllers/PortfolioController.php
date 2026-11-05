@@ -43,7 +43,7 @@ class PortfolioController extends Controller
     public function show(string $slug)
     {
         $project = Project::portfolioPublic()
-            ->with('portfolioMedia')
+            ->with(['portfolioMedia', 'publishedReviews.media'])
             ->where('slug', $slug)
             ->firstOrFail();
 

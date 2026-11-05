@@ -115,6 +115,67 @@
     $jasaQtyLocked = $project->paymentTerms->where('status', 'paid')->isNotEmpty();
 @endphp
 
+{{-- Ulasan customer --}}
+<div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mb-6">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-100 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800">Ulasan Customer</h3>
+            <p class="text-sm text-gray-500 mt-0.5">
+                Customer mengisi lewat link yang sama dengan invoice (WA).
+                @if($project->averageRating())
+                · Rata-rata <strong>{{ $project->averageRating() }}/5</strong>
+                @endif
+            </p>
+        </div>
+        <a href="{{ $project->publicReviewUrl() }}" target="_blank" class="text-sm text-emerald-700 hover:text-emerald-900 font-medium break-all">
+            Buka link ulasan →
+        </a>
+    </div>
+    @if($project->reviews->isEmpty())
+    <div class="px-6 py-8 text-center text-gray-500 text-sm">Belum ada ulasan dari customer.</div>
+    @else
+    <div class="divide-y">
+        @foreach($project->reviews as $review)
+        <div class="px-4 sm:px-6 py-4 flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0">
+                <div class="font-medium text-gray-900">{{ $review->displayName() }}</div>
+                <div class="text-amber-500 text-sm tracking-wide">{{ $review->stars() }} ({{ $review->rating }}/5)</div>
+                @if($review->comment)
+                <p class="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{{ $review->comment }}</p>
+                @endif
+                @if($review->media->count())
+                <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-lg">
+                    @foreach($review->media as $media)
+                    <div class="rounded overflow-hidden border bg-gray-100 aspect-video">
+                        @if($media->isVideo())
+                        <video src="{{ $media->url() }}" controls class="w-full h-full object-cover"></video>
+                        @else
+                        <a href="{{ $media->url() }}" target="_blank"><img src="{{ $media->url() }}" alt="" class="w-full h-full object-cover"></a>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+                <div class="text-xs text-gray-500 mt-1">{{ $review->submitted_at?->format('d/m/Y H:i') }}</div>
+            </div>
+            <div class="flex items-center gap-2">
+                <form method="POST" action="{{ route('admin.projects.reviews.publish', [$project, $review]) }}">
+                    @csrf @method('PATCH')
+                    <button class="text-xs px-2 py-1 rounded {{ $review->is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600' }}">
+                        {{ $review->is_published ? 'Publik' : 'Disembunyikan' }}
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.projects.reviews.destroy', [$project, $review]) }}" onsubmit="return confirm('Hapus ulasan ini?')">
+                    @csrf @method('DELETE')
+                    <button class="text-xs text-red-600">Hapus</button>
+                </form>
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+</div>
+
 {{-- Bukti progres foto/video --}}
 <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mb-6">
     <div class="px-4 sm:px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">

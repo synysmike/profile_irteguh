@@ -45,6 +45,8 @@ class ProjectController extends Controller
             'assignmentLetters.jasaItems',
             'saleTransactions.purchase.supplier',
             'progressMedia',
+            'reviews.customer',
+            'reviews.media',
         ])->findOrFail($id);
 
         $availableAllocations = SaleTransaction::availableForProject()
@@ -351,6 +353,25 @@ class ProjectController extends Controller
         $media->delete();
 
         return back()->with('success', 'Bukti progres dihapus.');
+    }
+
+    public function toggleReviewPublish(string $projectId, string $reviewId)
+    {
+        $review = \App\Models\ProjectReview::where('project_id', $projectId)->findOrFail($reviewId);
+        $review->update(['is_published' => ! $review->is_published]);
+
+        return back()->with(
+            'success',
+            $review->is_published ? 'Ulasan ditampilkan di portofolio.' : 'Ulasan disembunyikan dari portofolio.'
+        );
+    }
+
+    public function destroyReview(string $projectId, string $reviewId)
+    {
+        $review = \App\Models\ProjectReview::where('project_id', $projectId)->findOrFail($reviewId);
+        $review->delete();
+
+        return back()->with('success', 'Ulasan dihapus.');
     }
 
     public function payTerm(Request $request, string $projectId, string $termId)

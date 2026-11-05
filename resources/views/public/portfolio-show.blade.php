@@ -93,6 +93,42 @@
             </div>
             @endif
 
+            @if($project->publishedReviews->count() > 0)
+            <div class="mb-12">
+                <h2 class="text-3xl font-bold text-white mb-2">Ulasan Klien</h2>
+                @if($project->averageRating())
+                <p class="text-white/70 mb-6">Rata-rata {{ $project->averageRating() }}/5 dari {{ $project->publishedReviews->count() }} ulasan</p>
+                @endif
+                <div class="space-y-4">
+                    @foreach($project->publishedReviews as $review)
+                    <div class="glass-card rounded-xl p-6">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <div class="font-semibold text-white">{{ $review->displayName() }}</div>
+                            <div class="text-amber-300 tracking-wide">{{ $review->stars() }}</div>
+                        </div>
+                        @if($review->comment)
+                        <p class="text-white/80 leading-relaxed whitespace-pre-wrap">{{ $review->comment }}</p>
+                        @endif
+                        @if($review->media->count())
+                        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @foreach($review->media as $media)
+                            <div class="rounded-lg overflow-hidden bg-black/30">
+                                @if($media->isVideo())
+                                <video src="{{ $media->url() }}" controls class="w-full max-h-64 bg-black"></video>
+                                @else
+                                <img src="{{ $media->url() }}" alt="Lampiran ulasan" class="w-full max-h-64 object-cover">
+                                @endif
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
+                        <div class="text-xs text-white/40 mt-3">{{ $review->submitted_at?->format('d/m/Y') }}</div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             @if($related->count() > 0)
             <div class="mb-12">
                 <h2 class="text-3xl font-bold text-white mb-6">Proyek Terkait</h2>

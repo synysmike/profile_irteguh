@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\PublicProjectReviewController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\AdminController;
@@ -15,6 +16,19 @@ Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
 Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
 Route::get('/portfolio/{slug}', [PortfolioController::class, 'show'])->name('portfolio.show');
+
+// Ulasan project oleh customer (verifikasi HP seperti invoice)
+Route::get('/ulasan/project/{project}', [PublicProjectReviewController::class, 'show'])
+    ->name('project.review.show');
+Route::post('/ulasan/project/{project}/verify', [PublicProjectReviewController::class, 'verify'])
+    ->middleware('throttle:8,1')
+    ->name('project.review.verify');
+Route::post('/ulasan/project/{project}', [PublicProjectReviewController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('project.review.store');
+Route::delete('/ulasan/project/{project}/media/{media}', [PublicProjectReviewController::class, 'destroyMedia'])
+    ->middleware('throttle:20,1')
+    ->name('project.review.media.destroy');
 Route::get('/berita', [\App\Http\Controllers\NewsController::class, 'index'])->name('news.index');
 Route::get('/berita/{slug}', [\App\Http\Controllers\NewsController::class, 'show'])->name('news.show');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
@@ -101,6 +115,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::patch('/projects/{project}/status', [\App\Http\Controllers\Admin\ProjectController::class, 'updateStatus'])->name('projects.update-status');
     Route::patch('/projects/{project}/progress-media/{media}/portfolio', [\App\Http\Controllers\Admin\ProjectController::class, 'toggleProgressMediaPortfolio'])->name('projects.progress-media.portfolio');
     Route::delete('/projects/{project}/progress-media/{media}', [\App\Http\Controllers\Admin\ProjectController::class, 'destroyProgressMedia'])->name('projects.progress-media.destroy');
+    Route::patch('/projects/{project}/reviews/{review}/publish', [\App\Http\Controllers\Admin\ProjectController::class, 'toggleReviewPublish'])->name('projects.reviews.publish');
+    Route::delete('/projects/{project}/reviews/{review}', [\App\Http\Controllers\Admin\ProjectController::class, 'destroyReview'])->name('projects.reviews.destroy');
     Route::patch('/projects/{project}/discount', [\App\Http\Controllers\Admin\ProjectController::class, 'updateDiscount'])->name('projects.update-discount');
     Route::patch('/projects/{project}/jasa-items', [\App\Http\Controllers\Admin\ProjectController::class, 'updateJasaItems'])->name('projects.jasa-items.update');
     Route::get('/projects/{project}/terms/edit', [\App\Http\Controllers\Admin\ProjectController::class, 'editTerms'])->name('projects.terms.edit');
