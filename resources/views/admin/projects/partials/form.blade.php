@@ -121,6 +121,89 @@
 </div>
 
 <div class="mt-6">
-    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Catatan Internal</label>
     <textarea id="notes" name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">{{ old('notes', $project->notes ?? '') }}</textarea>
+</div>
+
+<div class="mt-8 pt-6 border-t border-gray-200">
+    <h4 class="text-sm font-semibold text-gray-800 mb-1">Portofolio Publik</h4>
+    <p class="text-xs text-gray-500 mb-4">Konten ini tampil di website publik. Data keuangan/customer tidak ikut diekspos.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="is_portfolio_public" value="1" class="rounded border-gray-300"
+                   {{ old('is_portfolio_public', $project->is_portfolio_public ?? false) ? 'checked' : '' }}>
+            Tampilkan di Portofolio
+        </label>
+        <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="is_portfolio_featured" value="1" class="rounded border-gray-300"
+                   {{ old('is_portfolio_featured', $project->is_portfolio_featured ?? false) ? 'checked' : '' }}>
+            Proyek Unggulan (beranda)
+        </label>
+
+        <div>
+            <label for="portfolio_category" class="block text-sm font-medium text-gray-700 mb-2">Kategori Portofolio</label>
+            <select id="portfolio_category" name="portfolio_category" class="w-full px-4 py-2 border border-gray-300 rounded-md">
+                <option value="">— Pilih —</option>
+                @foreach(\App\Models\Project::portfolioCategories() as $cat)
+                <option value="{{ $cat }}" {{ old('portfolio_category', $project->portfolio_category ?? '') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label for="portfolio_year" class="block text-sm font-medium text-gray-700 mb-2">Tahun</label>
+            <input type="number" id="portfolio_year" name="portfolio_year" min="2000" max="2100"
+                   value="{{ old('portfolio_year', $project->portfolio_year ?? ($project->start_date?->year ?? date('Y'))) }}"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md">
+        </div>
+        <div>
+            <label for="portfolio_sort_order" class="block text-sm font-medium text-gray-700 mb-2">Urutan Tampil</label>
+            <input type="number" id="portfolio_sort_order" name="portfolio_sort_order" min="0"
+                   value="{{ old('portfolio_sort_order', $project->portfolio_sort_order ?? 0) }}"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md">
+        </div>
+        <div>
+            <label for="portfolio_client_context" class="block text-sm font-medium text-gray-700 mb-2">Konteks Klien (publik)</label>
+            <input type="text" id="portfolio_client_context" name="portfolio_client_context"
+                   value="{{ old('portfolio_client_context', $project->portfolio_client_context ?? '') }}"
+                   placeholder="Mis. Perusahaan manufaktur Jawa Timur"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md">
+        </div>
+        <div class="md:col-span-2">
+            <label for="portfolio_tags" class="block text-sm font-medium text-gray-700 mb-2">Tags (pisahkan koma)</label>
+            <input type="text" id="portfolio_tags" name="portfolio_tags"
+                   value="{{ old('portfolio_tags', isset($project) && $project->portfolio_tags ? implode(', ', $project->portfolio_tags) : '') }}"
+                   placeholder="network, automation, branding"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md">
+        </div>
+        <div class="md:col-span-2">
+            <label for="portfolio_excerpt" class="block text-sm font-medium text-gray-700 mb-2">Ringkasan Kartu</label>
+            <textarea id="portfolio_excerpt" name="portfolio_excerpt" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-md">{{ old('portfolio_excerpt', $project->portfolio_excerpt ?? '') }}</textarea>
+        </div>
+        <div class="md:col-span-2">
+            <label for="portfolio_challenge" class="block text-sm font-medium text-gray-700 mb-2">Tantangan</label>
+            <textarea id="portfolio_challenge" name="portfolio_challenge" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md">{{ old('portfolio_challenge', $project->portfolio_challenge ?? '') }}</textarea>
+        </div>
+        <div class="md:col-span-2">
+            <label for="portfolio_solution" class="block text-sm font-medium text-gray-700 mb-2">Solusi</label>
+            <textarea id="portfolio_solution" name="portfolio_solution" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md">{{ old('portfolio_solution', $project->portfolio_solution ?? '') }}</textarea>
+        </div>
+        <div class="md:col-span-2">
+            <label for="portfolio_outcome" class="block text-sm font-medium text-gray-700 mb-2">Hasil</label>
+            <textarea id="portfolio_outcome" name="portfolio_outcome" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md">{{ old('portfolio_outcome', $project->portfolio_outcome ?? '') }}</textarea>
+        </div>
+        <div class="md:col-span-2">
+            <label for="portfolio_cover" class="block text-sm font-medium text-gray-700 mb-2">Cover Portofolio</label>
+            @if(!empty($project?->portfolio_cover_path))
+            <div class="mb-2 flex items-center gap-3">
+                <img src="{{ $project->portfolioCoverUrl() }}" alt="Cover" class="h-16 w-24 object-cover rounded border">
+                <label class="text-xs text-red-600 flex items-center gap-1">
+                    <input type="checkbox" name="remove_portfolio_cover" value="1"> Hapus cover
+                </label>
+            </div>
+            @endif
+            <input type="file" id="portfolio_cover" name="portfolio_cover" accept="image/*"
+                   class="w-full text-sm text-gray-600">
+        </div>
+    </div>
 </div>

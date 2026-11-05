@@ -14,6 +14,7 @@ use App\Services\ProjectFinanceService;
 use App\Support\ProjectTermWhatsAppInvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
@@ -97,6 +98,8 @@ class ProjectController extends Controller
             $jasa = ProjectFinanceService::applyDiscount($baseSubtotal, $discount);
             $amounts = ProjectFinanceService::applyTax($jasa['net'], $tax);
 
+            $portfolio = $this->portfolioPayload($request, $validated);
+
             $project = Project::create(array_merge([
                 'code' => Project::generateCode(),
                 'title' => $validated['title'],
@@ -116,7 +119,7 @@ class ProjectController extends Controller
                 'start_date' => $validated['start_date'] ?? null,
                 'due_date' => $validated['due_date'] ?? null,
                 'notes' => $validated['notes'] ?? null,
-            ], ProjectFinanceService::discountSnapshot($discount, $jasa['discount_amount'])));
+            ], $portfolio, ProjectFinanceService::discountSnapshot($discount, $jasa['discount_amount'])));
 
             $this->syncTermsForProject($project, $validated);
 
@@ -158,7 +161,9 @@ class ProjectController extends Controller
                 ? (float) ($project->base_subtotal ?? 0)
                 : (float) $validated['subtotal'];
 
-            $project->update([
+            $portfolio = $this->portfolioPayload($request, $validated, $project);
+
+            $project->update(array_merge([
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
                 'customer_id' => $validated['customer_id'],
@@ -171,7 +176,7 @@ class ProjectController extends Controller
                 'start_date' => $validated['start_date'] ?? null,
                 'due_date' => $validated['due_date'] ?? null,
                 'notes' => $validated['notes'] ?? null,
-            ]);
+            ], $portfolio));
 
             // DPP final = jasa net + alokasi stok; pajak & termin unpaid ikut dihitung ulang.
             if ($hasLetterJasa) {
@@ -399,6 +404,19 @@ class ProjectController extends Controller
             'start_date' => 'nullable|date',
             'due_date' => 'nullable|date|after_or_equal:start_date',
             'notes' => 'nullable|string',
+            'is_portfolio_public' => 'nullable',
+            'is_portfolio_featured' => 'nullable',
+            'portfolio_category' => ['nullable', 'string', Rule::in(Project::portfolioCategories())],
+            'portfolio_year' => 'nullable|integer|min:2000|max:2100',
+            'portfolio_sort_order' => 'nullable|integer|min:0|max:9999',
+            'portfolio_client_context' => 'nullable|string|max:255',
+            'portfolio_excerpt' => 'nullable|string|max:2000',
+            'portfolio_challenge' => 'nullable|string',
+            'portfolio_solution' => 'nullable|string',
+            'portfolio_outcome' => 'nullable|string',
+            'portfolio_tags' => 'nullable|string|max:500',
+            'portfolio_cover' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'remove_portfolio_cover' => 'nullable',
             'dp' => 'nullable|array',
             'dp.label' => 'nullable|string|max:120',
             'dp.percentage' => 'nullable|numeric|min:0|max:100',
@@ -674,6 +692,57 @@ class ProjectController extends Controller
         }
 
         ProjectFinanceService::syncPaymentTerms($project, $validated['terms'] ?? []);
+    }
+
+    private function portfolioPayload(Request $request, array $validated, ?Project $project = null): array
+    {
+        $isPublic = $request->boolean('is_portfolio_public');
+        $isFeatured = $request->boolean('is_portfolio_featured');
+
+        $tags = collect(explode(',', (string) ($validated['portfolio_tags'] ?? '')))
+            ->map(fn ($t) => trim($t))
+            ->filter()
+            ->values()
+            ->all();
+
+        $year = $validated['portfolio_year']
+            ?? ($validated['start_date'] ? (int) date('Y', strtotime($validated['start_date'])) : null)
+            ?? ($project?->portfolioYearValue());
+
+        $slug = $project?->slug;
+        if ($isPublic) {
+            $slug = $slug ?: Project::makeUniqueSlug($validated['title'], $project?->id);
+        }
+
+        $coverPath = $project?->portfolio_cover_path;
+        if ($request->boolean('remove_portfolio_cover') && $coverPath) {
+            if (Storage::disk('public')->exists($coverPath)) {
+                Storage::disk('public')->delete($coverPath);
+            }
+            $coverPath = null;
+        }
+        if ($request->hasFile('portfolio_cover')) {
+            if ($coverPath && Storage::disk('public')->exists($coverPath)) {
+                Storage::disk('public')->delete($coverPath);
+            }
+            $coverPath = $request->file('portfolio_cover')->store('portfolio-covers', 'public');
+        }
+
+        return [
+            'slug' => $slug,
+            'is_portfolio_public' => $isPublic,
+            'is_portfolio_featured' => $isFeatured && $isPublic,
+            'portfolio_category' => $validated['portfolio_category'] ?? null,
+            'portfolio_year' => $year,
+            'portfolio_sort_order' => (int) ($validated['portfolio_sort_order'] ?? 0),
+            'portfolio_client_context' => $validated['portfolio_client_context'] ?? null,
+            'portfolio_excerpt' => $validated['portfolio_excerpt'] ?? null,
+            'portfolio_challenge' => $validated['portfolio_challenge'] ?? null,
+            'portfolio_solution' => $validated['portfolio_solution'] ?? null,
+            'portfolio_outcome' => $validated['portfolio_outcome'] ?? null,
+            'portfolio_tags' => $tags ?: null,
+            'portfolio_cover_path' => $coverPath,
+        ];
     }
 
     private function respondSuccess(Request $request, string $message, Project $project)

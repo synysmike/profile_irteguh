@@ -37,7 +37,17 @@
             @forelse($projects as $project)
             <tr id="projectsRow_{{ $project->id }}">
                 <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $project->code }}</td>
-                <td class="px-4 py-3 text-sm text-gray-900">{{ $project->title }}</td>
+                <td class="px-4 py-3 text-sm text-gray-900">
+                    {{ $project->title }}
+                    @if($project->is_portfolio_public)
+                    <div class="mt-1 flex flex-wrap gap-1">
+                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-emerald-100 text-emerald-800">Portofolio</span>
+                        @if($project->is_portfolio_featured)
+                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-amber-100 text-amber-800">Unggulan</span>
+                        @endif
+                    </div>
+                    @endif
+                </td>
                 <td class="px-4 py-3 text-sm text-gray-600">{{ $project->customer?->name ?? '—' }}</td>
                 <td class="px-4 py-3 text-sm">
                     <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">{{ \App\Models\Project::statusLabels()[$project->status] ?? $project->status }}</span>

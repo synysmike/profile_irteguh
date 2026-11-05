@@ -6,13 +6,11 @@
 <section class="py-20">
     <div class="container mx-auto px-4">
         <div class="max-w-7xl mx-auto">
-            <!-- Header -->
             <div class="text-center mb-12">
                 <h1 class="text-5xl font-bold text-white mb-6">Katalog Portfolio</h1>
-                <p class="text-xl text-white/80">Jelajahi studi kasus dan proyek kami</p>
+                <p class="text-xl text-white/80">Jelajahi proyek yang kami kerjakan</p>
             </div>
 
-            <!-- Filters -->
             <div class="glass-card rounded-xl p-6 mb-12">
                 <form method="GET" action="{{ route('portfolio.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
@@ -41,45 +39,50 @@
                 </form>
             </div>
 
-            <!-- Portfolio Grid -->
-            @if($caseStudies->count() > 0)
+            @if($projects->count() > 0)
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                @foreach($caseStudies as $caseStudy)
-                <a href="{{ route('case-study.show', $caseStudy->slug) }}" 
+                @foreach($projects as $project)
+                <a href="{{ route('portfolio.show', $project->slug) }}"
                    class="glass-card rounded-xl p-6 hover:scale-105 transition transform group">
-                    @if($caseStudy->visuals && count($caseStudy->visuals) > 0)
                     <div class="w-full h-48 bg-white/10 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-                        <span class="text-white/50">Pratinjau Gambar</span>
+                        @if($project->portfolioCoverUrl())
+                        <img src="{{ $project->portfolioCoverUrl() }}" alt="{{ $project->title }}" class="w-full h-full object-cover">
+                        @else
+                        <span class="text-white/50">Pratinjau Proyek</span>
+                        @endif
                     </div>
-                    @endif
                     <div class="mb-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{{ $caseStudy->category }}</span>
-                            <span class="text-xs text-white/50">{{ $caseStudy->year }}</span>
+                            @if($project->portfolio_category)
+                            <span class="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{{ $project->portfolio_category }}</span>
+                            @endif
+                            @if($project->portfolioYearValue())
+                            <span class="text-xs text-white/50">{{ $project->portfolioYearValue() }}</span>
+                            @endif
                         </div>
                         <h3 class="text-xl font-bold text-white mb-2 group-hover:text-purple-200 transition">
-                            {{ $caseStudy->title }}
+                            {{ $project->title }}
                         </h3>
                         <p class="text-white/70 text-sm mb-4">
-                            {{ Str::limit($caseStudy->excerpt ?? $caseStudy->challenge, 120) }}
+                            {{ \Illuminate\Support\Str::limit($project->portfolioExcerptText(), 120) }}
                         </p>
                     </div>
-                    @if($caseStudy->tags && count($caseStudy->tags) > 0)
+                    @if($project->portfolio_tags && count($project->portfolio_tags) > 0)
                     <div class="flex flex-wrap gap-2 mb-4">
-                        @foreach(array_slice($caseStudy->tags, 0, 3) as $tag)
+                        @foreach(array_slice($project->portfolio_tags, 0, 3) as $tag)
                         <span class="text-xs text-white/60 bg-white/5 px-2 py-1 rounded">{{ $tag }}</span>
                         @endforeach
                     </div>
                     @endif
                     <div class="text-white/70 text-sm group-hover:text-white transition">
-                        Baca studi kasus →
+                        Lihat detail proyek →
                     </div>
                 </a>
                 @endforeach
             </div>
             @else
             <div class="glass-card rounded-xl p-12 text-center">
-                <p class="text-white/70 text-lg">Tidak ada studi kasus yang ditemukan sesuai filter Anda.</p>
+                <p class="text-white/70 text-lg">Belum ada proyek publik yang sesuai filter.</p>
                 <a href="{{ route('portfolio.index') }}" class="text-purple-300 hover:text-purple-200 transition mt-4 inline-block">
                     Hapus filter
                 </a>

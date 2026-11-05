@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CaseStudy;
 use App\Models\Contributor;
 use App\Models\HeroText;
+use App\Models\Project;
 use App\Models\Slide;
-use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
@@ -17,19 +16,25 @@ class HomeController extends Controller
             $heroTexts = ['Solusi IT & Kreatif Terintegrasi'];
         }
 
-        $featuredCaseStudies = CaseStudy::where('featured', true)
-            ->orderBy('order')
+        $featuredProjects = Project::portfolioPublic()
+            ->where('is_portfolio_featured', true)
+            ->portfolioOrdered()
             ->limit(6)
             ->get();
-        
-        $categories = CaseStudy::select('category')
-            ->distinct()
-            ->pluck('category');
-        
-        $contributors = Contributor::active()->ordered()->get();
 
+        $categories = Project::portfolioPublic()
+            ->whereNotNull('portfolio_category')
+            ->distinct()
+            ->orderBy('portfolio_category')
+            ->pluck('portfolio_category');
+
+        if ($categories->isEmpty()) {
+            $categories = collect(Project::portfolioCategories());
+        }
+
+        $contributors = Contributor::active()->ordered()->get();
         $slides = Slide::active()->ordered()->get();
-        
-        return view('public.home', compact('heroTexts', 'featuredCaseStudies', 'categories', 'contributors', 'slides'));
+
+        return view('public.home', compact('heroTexts', 'featuredProjects', 'categories', 'contributors', 'slides'));
     }
 }

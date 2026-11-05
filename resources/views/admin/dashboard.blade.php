@@ -3,17 +3,15 @@
 @section('title', 'Dashboard Admin - Ir Teguh Solution')
 
 @section('content')
-        <!-- Page Header -->
         <div class="mb-8">
             <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard</h2>
             <p class="text-gray-600">Ringkasan dan statistik website</p>
         </div>
 
-        <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-white rounded-lg shadow p-6 border border-gray-200">
-                <div class="text-gray-600 text-sm mb-2">Total Studi Kasus</div>
-                <div class="text-3xl font-bold text-gray-800">{{ $stats['case_studies'] }}</div>
+                <div class="text-gray-600 text-sm mb-2">Portofolio Publik</div>
+                <div class="text-3xl font-bold text-gray-800">{{ $stats['portfolio_public'] }}</div>
             </div>
             <div class="bg-white rounded-lg shadow p-6 border border-gray-200">
                 <div class="text-gray-600 text-sm mb-2">Total Slide</div>
@@ -25,16 +23,15 @@
             </div>
         </div>
 
-        <!-- Quick Actions -->
         <div class="bg-white rounded-lg shadow mb-8 border border-gray-200">
             <div class="p-6 border-b border-gray-200">
                 <h3 class="text-xl font-semibold text-gray-800">Aksi Cepat</h3>
             </div>
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <a href="{{ route('admin.case-studies.index') }}" class="block p-6 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center">
-                    <div class="text-4xl mb-3">📝</div>
-                    <div class="text-gray-800 font-semibold">Kelola Studi Kasus</div>
+                <a href="{{ route('admin.projects.index') }}" class="block p-6 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center">
+                    <div class="text-4xl mb-3">📁</div>
+                    <div class="text-gray-800 font-semibold">Kelola Project / Portofolio</div>
                 </a>
                 <a href="{{ route('admin.news.index') }}" class="block p-6 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center">
                     <div class="text-4xl mb-3">📰</div>
@@ -58,8 +55,7 @@
                     <div class="text-gray-500 text-xs mt-2">IP, kota, provinsi, negara</div>
                 </a>
             </div>
-            
-            <!-- Accounting Section -->
+
             @if(Route::has('admin.suppliers.index') && Route::has('admin.customers.index'))
             <div class="mb-8">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Pembukuan</h3>
@@ -82,28 +78,27 @@
             </div>
         </div>
 
-        <!-- Recent Case Studies -->
         <div class="bg-white rounded-lg shadow border border-gray-200">
             <div class="p-6 border-b border-gray-200">
-                <h3 class="text-xl font-semibold text-gray-800">Studi Kasus Terbaru</h3>
+                <h3 class="text-xl font-semibold text-gray-800">Portofolio Publik Terbaru</h3>
             </div>
             <div class="p-6">
-                @if($recentCaseStudies->count() > 0)
+                @if($recentPortfolio->count() > 0)
                 <div class="space-y-3">
-                    @foreach($recentCaseStudies as $caseStudy)
+                    @foreach($recentPortfolio as $project)
                     <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                         <div>
-                            <h4 class="text-gray-800 font-semibold">{{ $caseStudy->title }}</h4>
-                            <p class="text-gray-600 text-sm">{{ $caseStudy->category }} • {{ $caseStudy->year }}</p>
+                            <h4 class="text-gray-800 font-semibold">{{ $project->title }}</h4>
+                            <p class="text-gray-600 text-sm">{{ $project->portfolio_category ?: '—' }} • {{ $project->portfolioYearValue() ?: '—' }}</p>
                         </div>
-                    <a href="{{ route('admin.case-studies.edit', $caseStudy->id) }}" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition text-sm font-medium">
-                        Edit
+                    <a href="{{ route('admin.projects.show', $project) }}" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition text-sm font-medium">
+                        Detail
                     </a>
                     </div>
                     @endforeach
                 </div>
                 @else
-                <p class="text-gray-600">Belum ada studi kasus.</p>
+                <p class="text-gray-600">Belum ada project yang dipublikasikan ke portofolio. Aktifkan di form Project.</p>
             @endif
         </div>
     </div>

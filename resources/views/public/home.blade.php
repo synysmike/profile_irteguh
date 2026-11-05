@@ -77,24 +77,14 @@
     <div class="container mx-auto px-4">
         <h2 class="text-3xl font-bold text-white text-center mb-12">Jelajahi Karya Kami</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            @foreach(['Infrastruktur IT', 'Otomasi & Workflow', 'Kreatif/Desain', 'Layanan Hukum/Bisnis'] as $categoryDisplay)
-            @php
-                // Map display name to database category name
-                $categoryMap = [
-                    'Infrastruktur IT' => 'Infrastruktur IT',
-                    'Otomasi & Workflow' => 'Otomasi & Workflow',
-                    'Kreatif/Desain' => 'Kreatif/Desain',
-                    'Layanan Hukum/Bisnis' => 'Layanan Hukum/Bisnis'
-                ];
-                $category = $categoryMap[$categoryDisplay] ?? $categoryDisplay;
-            @endphp
-            <a href="{{ route('portfolio.index', ['category' => $category]) }}" 
+            @foreach($categories as $category)
+            <a href="{{ route('portfolio.index', ['category' => $category]) }}"
                class="glass-card rounded-xl p-6 hover:bg-white/10 transition group">
                 <div class="text-white text-xl font-semibold mb-2 group-hover:text-purple-200 transition">
-                    {{ $categoryDisplay }}
+                    {{ $category }}
                 </div>
                 <div class="text-white/60 text-sm">
-                    Lihat studi kasus →
+                    Lihat proyek →
                 </div>
             </a>
             @endforeach
@@ -102,26 +92,27 @@
     </div>
 </section>
 
-<!-- Featured Case Studies -->
-@if(isset($featuredCaseStudies) && $featuredCaseStudies->count() > 0)
+@if(isset($featuredProjects) && $featuredProjects->count() > 0)
 <section class="py-16">
     <div class="container mx-auto px-4">
         <h2 class="text-3xl font-bold text-white text-center mb-12">Proyek Unggulan</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            @foreach($featuredCaseStudies as $caseStudy)
-            <a href="{{ route('case-study.show', $caseStudy->slug) }}" 
+            @foreach($featuredProjects as $project)
+            <a href="{{ route('portfolio.show', $project->slug) }}"
                class="glass-card rounded-xl p-6 hover:scale-105 transition transform">
                 <div class="mb-4">
-                    @if($caseStudy->visuals && count($caseStudy->visuals) > 0)
-                    <div class="w-full h-48 bg-white/10 rounded-lg mb-4 flex items-center justify-center">
+                    <div class="w-full h-48 bg-white/10 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                        @if($project->portfolioCoverUrl())
+                        <img src="{{ $project->portfolioCoverUrl() }}" alt="{{ $project->title }}" class="w-full h-full object-cover">
+                        @else
                         <span class="text-white/50">Image</span>
+                        @endif
                     </div>
-                    @endif
-                    <h3 class="text-xl font-bold text-white mb-2">{{ $caseStudy->title }}</h3>
-                    <p class="text-white/70 text-sm mb-4">{{ Str::limit($caseStudy->excerpt ?? $caseStudy->challenge, 100) }}</p>
+                    <h3 class="text-xl font-bold text-white mb-2">{{ $project->title }}</h3>
+                    <p class="text-white/70 text-sm mb-4">{{ Str::limit($project->portfolioExcerptText(), 100) }}</p>
                 </div>
                 <div class="flex items-center justify-between">
-                    <span class="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{{ $caseStudy->category }}</span>
+                    <span class="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{{ $project->portfolio_category ?: 'Proyek' }}</span>
                     <span class="text-white/70 text-sm">Baca selengkapnya →</span>
                 </div>
             </a>

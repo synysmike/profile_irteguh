@@ -52,13 +52,12 @@
                     <a href="{{ route('admin.dashboard') }}" class="nav-link px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('admin.dashboard') ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">Dashboard</a>
 
                     <div class="relative nav-dropdown-wrap">
-                        <button type="button" class="nav-dropdown-trigger px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 inline-flex items-center gap-1 {{ request()->routeIs('admin.case-studies.*', 'admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*', 'admin.contact.*', 'admin.news.*') ? 'bg-purple-50 text-purple-700' : '' }}">
+                        <button type="button" class="nav-dropdown-trigger px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 inline-flex items-center gap-1 {{ request()->routeIs('admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*', 'admin.contact.*', 'admin.news.*') ? 'bg-purple-50 text-purple-700' : '' }}">
                             Konten
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div class="nav-dropdown absolute left-0 top-full pt-1 w-52 z-50">
                             <div class="py-1 bg-white rounded-lg shadow-lg border border-gray-200">
-                                <a href="{{ route('admin.case-studies.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Studi Kasus</a>
                                 <a href="{{ route('admin.news.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.news.*') ? 'bg-purple-50 text-purple-700 font-medium' : '' }}">Berita</a>
                                 <a href="{{ route('admin.slides.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Slide</a>
                                 <a href="{{ route('admin.hero-texts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Teks Hero</a>
@@ -139,13 +138,12 @@
             <div class="container mx-auto px-3 py-3 space-y-1">
                 <a href="{{ route('admin.dashboard') }}" class="block px-3 py-2.5 rounded-md text-sm font-medium {{ request()->routeIs('admin.dashboard') ? 'bg-purple-50 text-purple-700' : 'text-gray-700 hover:bg-gray-50' }}">Dashboard</a>
 
-                <details class="group rounded-md" {{ request()->routeIs('admin.case-studies.*', 'admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*', 'admin.contact.*', 'admin.news.*', 'admin.site-logo.*') ? 'open' : '' }}>
+                <details class="group rounded-md" {{ request()->routeIs('admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*', 'admin.contact.*', 'admin.news.*', 'admin.site-logo.*') ? 'open' : '' }}>
                     <summary class="px-3 py-2.5 text-sm font-medium text-gray-700 cursor-pointer list-none flex items-center justify-between hover:bg-gray-50 rounded-md">
                         Konten
                         <svg class="w-4 h-4 text-gray-400 group-open:rotate-180 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </summary>
                     <div class="pl-3 pb-2 space-y-0.5">
-                        <a href="{{ route('admin.case-studies.index') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md">Studi Kasus</a>
                         <a href="{{ route('admin.news.index') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md">Berita</a>
                         <a href="{{ route('admin.slides.index') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md">Slide</a>
                         <a href="{{ route('admin.hero-texts.index') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md">Teks Hero</a>
