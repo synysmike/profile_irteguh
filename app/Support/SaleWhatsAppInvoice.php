@@ -151,6 +151,11 @@ class SaleWhatsAppInvoice
             $lines[] = 'Link ulasan project:';
             $lines[] = $sale->project->publicReviewUrl();
             $lines[] = '(Verifikasi nomor HP yang sama, lalu isi rating & komentar)';
+        } else {
+            $lines[] = '';
+            $lines[] = 'Link ulasan:';
+            $lines[] = $sale->publicReviewUrl();
+            $lines[] = '(Verifikasi nomor HP yang sama, lalu isi rating & komentar)';
         }
 
         $lines[] = '';

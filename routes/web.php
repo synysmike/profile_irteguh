@@ -6,6 +6,7 @@ use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\PublicProjectReviewController;
+use App\Http\Controllers\PublicSaleReviewController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\AdminController;
@@ -29,6 +30,20 @@ Route::post('/ulasan/project/{project}', [PublicProjectReviewController::class, 
 Route::delete('/ulasan/project/{project}/media/{media}', [PublicProjectReviewController::class, 'destroyMedia'])
     ->middleware('throttle:20,1')
     ->name('project.review.media.destroy');
+
+// Ulasan faktur penjualan non-project
+Route::get('/ulasan/faktur/{sale}', [PublicSaleReviewController::class, 'show'])
+    ->name('sale.review.show');
+Route::post('/ulasan/faktur/{sale}/verify', [PublicSaleReviewController::class, 'verify'])
+    ->middleware('throttle:8,1')
+    ->name('sale.review.verify');
+Route::post('/ulasan/faktur/{sale}', [PublicSaleReviewController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('sale.review.store');
+Route::delete('/ulasan/faktur/{sale}/media/{media}', [PublicSaleReviewController::class, 'destroyMedia'])
+    ->middleware('throttle:20,1')
+    ->name('sale.review.media.destroy');
+
 Route::get('/berita', [\App\Http\Controllers\NewsController::class, 'index'])->name('news.index');
 Route::get('/berita/{slug}', [\App\Http\Controllers\NewsController::class, 'show'])->name('news.show');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');

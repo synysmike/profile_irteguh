@@ -171,14 +171,29 @@
                             class="text-emerald-600 hover:text-emerald-800 mr-3"
                             onclick="openReviewWaModal(this)"
                             title="Minta ulasan project {{ $sale->project->code }}"
+                            data-subject-label="Project"
                             data-code="{{ $sale->project->code }}"
                             data-title="{{ $sale->project->title }}"
                             data-customer="{{ $sale->customer?->name ?: $sale->project->customer?->name }}"
                             data-phone="{{ \App\Support\PhoneNumber::normalize($sale->customer?->phone ?: $sale->project->customer?->phone) }}"
                             data-phone-display="{{ $sale->customer?->phone ?: $sale->project->customer?->phone }}"
-                            data-status="{{ $sale->project->statusLabel() }}"
-                            data-progress="{{ $sale->project->progress_percent }}"
+                            data-status="{{ $sale->project->statusLabel() }} · Progress {{ $sale->project->progress_percent }}%"
                             data-message="{{ json_encode(\App\Support\ProjectReviewWhatsApp::buildMessage($sale->project), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) }}">
+                        Minta Ulasan
+                    </button>
+                    @else
+                    <button type="button"
+                            class="text-emerald-600 hover:text-emerald-800 mr-3"
+                            onclick="openReviewWaModal(this)"
+                            title="Minta ulasan faktur {{ $sale->invoice_number }}"
+                            data-subject-label="Faktur"
+                            data-code="{{ $sale->invoice_number }}"
+                            data-title=""
+                            data-customer="{{ $sale->customer?->name }}"
+                            data-phone="{{ \App\Support\PhoneNumber::normalize($sale->customer?->phone) }}"
+                            data-phone-display="{{ $sale->customer?->phone }}"
+                            data-status="Total Rp {{ number_format((float) $sale->total, 0, ',', '.') }} · {{ $sale->sale_date?->format('d/m/Y') }}"
+                            data-message="{{ json_encode(\App\Support\SaleReviewWhatsApp::buildMessage($sale), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) }}">
                         Minta Ulasan
                     </button>
                     @endif

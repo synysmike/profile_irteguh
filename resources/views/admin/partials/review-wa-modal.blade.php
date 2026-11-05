@@ -21,7 +21,7 @@
                     <div id="reviewWaPhone" class="text-gray-600 text-xs mt-0.5"></div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-3 border">
-                    <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Project</div>
+                    <div id="reviewWaSubjectLabel" class="text-xs text-gray-500 uppercase font-semibold mb-1">Referensi</div>
                     <div id="reviewWaProject" class="font-medium text-gray-900"></div>
                     <div id="reviewWaStatus" class="text-gray-600 text-xs mt-0.5"></div>
                 </div>
@@ -32,7 +32,7 @@
                     <button type="button" id="reviewWaReset" class="text-xs text-purple-600 hover:text-purple-800">Reset template</button>
                 </div>
                 <textarea id="reviewWaMessage" rows="14" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
-                <p class="text-xs text-gray-500 mt-1">Template sudah berisi link ulasan dan detail project. Silakan edit sebelum kirim.</p>
+                <p class="text-xs text-gray-500 mt-1">Template sudah berisi link ulasan. Silakan edit sebelum kirim.</p>
             </div>
         </div>
         <div class="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end p-4 sm:p-5 border-t bg-white">
@@ -68,13 +68,18 @@ document.addEventListener('DOMContentLoaded', function() {
         phoneCache = (btn.dataset.phone || '').trim();
         templateCache = readMessage(btn);
 
+        var subjectLabel = btn.dataset.subjectLabel || 'Referensi';
+        document.getElementById('reviewWaSubjectLabel').textContent = subjectLabel;
         document.getElementById('reviewWaMeta').textContent = (btn.dataset.code || '') + ' · Minta ulasan customer';
         document.getElementById('reviewWaCustomer').textContent = btn.dataset.customer || '—';
         document.getElementById('reviewWaPhone').textContent = phoneCache
             ? ('WA: ' + (btn.dataset.phoneDisplay || phoneCache))
             : 'Nomor HP belum ada';
-        document.getElementById('reviewWaProject').textContent = (btn.dataset.code || '') + ' — ' + (btn.dataset.title || '');
-        document.getElementById('reviewWaStatus').textContent = (btn.dataset.status || '') + ' · Progress ' + (btn.dataset.progress || '0') + '%';
+        var title = btn.dataset.title || '';
+        document.getElementById('reviewWaProject').textContent = title
+            ? ((btn.dataset.code || '') + ' — ' + title)
+            : (btn.dataset.code || '—');
+        document.getElementById('reviewWaStatus').textContent = btn.dataset.status || '';
         messageEl.value = templateCache;
 
         var warn = document.getElementById('reviewWaPhoneWarn');

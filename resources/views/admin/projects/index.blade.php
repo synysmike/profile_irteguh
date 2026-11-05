@@ -68,13 +68,13 @@
                     <button type="button"
                             class="text-emerald-600 hover:text-emerald-800 mr-2"
                             onclick="openReviewWaModal(this)"
+                            data-subject-label="Project"
                             data-code="{{ $project->code }}"
                             data-title="{{ $project->title }}"
                             data-customer="{{ $project->customer?->name }}"
                             data-phone="{{ \App\Support\PhoneNumber::normalize($project->customer?->phone) }}"
                             data-phone-display="{{ $project->customer?->phone }}"
-                            data-status="{{ $project->statusLabel() }}"
-                            data-progress="{{ $project->progress_percent }}"
+                            data-status="{{ $project->statusLabel() }} · Progress {{ $project->progress_percent }}%"
                             data-message="{{ json_encode(\App\Support\ProjectReviewWhatsApp::buildMessage($project), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) }}">
                         Minta Ulasan
                     </button>

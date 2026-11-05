@@ -82,8 +82,24 @@ class Sale extends Model
     /**
      * Public invoice URL (customer must verify phone before viewing).
      */
+    public function reviews()
+    {
+        return $this->hasMany(SaleReview::class);
+    }
+
+    public function publishedReviews()
+    {
+        return $this->hasMany(SaleReview::class)->published()->latest('submitted_at');
+    }
+
     public function publicInvoiceUrl(): string
     {
         return url()->route('invoice.sales.show', ['sale' => $this->id]);
     }
+
+    public function publicReviewUrl(): string
+    {
+        return url()->route('sale.review.show', ['sale' => $this->id]);
+    }
 }
+
