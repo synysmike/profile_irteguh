@@ -48,7 +48,9 @@ class PortfolioController extends Controller
             ->firstOrFail();
 
         $related = Project::portfolioPublic()
-            ->with('portfolioMedia')
+            ->with(['portfolioMedia', 'publishedReviews'])
+            ->withAvg('publishedReviews', 'rating')
+            ->withCount('publishedReviews')
             ->where('id', '!=', $project->id)
             ->when($project->portfolio_category, fn ($q) => $q->where('portfolio_category', $project->portfolio_category))
             ->portfolioOrdered()
