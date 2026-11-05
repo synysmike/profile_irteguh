@@ -13,6 +13,11 @@
             </nav>
 
             <div class="glass-card rounded-2xl p-8 md:p-12 mb-12">
+                <div class="mb-3">
+                    <span class="inline-flex items-center px-2 py-1 text-xs rounded-full {{ $project->statusBadgeClass() }}">
+                        {{ $project->statusLabel() }}
+                    </span>
+                </div>
                 <div class="flex items-center gap-3 mb-6">
                     @if($project->portfolio_category)
                     <span class="text-sm text-white/80 bg-white/10 px-4 py-2 rounded-full">{{ $project->portfolio_category }}</span>
@@ -36,18 +41,26 @@
                 @endif
             </div>
 
-            @if($project->portfolioCoverUrl() || count($project->portfolioVisualUrls()) > 0)
+            @php $gallery = $project->portfolioGalleryItems(); @endphp
+            @if($project->portfolio_cover_path || count($gallery) > 0)
             <div class="glass-card rounded-xl p-6 mb-12">
                 <h2 class="text-2xl font-bold text-white mb-4">Visual</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    @if($project->portfolioCoverUrl())
+                    @if($project->portfolio_cover_path)
                     <div class="bg-white/10 rounded-lg overflow-hidden md:col-span-2">
-                        <img src="{{ $project->portfolioCoverUrl() }}" alt="{{ $project->title }}" class="w-full max-h-96 object-cover">
+                        <img src="{{ asset('storage/' . ltrim($project->portfolio_cover_path, '/')) }}" alt="{{ $project->title }}" class="w-full max-h-96 object-cover">
                     </div>
                     @endif
-                    @foreach($project->portfolioVisualUrls() as $visual)
-                    <div class="bg-white/10 rounded-lg overflow-hidden h-64">
-                        <img src="{{ $visual }}" alt="{{ $project->title }}" class="w-full h-full object-cover">
+                    @foreach($gallery as $visual)
+                    <div class="bg-white/10 rounded-lg overflow-hidden {{ $visual['type'] === 'video' ? '' : 'h-64' }}">
+                        @if($visual['type'] === 'video')
+                        <video src="{{ $visual['url'] }}" controls class="w-full max-h-80 bg-black"></video>
+                        @else
+                        <img src="{{ $visual['url'] }}" alt="{{ $visual['caption'] ?: $project->title }}" class="w-full h-64 object-cover">
+                        @endif
+                        @if(!empty($visual['caption']))
+                        <div class="px-3 py-2 text-sm text-white/70">{{ $visual['caption'] }}</div>
+                        @endif
                     </div>
                     @endforeach
                 </div>

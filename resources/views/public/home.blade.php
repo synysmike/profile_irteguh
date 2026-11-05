@@ -108,6 +108,11 @@
                         <span class="text-white/50">Image</span>
                         @endif
                     </div>
+                    <div class="mb-2">
+                        <span class="inline-flex items-center px-2 py-1 text-xs rounded-full {{ $project->statusBadgeClass() }}">
+                            {{ $project->statusLabel() }}
+                        </span>
+                    </div>
                     <h3 class="text-xl font-bold text-white mb-2">{{ $project->title }}</h3>
                     <p class="text-white/70 text-sm mb-4">{{ Str::limit($project->portfolioExcerptText(), 100) }}</p>
                 </div>

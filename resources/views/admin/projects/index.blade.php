@@ -50,7 +50,7 @@
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-600">{{ $project->customer?->name ?? '—' }}</td>
                 <td class="px-4 py-3 text-sm">
-                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">{{ \App\Models\Project::statusLabels()[$project->status] ?? $project->status }}</span>
+                    <span class="px-2 py-1 text-xs rounded-full {{ $project->statusBadgeClass() }}">{{ $project->statusLabel() }}</span>
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-600">
                     <div class="w-28 bg-gray-200 rounded-full h-2">

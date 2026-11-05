@@ -17,6 +17,7 @@ class HomeController extends Controller
         }
 
         $featuredProjects = Project::portfolioPublic()
+            ->with('portfolioMedia')
             ->where('is_portfolio_featured', true)
             ->portfolioOrdered()
             ->limit(6)

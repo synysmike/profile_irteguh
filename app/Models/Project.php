@@ -80,6 +80,23 @@ class Project extends Model
         ];
     }
 
+    public function statusLabel(): string
+    {
+        return static::statusLabels()[$this->status] ?? $this->status;
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            'pending' => 'bg-gray-100 text-gray-800',
+            'in_progress' => 'bg-blue-100 text-blue-800',
+            'review' => 'bg-amber-100 text-amber-800',
+            'completed' => 'bg-green-100 text-green-800',
+            'cancelled' => 'bg-red-100 text-red-800',
+            default => 'bg-gray-100 text-gray-700',
+        };
+    }
+
     public static function portfolioCategories(): array
     {
         return [
@@ -135,6 +152,19 @@ class Project extends Model
         return $this->hasMany(AssignmentLetter::class)->orderByDesc('letter_date')->orderByDesc('id');
     }
 
+    public function progressMedia(): HasMany
+    {
+        return $this->hasMany(ProjectProgressMedia::class)->orderBy('sort_order')->orderByDesc('id');
+    }
+
+    public function portfolioMedia(): HasMany
+    {
+        return $this->hasMany(ProjectProgressMedia::class)
+            ->where('show_in_portfolio', true)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
     public function scopePortfolioPublic($query)
     {
         return $query->where('is_portfolio_public', true)->whereNotNull('slug');
@@ -163,28 +193,60 @@ class Project extends Model
 
     public function portfolioCoverUrl(): ?string
     {
-        if (! $this->portfolio_cover_path) {
-            return null;
+        if ($this->portfolio_cover_path) {
+            return asset('storage/' . ltrim($this->portfolio_cover_path, '/'));
         }
 
-        return asset('storage/' . ltrim($this->portfolio_cover_path, '/'));
+        $firstImage = $this->relationLoaded('portfolioMedia')
+            ? $this->portfolioMedia->first(fn ($m) => $m->isImage())
+            : $this->portfolioMedia()->where('media_type', 'image')->first();
+
+        return $firstImage?->url();
     }
 
-    public function portfolioVisualUrls(): array
+    /**
+     * @return array<int, array{url:string,type:string,caption:?string}>
+     */
+    public function portfolioGalleryItems(): array
     {
-        $urls = [];
+        $items = [];
+
+        $media = $this->relationLoaded('portfolioMedia')
+            ? $this->portfolioMedia
+            : $this->portfolioMedia()->get();
+
+        foreach ($media as $item) {
+            $items[] = [
+                'url' => $item->url(),
+                'type' => $item->media_type,
+                'caption' => $item->caption,
+            ];
+        }
+
         foreach ($this->portfolio_visuals ?? [] as $path) {
             if (! $path) {
                 continue;
             }
-            if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-                $urls[] = $path;
-            } else {
-                $urls[] = asset('storage/' . ltrim($path, '/'));
-            }
+            $url = (str_starts_with($path, 'http://') || str_starts_with($path, 'https://'))
+                ? $path
+                : asset('storage/' . ltrim($path, '/'));
+            $items[] = [
+                'url' => $url,
+                'type' => 'image',
+                'caption' => null,
+            ];
         }
 
-        return $urls;
+        return $items;
+    }
+
+    /** @deprecated use portfolioGalleryItems() */
+    public function portfolioVisualUrls(): array
+    {
+        return array_values(array_map(
+            fn ($item) => $item['url'],
+            array_filter($this->portfolioGalleryItems(), fn ($i) => $i['type'] === 'image')
+        ));
     }
 
     public static function generateCode(): string

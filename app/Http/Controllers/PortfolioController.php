@@ -23,7 +23,7 @@ class PortfolioController extends Controller
             $query->whereJsonContains('portfolio_tags', $request->tag);
         }
 
-        $projects = $query->get();
+        $projects = $query->with('portfolioMedia')->get();
 
         $categories = Project::portfolioPublic()
             ->whereNotNull('portfolio_category')
@@ -42,9 +42,13 @@ class PortfolioController extends Controller
 
     public function show(string $slug)
     {
-        $project = Project::portfolioPublic()->where('slug', $slug)->firstOrFail();
+        $project = Project::portfolioPublic()
+            ->with('portfolioMedia')
+            ->where('slug', $slug)
+            ->firstOrFail();
 
         $related = Project::portfolioPublic()
+            ->with('portfolioMedia')
             ->where('id', '!=', $project->id)
             ->when($project->portfolio_category, fn ($q) => $q->where('portfolio_category', $project->portfolio_category))
             ->portfolioOrdered()

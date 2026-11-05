@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\Project;
 use App\Models\ProjectPaymentTerm;
+use App\Models\ProjectProgressMedia;
 use App\Models\Purchase;
 use App\Models\SaleTransaction;
 use App\Models\Tax;
@@ -43,6 +44,7 @@ class ProjectController extends Controller
             'assignmentLetters.assignees',
             'assignmentLetters.jasaItems',
             'saleTransactions.purchase.supplier',
+            'progressMedia',
         ])->findOrFail($id);
 
         $availableAllocations = SaleTransaction::availableForProject()
@@ -267,22 +269,88 @@ class ProjectController extends Controller
         $validated = $request->validate([
             'status' => ['required', Rule::in(array_keys(Project::statusLabels()))],
             'progress_percent' => 'nullable|integer|min:0|max:100',
+            'media_caption' => 'nullable|string|max:255',
+            'show_in_portfolio' => 'nullable',
+            'progress_media' => 'nullable|array|max:10',
+            'progress_media.*' => 'file|mimetypes:image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime|max:51200',
+        ], [
+            'progress_media.*.max' => 'Setiap file maksimal 50 MB.',
+            'progress_media.*.mimetypes' => 'File harus berupa gambar (JPG/PNG/WEBP) atau video (MP4/WEBM/MOV).',
         ]);
+
+        $progress = $validated['progress_percent'] ?? $project->progress_percent;
 
         $project->update([
             'status' => $validated['status'],
-            'progress_percent' => $validated['progress_percent'] ?? $project->progress_percent,
+            'progress_percent' => $progress,
         ]);
+
+        $uploaded = 0;
+        $showInPortfolio = $request->boolean('show_in_portfolio');
+        $caption = trim((string) ($validated['media_caption'] ?? '')) ?: null;
+
+        foreach ($request->file('progress_media', []) as $file) {
+            if (! $file) {
+                continue;
+            }
+            $mime = (string) $file->getMimeType();
+            $type = str_starts_with($mime, 'video/') ? 'video' : 'image';
+            $path = $file->store('project-progress/' . $project->id, 'public');
+
+            ProjectProgressMedia::create([
+                'project_id' => $project->id,
+                'file_path' => $path,
+                'media_type' => $type,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $mime,
+                'file_size' => $file->getSize(),
+                'caption' => $caption,
+                'status_snapshot' => $validated['status'],
+                'progress_snapshot' => $progress,
+                'show_in_portfolio' => $showInPortfolio,
+                'sort_order' => (int) $project->progressMedia()->max('sort_order') + 1,
+                'uploaded_by' => $request->user()?->id,
+            ]);
+            $uploaded++;
+        }
+
+        $message = 'Status project diperbarui.';
+        if ($uploaded > 0) {
+            $message .= " {$uploaded} bukti progres diunggah.";
+        }
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Status project diperbarui.',
-                'data' => $project,
+                'message' => $message,
+                'data' => $project->fresh('progressMedia'),
             ]);
         }
 
-        return back()->with('success', 'Status project diperbarui.');
+        return back()->with('success', $message);
+    }
+
+    public function toggleProgressMediaPortfolio(Request $request, string $projectId, string $mediaId)
+    {
+        $media = ProjectProgressMedia::where('project_id', $projectId)->findOrFail($mediaId);
+        $media->update([
+            'show_in_portfolio' => ! $media->show_in_portfolio,
+        ]);
+
+        return back()->with(
+            'success',
+            $media->show_in_portfolio
+                ? 'Media ditampilkan di portofolio publik.'
+                : 'Media disembunyikan dari portofolio publik.'
+        );
+    }
+
+    public function destroyProgressMedia(string $projectId, string $mediaId)
+    {
+        $media = ProjectProgressMedia::where('project_id', $projectId)->findOrFail($mediaId);
+        $media->delete();
+
+        return back()->with('success', 'Bukti progres dihapus.');
     }
 
     public function payTerm(Request $request, string $projectId, string $termId)

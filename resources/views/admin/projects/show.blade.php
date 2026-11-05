@@ -36,7 +36,11 @@
     <div class="bg-white rounded-lg shadow border border-gray-200 p-5">
         <div class="text-sm text-gray-500 mb-1">Status</div>
         <div class="text-lg font-semibold text-gray-900">{{ \App\Models\Project::statusLabels()[$project->status] ?? $project->status }}</div>
-        <form method="POST" action="{{ route('admin.projects.update-status', $project) }}" class="mt-4 space-y-3">
+        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div class="bg-purple-600 h-2 rounded-full" style="width: {{ $project->progress_percent }}%"></div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">{{ $project->progress_percent }}%</div>
+        <form method="POST" action="{{ route('admin.projects.update-status', $project) }}" enctype="multipart/form-data" class="mt-4 space-y-3">
             @csrf
             @method('PATCH')
             <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
@@ -45,6 +49,19 @@
                 @endforeach
             </select>
             <input type="number" name="progress_percent" min="0" max="100" value="{{ $project->progress_percent }}" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="Progress %">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Bukti progres (foto/video)</label>
+                <input type="file" name="progress_media[]" multiple accept="image/*,video/mp4,video/webm,video/quicktime"
+                       class="w-full text-xs text-gray-600">
+                <p class="text-[11px] text-gray-400 mt-1">JPG/PNG/WEBP atau MP4/WEBM/MOV · max 50MB/file · max 10 file</p>
+            </div>
+            <input type="text" name="media_caption" maxlength="255" placeholder="Caption (opsional)"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+            <label class="flex items-center gap-2 text-xs text-gray-700">
+                <input type="hidden" name="show_in_portfolio" value="0">
+                <input type="checkbox" name="show_in_portfolio" value="1" checked class="rounded border-gray-300">
+                Tampilkan di portofolio publik
+            </label>
             <button type="submit" class="w-full px-3 py-2 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-900">Update Progress</button>
         </form>
     </div>
@@ -97,6 +114,59 @@
     }));
     $jasaQtyLocked = $project->paymentTerms->where('status', 'paid')->isNotEmpty();
 @endphp
+
+{{-- Bukti progres foto/video --}}
+<div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mb-6">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800">Bukti Progres</h3>
+            <p class="text-sm text-gray-500 mt-0.5">Foto/video update status. Yang ditandai portofolio ikut tampil di halaman publik.</p>
+        </div>
+        <span class="text-xs text-gray-500">{{ $project->progressMedia->count() }} file</span>
+    </div>
+    @if($project->progressMedia->isEmpty())
+    <div class="px-6 py-8 text-center text-gray-500 text-sm">Belum ada bukti progres. Unggah lewat form Status di atas.</div>
+    @else
+    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach($project->progressMedia as $media)
+        <div class="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+            <div class="aspect-video bg-black/5 flex items-center justify-center overflow-hidden">
+                @if($media->isVideo())
+                <video src="{{ $media->url() }}" controls class="w-full h-full object-contain bg-black"></video>
+                @else
+                <img src="{{ $media->url() }}" alt="{{ $media->caption ?: $media->original_name }}" class="w-full h-full object-cover">
+                @endif
+            </div>
+            <div class="p-3 space-y-2">
+                <div class="text-xs text-gray-500">
+                    {{ strtoupper($media->media_type) }}
+                    @if($media->status_snapshot) · {{ \App\Models\Project::statusLabels()[$media->status_snapshot] ?? $media->status_snapshot }}@endif
+                    @if(!is_null($media->progress_snapshot)) · {{ $media->progress_snapshot }}%@endif
+                    · {{ $media->created_at?->format('d/m/Y H:i') }}
+                </div>
+                @if($media->caption)
+                <div class="text-sm text-gray-800">{{ $media->caption }}</div>
+                @endif
+                <div class="flex flex-wrap gap-2 items-center justify-between">
+                    <form method="POST" action="{{ route('admin.projects.progress-media.portfolio', [$project, $media]) }}">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" class="text-xs px-2 py-1 rounded {{ $media->show_in_portfolio ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600' }}">
+                            {{ $media->show_in_portfolio ? 'Di Portofolio' : 'Tidak di Portofolio' }}
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.projects.progress-media.destroy', [$project, $media]) }}" onsubmit="return confirm('Hapus media ini?')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="text-xs text-red-600 hover:text-red-800">Hapus</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+</div>
 
 {{-- Item Jasa (dari surat tugas) — qty bisa disesuaikan --}}
 <div id="item-jasa" class="bg-white rounded-lg shadow border-2 border-indigo-300 overflow-hidden mb-6">
