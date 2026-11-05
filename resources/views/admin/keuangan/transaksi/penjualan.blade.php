@@ -166,6 +166,22 @@
                     @else
                     <span class="text-gray-400 mr-3 cursor-not-allowed" title="Customer belum punya nomor HP">WA</span>
                     @endif
+                    @if($sale->project)
+                    <button type="button"
+                            class="text-emerald-600 hover:text-emerald-800 mr-3"
+                            onclick="openReviewWaModal(this)"
+                            title="Minta ulasan project {{ $sale->project->code }}"
+                            data-code="{{ $sale->project->code }}"
+                            data-title="{{ $sale->project->title }}"
+                            data-customer="{{ $sale->customer?->name ?: $sale->project->customer?->name }}"
+                            data-phone="{{ \App\Support\PhoneNumber::normalize($sale->customer?->phone ?: $sale->project->customer?->phone) }}"
+                            data-phone-display="{{ $sale->customer?->phone ?: $sale->project->customer?->phone }}"
+                            data-status="{{ $sale->project->statusLabel() }}"
+                            data-progress="{{ $sale->project->progress_percent }}"
+                            data-message="{{ json_encode(\App\Support\ProjectReviewWhatsApp::buildMessage($sale->project), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) }}">
+                        Minta Ulasan
+                    </button>
+                    @endif
                     <button type="button" onclick="openResourceModal('saleModal', 'sales', 'Penjualan', {{ $sale->id }})" class="text-purple-600 hover:text-purple-800 mr-3">Edit</button>
                     <button type="button" onclick="deleteResource('sales', {{ $sale->id }}, 'Penjualan')" class="text-red-600 hover:text-red-800">Hapus</button>
                 </td>
@@ -182,6 +198,7 @@
 @include('admin.components.modal', ['modalId' => 'saleModal', 'title' => 'Edit Penjualan'])
 @include('admin.components.modal', ['modalId' => 'purchaseModal', 'title' => 'Tambah Grosir'])
 @include('admin.components.modal', ['modalId' => 'customerModal', 'title' => 'Tambah Customer'])
+@include('admin.partials.review-wa-modal')
 @endsection
 
 @push('scripts')

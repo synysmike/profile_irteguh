@@ -169,7 +169,7 @@ class KeuanganController extends Controller
     /** 3. Transaksi - Penjualan */
     public function transaksiPenjualan()
     {
-        $sales = Sale::with('customer', 'cashTransaction', 'project')->latestFirst()->get();
+        $sales = Sale::with('customer', 'cashTransaction', 'project.customer')->latestFirst()->get();
         $customers = Customer::active()->orderBy('name')->get();
         $taxes = Tax::where('is_active', true)->orderBy('name')->get();
         $nextInvoiceNumber = Sale::generateInvoiceNumber();
