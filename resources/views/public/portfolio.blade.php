@@ -101,6 +101,77 @@
                 </a>
             </div>
             @endif
+
+            @if(!empty($githubTeamRepos))
+            <div class="mt-14 pt-10 border-t border-white/10">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white">Project GitHub Tim</h2>
+                    <p class="text-sm text-white/60 mt-1">Repo publik per tim</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    @foreach($githubTeamRepos as $group)
+                    @php
+                        $team = $group['team'];
+                        $repos = $group['repos'];
+                        $error = $group['error'];
+                        $shownRepos = array_slice($repos, 0, 5);
+                        $moreCount = max(0, count($repos) - count($shownRepos));
+                    @endphp
+                    <section class="glass-card rounded-xl p-4 flex flex-col min-w-0">
+                        <div class="flex items-start justify-between gap-2 mb-3">
+                            <div class="min-w-0">
+                                <h3 class="text-base font-semibold text-white truncate">{{ $team->name }}</h3>
+                                <a href="{{ $team->normalizedGithubUrl() }}" target="_blank" rel="noopener"
+                                   class="text-xs text-white/50 hover:text-white transition truncate block">
+                                    {{ $team->githubLogin() }}
+                                </a>
+                            </div>
+                            @if($team->activeContributors->isNotEmpty())
+                            <div class="flex -space-x-1.5 shrink-0" title="{{ $team->activeContributors->pluck('name')->join(', ') }}">
+                                @foreach($team->activeContributors->take(4) as $member)
+                                <img src="{{ $member->image_url }}"
+                                     alt="{{ $member->name }}"
+                                     class="w-6 h-6 rounded-full object-cover ring-1 ring-black/40"
+                                     onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($member->name) }}&size=48&background=312e81&color=e0e7ff'">
+                                @endforeach
+                                @if($team->activeContributors->count() > 4)
+                                <span class="w-6 h-6 rounded-full bg-white/10 text-[10px] text-white/70 flex items-center justify-center ring-1 ring-black/40">+{{ $team->activeContributors->count() - 4 }}</span>
+                                @endif
+                            </div>
+                            @endif
+                        </div>
+
+                        @if($error && count($repos) === 0)
+                        <p class="text-xs text-white/50">{{ $error }}</p>
+                        @elseif(count($repos) === 0)
+                        <p class="text-xs text-white/50">Belum ada repo publik.</p>
+                        @else
+                        <ul class="space-y-1.5 flex-1">
+                            @foreach($shownRepos as $repo)
+                            <li>
+                                <a href="{{ $repo['html_url'] }}" target="_blank" rel="noopener"
+                                   class="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/5 transition min-w-0">
+                                    <span class="text-white/85 truncate">{{ $repo['name'] }}</span>
+                                    <span class="text-[11px] text-white/40 shrink-0 tabular-nums">
+                                        @if(!empty($repo['language'])){{ $repo['language'] }} · @endif★{{ $repo['stargazers_count'] }}
+                                    </span>
+                                </a>
+                            </li>
+                            @endforeach
+                        </ul>
+                        @if($moreCount > 0)
+                        <a href="{{ $team->normalizedGithubUrl() }}?tab=repositories" target="_blank" rel="noopener"
+                           class="mt-2 text-xs text-white/50 hover:text-white transition">
+                            +{{ $moreCount }} repo lainnya
+                        </a>
+                        @endif
+                        @endif
+                    </section>
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 </section>

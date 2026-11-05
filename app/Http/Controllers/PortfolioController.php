@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GithubTeam;
 use App\Models\Project;
+use App\Services\GithubRepoService;
 use Illuminate\Http\Request;
 
 class PortfolioController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, GithubRepoService $githubRepos)
     {
         $query = Project::portfolioPublic()->portfolioOrdered();
 
@@ -37,7 +39,13 @@ class PortfolioController extends Controller
             ->orderByDesc('portfolio_year')
             ->pluck('portfolio_year');
 
-        return view('public.portfolio', compact('projects', 'categories', 'years'));
+        $githubTeams = GithubTeam::active()
+            ->ordered()
+            ->with(['activeContributors' => fn ($q) => $q->ordered()])
+            ->get();
+        $githubTeamRepos = $githubRepos->reposForTeams($githubTeams);
+
+        return view('public.portfolio', compact('projects', 'categories', 'years', 'githubTeamRepos'));
     }
 
     public function show(string $slug)

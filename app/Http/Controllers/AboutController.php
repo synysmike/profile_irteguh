@@ -9,7 +9,7 @@ class AboutController extends Controller
 {
     public function index()
     {
-        $contributors = Contributor::active()->ordered()->get();
+        $contributors = Contributor::active()->ordered()->with('githubTeam')->get();
         return view('public.about', compact('contributors'));
     }
 }

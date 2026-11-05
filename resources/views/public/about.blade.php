@@ -87,7 +87,7 @@
 
             <!-- Contributors/Team Section -->
             @if(isset($contributors) && $contributors->count() > 0)
-            <div class="glass-card rounded-2xl p-8 md:p-12 mb-12">
+            <div id="tim-kami" class="glass-card rounded-2xl p-8 md:p-12 mb-12 scroll-mt-24">
                 <h2 class="text-3xl font-bold text-white text-center mb-12">Tim Kami</h2>
                 
                 <!-- Slider Container -->
@@ -111,6 +111,13 @@
                                     <div class="contributor-info">
                                         <div class="contributor-name">{{ $contributor->name }}</div>
                                         <div class="contributor-role">{{ $contributor->role }}</div>
+                                        @if($contributor->githubTeam)
+                                        <a href="{{ $contributor->githubTeam->normalizedGithubUrl() }}"
+                                           target="_blank" rel="noopener"
+                                           class="inline-block mt-2 text-xs text-purple-200/90 hover:text-white transition">
+                                            {{ $contributor->githubTeam->name }} · GitHub
+                                        </a>
+                                        @endif
                                     </div>
                                 </div>
                                 @endforeach

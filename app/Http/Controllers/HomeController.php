@@ -33,7 +33,7 @@ class HomeController extends Controller
             $categories = collect(Project::portfolioCategories());
         }
 
-        $contributors = Contributor::active()->ordered()->get();
+        $contributors = Contributor::active()->ordered()->with('githubTeam')->get();
         $slides = Slide::active()->ordered()->get();
 
         return view('public.home', compact('heroTexts', 'featuredProjects', 'categories', 'contributors', 'slides'));

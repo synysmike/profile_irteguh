@@ -193,6 +193,13 @@
                                     <div class="contributor-info">
                                         <div class="contributor-name">{{ $contributor->name }}</div>
                                         <div class="contributor-role">{{ $contributor->role }}</div>
+                                        @if($contributor->githubTeam)
+                                        <a href="{{ $contributor->githubTeam->normalizedGithubUrl() }}"
+                                           target="_blank" rel="noopener"
+                                           class="inline-block mt-2 text-xs text-purple-200/90 hover:text-white transition">
+                                            {{ $contributor->githubTeam->name }} · GitHub
+                                        </a>
+                                        @endif
                                     </div>
                                 </div>
                                 @endforeach

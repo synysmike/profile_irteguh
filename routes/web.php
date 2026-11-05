@@ -100,6 +100,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('hero-texts', \App\Http\Controllers\Admin\HeroTextController::class);
     Route::resource('services', \App\Http\Controllers\Admin\ServiceController::class);
     Route::resource('contributors', \App\Http\Controllers\Admin\ContributorController::class);
+    Route::resource('github-teams', \App\Http\Controllers\Admin\GithubTeamController::class)->except(['show']);
     Route::resource('news', \App\Http\Controllers\Admin\NewsController::class)->except(['show']);
     
     // Accounting/Bookkeeping routes

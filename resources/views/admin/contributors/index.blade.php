@@ -23,6 +23,9 @@
                          class="w-24 h-24 rounded-full mx-auto mb-3 object-cover">
                     <h3 class="font-semibold text-gray-800">{{ $contributor->name }}</h3>
                     <p class="text-sm text-gray-600">{{ $contributor->role }}</p>
+                    @if($contributor->githubTeam)
+                    <p class="text-xs text-purple-600 mt-1">GitHub: {{ $contributor->githubTeam->name }}</p>
+                    @endif
                 </div>
                 <div class="flex items-center justify-between text-sm mb-4">
                     <span class="text-gray-500">Urutan: {{ $contributor->order }}</span>
