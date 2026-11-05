@@ -139,7 +139,9 @@ class SaleController extends Controller
             'invoice_number' => 'required|string|max:50|unique:sales,invoice_number',
             'sale_date' => 'required|date',
             'notes' => 'nullable|string',
+            'show_in_public' => 'nullable|boolean',
         ]);
+        $validated['show_in_public'] = $request->boolean('show_in_public');
 
         $transactions = SaleTransaction::whereIn('id', $transactionIds)->get();
         $subtotal = $transactions->sum('subtotal');
@@ -257,9 +259,11 @@ class SaleController extends Controller
             'sale_date' => 'required|date',
             'subtotal' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
+            'show_in_public' => 'nullable|boolean',
             'transaction_ids' => 'required|array|min:1',
             'transaction_ids.*' => 'required|exists:sale_transactions,id',
         ]);
+        $validated['show_in_public'] = $request->boolean('show_in_public');
 
         $tax = !empty($validated['tax_id']) ? Tax::find($validated['tax_id']) : null;
         $taxAmount = $tax ? $tax->calculateAmount((float) $validated['subtotal']) : 0;
@@ -406,6 +410,7 @@ class SaleController extends Controller
             'invoice_number' => 'required|string|max:50|unique:sales,invoice_number',
             'sale_date' => 'required|date',
             'notes' => 'nullable|string',
+            'show_in_public' => 'nullable|boolean',
             'cart' => 'required|array|min:1',
             'cart.*.type' => 'required|in:purchase,sale_transaction',
             'cart.*.purchase_id' => 'nullable|exists:purchases,id',
@@ -422,6 +427,7 @@ class SaleController extends Controller
                 'invoice_number' => $validated['invoice_number'],
                 'sale_date' => $validated['sale_date'],
                 'notes' => $validated['notes'] ?? null,
+                'show_in_public' => $request->boolean('show_in_public'),
             ], $validated['cart']);
 
             Session::forget(self::PENDING_SESSION_KEY);
@@ -444,6 +450,30 @@ class SaleController extends Controller
                 'message' => 'Gagal membuat invoice: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Toggle tampil di halaman publik (hanya faktur non-project).
+     */
+    public function togglePublic(Sale $sale)
+    {
+        if ($sale->project_id) {
+            return back()->with('error', 'Faktur project tidak ditampilkan di katalog penjualan publik.');
+        }
+
+        $sale->update(['show_in_public' => ! $sale->show_in_public]);
+
+        $label = $sale->show_in_public ? 'ditampilkan' : 'disembunyikan';
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'show_in_public' => $sale->show_in_public,
+                'message' => "Faktur {$sale->invoice_number} {$label} di halaman publik.",
+            ]);
+        }
+
+        return back()->with('success', "Faktur {$sale->invoice_number} {$label} di halaman publik.");
     }
 
     /**

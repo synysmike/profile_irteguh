@@ -144,6 +144,7 @@ class PosCheckoutService
                 'tax_calculation_type' => $tax?->calculation_type,
                 'total' => max($total, 0),
                 'notes' => $header['notes'] ?? null,
+                'show_in_public' => (bool) ($header['show_in_public'] ?? false),
             ]);
 
             foreach ($lines as $index => $line) {

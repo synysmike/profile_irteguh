@@ -97,6 +97,13 @@
                 <label class="block text-xs font-medium text-gray-600 mb-1">Catatan</label>
                 <input type="text" id="pos-notes" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="Opsional">
             </div>
+            <label class="inline-flex items-start gap-2 cursor-pointer rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+                <input type="checkbox" id="pos-show-public" value="1" class="mt-0.5 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                <span>
+                    <span class="block text-xs font-medium text-gray-800">Tampilkan di halaman publik</span>
+                    <span class="block text-[11px] text-gray-500">Muncul di katalog /penjualan (non-project)</span>
+                </span>
+            </label>
         </div>
 
         <div id="pos-cart" class="flex-1 overflow-y-auto max-h-[240px] p-3 space-y-2 bg-gray-50">
@@ -131,6 +138,7 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Pajak</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Publik</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
             </tr>
         </thead>
@@ -157,6 +165,21 @@
                     <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">Terkait Kas</span>
                     @else
                     <span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">Belum Posting</span>
+                    @endif
+                </td>
+                <td class="px-4 py-3 text-sm">
+                    @if($sale->project_id)
+                    <span class="text-xs text-gray-400" title="Faktur project tidak masuk katalog penjualan publik">—</span>
+                    @else
+                    <form method="POST" action="{{ route('admin.sales.toggle-public', $sale) }}" class="inline">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit"
+                                class="px-2 py-0.5 text-xs rounded-full font-medium {{ $sale->show_in_public ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}"
+                                title="{{ $sale->show_in_public ? 'Klik untuk sembunyikan dari publik' : 'Klik untuk tampilkan di /penjualan' }}">
+                            {{ $sale->show_in_public ? 'Tampil' : 'Sembunyi' }}
+                        </button>
+                    </form>
                     @endif
                 </td>
                 <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
@@ -203,7 +226,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="9" class="px-4 py-8 text-center text-gray-500">Belum ada faktur. Selesaikan transaksi di kasir di atas.</td>
+                <td colspan="10" class="px-4 py-8 text-center text-gray-500">Belum ada faktur. Selesaikan transaksi di kasir di atas.</td>
             </tr>
             @endforelse
         </tbody>
@@ -479,6 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
             invoice_number: invoiceNumber,
             sale_date: saleDate,
             notes: document.getElementById('pos-notes').value || null,
+            show_in_public: document.getElementById('pos-show-public')?.checked ? 1 : 0,
             cart: cart.map(function(item) {
                 if (item.type === 'sale_transaction') {
                     return { type: 'sale_transaction', sale_transaction_id: item.sale_transaction_id };

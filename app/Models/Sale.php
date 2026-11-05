@@ -11,6 +11,7 @@ class Sale extends Model
         'discount_id', 'discount_name', 'discount_type', 'discount_value', 'discount_amount',
         'invoice_number', 'sale_date',
         'subtotal', 'ppn_amount', 'tax_name', 'tax_rate', 'tax_calculation_type', 'total', 'notes',
+        'show_in_public',
         'is_posted', 'posted_at',
     ];
 
@@ -22,6 +23,7 @@ class Sale extends Model
         'discount_value' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'total' => 'decimal:2',
+        'show_in_public' => 'boolean',
         'is_posted' => 'boolean',
         'posted_at' => 'datetime',
     ];
@@ -69,6 +71,37 @@ class Sale extends Model
     public function scopeLatestFirst($query)
     {
         return $query->orderBy('sale_date', 'desc')->orderBy('id', 'desc');
+    }
+
+    /**
+     * Faktur POS non-project yang ditampilkan di halaman publik.
+     */
+    public function scopePublicCatalog($query)
+    {
+        return $query->where('show_in_public', true)
+            ->whereNull('project_id')
+            ->latestFirst();
+    }
+
+    public function publicTitle(): string
+    {
+        $items = $this->relationLoaded('saleItems')
+            ? $this->saleItems
+            : $this->saleItems()->orderBy('sort_order')->get();
+
+        $firstItem = $items->first();
+        if ($firstItem && trim((string) $firstItem->description) !== '') {
+            $extra = $items->count() > 1 ? ' +' . ($items->count() - 1) . ' item' : '';
+
+            return \Illuminate\Support\Str::limit($firstItem->description, 80) . $extra;
+        }
+
+        return 'Penjualan ' . $this->invoice_number;
+    }
+
+    public function publicUrl(): string
+    {
+        return route('sales.public.show', $this);
     }
 
     public static function generateInvoiceNumber(): string

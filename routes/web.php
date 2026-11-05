@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\PublicSaleController;
 use App\Http\Controllers\PublicProjectReviewController;
 use App\Http\Controllers\PublicSaleReviewController;
 use App\Http\Controllers\ContactController;
@@ -17,6 +18,8 @@ Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
 Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
 Route::get('/portfolio/{slug}', [PortfolioController::class, 'show'])->name('portfolio.show');
+Route::get('/penjualan', [PublicSaleController::class, 'index'])->name('sales.public.index');
+Route::get('/penjualan/{sale}', [PublicSaleController::class, 'show'])->name('sales.public.show');
 
 // Ulasan project oleh customer (verifikasi HP seperti invoice)
 Route::get('/ulasan/project/{project}', [PublicProjectReviewController::class, 'show'])
@@ -149,6 +152,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/sales/{id}/whatsapp', [\App\Http\Controllers\Admin\SaleController::class, 'whatsapp'])->name('sales.whatsapp');
     Route::get('/sales/pos/catalog', [\App\Http\Controllers\Admin\SaleController::class, 'posCatalog'])->name('sales.pos.catalog');
     Route::post('/sales/pos/checkout', [\App\Http\Controllers\Admin\SaleController::class, 'posCheckout'])->name('sales.pos.checkout');
+    Route::patch('/sales/{sale}/public', [\App\Http\Controllers\Admin\SaleController::class, 'togglePublic'])->name('sales.toggle-public');
     Route::get('/sales/pending-transactions/list', [\App\Http\Controllers\Admin\SaleController::class, 'pendingTransactionsList'])->name('sales.pending-transactions.list');
     Route::post('/sales/pending-transactions', [\App\Http\Controllers\Admin\SaleController::class, 'addPendingTransaction'])->name('sales.pending-transactions.add');
     Route::delete('/sales/pending-transactions/clear', [\App\Http\Controllers\Admin\SaleController::class, 'clearPendingTransactions'])->name('sales.pending-transactions.clear');

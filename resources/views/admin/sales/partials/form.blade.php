@@ -112,6 +112,21 @@
         <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
         <textarea id="notes" name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">{{ old('notes', isset($sale) && $sale ? $sale->notes : '') }}</textarea>
     </div>
+
+    @if(!isset($sale) || !$sale || !$sale->project_id)
+    <div class="md:col-span-2">
+        <input type="hidden" name="show_in_public" value="0">
+        <label class="inline-flex items-start gap-2 cursor-pointer">
+            <input type="checkbox" name="show_in_public" value="1"
+                   {{ old('show_in_public', isset($sale) && $sale ? $sale->show_in_public : false) ? 'checked' : '' }}
+                   class="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+            <span>
+                <span class="block text-sm font-medium text-gray-800">Tampilkan di halaman publik</span>
+                <span class="block text-xs text-gray-500">Faktur non-project ini akan muncul di katalog /penjualan</span>
+            </span>
+        </label>
+    </div>
+    @endif
 </div>
 
 <script>
