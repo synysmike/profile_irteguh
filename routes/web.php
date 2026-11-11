@@ -115,6 +115,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('/site-logo/letterhead', [\App\Http\Controllers\Admin\SiteLogoController::class, 'updateLetterhead'])->name('site-logo.update-letterhead');
     Route::patch('/site-logo/size', [\App\Http\Controllers\Admin\SiteLogoController::class, 'updateSize'])->name('site-logo.update-size');
     Route::delete('/site-logo', [\App\Http\Controllers\Admin\SiteLogoController::class, 'destroy'])->name('site-logo.destroy');
+    Route::get('/home-theme', [\App\Http\Controllers\Admin\HomeThemeController::class, 'edit'])->name('home-theme.edit');
+    Route::put('/home-theme', [\App\Http\Controllers\Admin\HomeThemeController::class, 'update'])->name('home-theme.update');
     
     // Resource routes
     Route::resource('slides', \App\Http\Controllers\Admin\SlideController::class);
@@ -180,6 +182,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/master/klien-vendor', [\App\Http\Controllers\Admin\KeuanganController::class, 'masterKlienVendor'])->name('master.klien-vendor');
         Route::get('/master/karyawan', [\App\Http\Controllers\Admin\KeuanganController::class, 'masterKaryawan'])->name('master.karyawan');
         Route::get('/transaksi/penjualan', [\App\Http\Controllers\Admin\KeuanganController::class, 'transaksiPenjualan'])->name('transaksi.penjualan');
+        Route::get('/order-layanan', [\App\Http\Controllers\Admin\KeuanganController::class, 'orderLayanan'])->name('order-layanan');
         Route::get('/sale-transactions/purchase/{purchaseId}', [\App\Http\Controllers\Admin\SaleTransactionController::class, 'purchaseDetails'])->name('sale-transactions.purchase-details');
         Route::patch('/sale-transactions/{sale_transaction}/layanan', [\App\Http\Controllers\Admin\SaleTransactionController::class, 'updateLayanan'])->name('sale-transactions.update-layanan');
         Route::resource('sale-transactions', \App\Http\Controllers\Admin\SaleTransactionController::class);

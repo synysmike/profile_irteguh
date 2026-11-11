@@ -1,6 +1,8 @@
 @extends('public.layouts.app')
 
-@section('title', 'Beranda - Ir Teguh Solution')
+@php $theme = $theme ?? \App\Models\Setting::homeTheme(); @endphp
+
+@section('title', 'Beranda - ' . \App\Models\Setting::appName())
 
 @section('body_class', 'bg-gray-950')
 @section('fullpage_hero', true)
@@ -18,43 +20,43 @@
              loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
              decoding="async">
         @endforeach
-        <div class="absolute inset-0 bg-black/35"></div>
+        <div class="absolute inset-0 theme-hero-overlay"></div>
         <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/50"></div>
     </div>
     @else
-    <div class="absolute inset-0 z-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900" aria-hidden="true"></div>
+    <div class="absolute inset-0 z-0 theme-fallback-gradient" aria-hidden="true"></div>
     @endif
 
     <div class="relative z-10 flex h-full items-center justify-center px-4 pt-16 pb-20">
         <div class="max-w-4xl mx-auto text-center w-full">
             <div class="hero-brand mb-8 md:mb-10 animate-fade-in">
                 <p class="inline-flex items-center gap-2 px-4 py-1.5 mb-4 text-xs md:text-sm uppercase tracking-[0.25em] text-white/90 font-semibold rounded-full border border-white/20 bg-white/10 backdrop-blur-md shadow-lg">
-                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
-                    Selamat Datang Di Situs Resmi
+                    <span class="w-1.5 h-1.5 rounded-full animate-pulse" style="background-color: var(--theme-accent)"></span>
+                    {{ $theme['kicker'] }}
                 </p>
                 <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-lg leading-tight tracking-tight">
                     <span class="bg-gradient-to-r from-white via-purple-100 to-white bg-clip-text text-transparent">
                         {{ \App\Models\Setting::appName() }}
                     </span>
                 </h1>
-                <div class="mx-auto mt-5 h-1 w-24 rounded-full bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-80"></div>
+                <div class="mx-auto mt-5 h-1 w-24 rounded-full opacity-80" style="background: linear-gradient(to right, transparent, var(--theme-accent), transparent)"></div>
             </div>
             <h2 class="text-3xl md:text-5xl font-bold text-white mb-6 min-h-[1.2em] flex items-center justify-center gap-0 drop-shadow-lg" id="hero-typing-wrapper">
                 <span id="hero-typing-text" class="inline-block"></span>
                 <span id="hero-typing-cursor" class="hero-cursor inline-block shrink-0 w-1 h-[0.9em] bg-white ml-0.5 align-middle" aria-hidden="true"></span>
             </h2>
             <p class="text-xl md:text-2xl text-white/90 mb-8 animate-fade-in drop-shadow-md">
-                Untuk Pendidikan dan Bisnis
+                {{ $theme['tagline'] }}
             </p>
             <p class="text-lg text-white/80 mb-12 max-w-2xl mx-auto animate-fade-in drop-shadow-md">
-                Mengubah tantangan menjadi peluang melalui otomasi, infrastruktur IT, desain kreatif, dan layanan hukum.
+                {{ $theme['description'] }}
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
-                <a href="{{ route('portfolio.index') }}" class="px-8 py-4 bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition border border-white/30 font-semibold shadow-lg">
-                    Lihat Portfolio
+                <a href="{{ url($theme['cta_primary_url']) }}" class="px-8 py-4 bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition border border-white/30 font-semibold shadow-lg">
+                    {{ $theme['cta_primary_label'] }}
                 </a>
-                <a href="{{ route('contact') }}" class="px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold shadow-lg">
-                    Hubungi Kami
+                <a href="{{ url($theme['cta_secondary_url']) }}" class="px-8 py-4 theme-accent-bg text-white rounded-lg transition font-semibold shadow-lg">
+                    {{ $theme['cta_secondary_label'] }}
                 </a>
             </div>
         </div>
@@ -72,10 +74,11 @@
     @endif
 </section>
 
+@if(!empty($theme['show_categories']) && isset($categories) && $categories->count() > 0)
 <!-- Quick Links to Categories -->
 <section class="py-16">
     <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-white text-center mb-12">Jelajahi Karya Kami</h2>
+        <h2 class="text-3xl font-bold text-white text-center mb-12">{{ $theme['categories_heading'] }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             @foreach($categories as $category)
             <a href="{{ route('portfolio.index', ['category' => $category]) }}"
@@ -91,11 +94,12 @@
         </div>
     </div>
 </section>
+@endif
 
-@if(isset($featuredProjects) && $featuredProjects->count() > 0)
+@if(!empty($theme['show_featured']) && isset($featuredProjects) && $featuredProjects->count() > 0)
 <section class="py-16">
     <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-white text-center mb-12">Proyek Unggulan</h2>
+        <h2 class="text-3xl font-bold text-white text-center mb-12">{{ $theme['featured_heading'] }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             @foreach($featuredProjects as $project)
             <a href="{{ route('portfolio.show', $project->slug) }}"
@@ -132,28 +136,27 @@
 </section>
 @endif
 
+@if(!empty($theme['show_services']) && isset($previewServices) && $previewServices->count() > 0)
 <!-- Services Preview -->
 <section class="py-16">
     <div class="container mx-auto px-4">
         <div class="glass-card rounded-2xl p-8 md:p-12 max-w-4xl mx-auto">
-            <h2 class="text-3xl font-bold text-white text-center mb-8">Apa Yang Kami Tawarkan</h2>
+            <h2 class="text-3xl font-bold text-white text-center mb-8">{{ $theme['services_heading'] }}</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                @foreach($previewServices as $service)
                 <div class="text-white">
-                    <h3 class="font-semibold text-lg mb-2">Infrastruktur IT</h3>
-                    <p class="text-white/70 text-sm">Deployment Docker, manajemen server, solusi cloud</p>
+                    <h3 class="font-semibold text-lg mb-2">
+                        @if($service->icon)<span class="mr-1">{{ $service->icon }}</span>@endif{{ $service->title }}
+                    </h3>
+                    <p class="text-white/70 text-sm">
+                        @php
+                            $features = is_array($service->features) ? $service->features : [];
+                            $blurb = collect($features)->filter()->first();
+                        @endphp
+                        {{ $blurb ?: 'Lihat detail di Layanan Kami' }}
+                    </p>
                 </div>
-                <div class="text-white">
-                    <h3 class="font-semibold text-lg mb-2">Otomasi & Workflow</h3>
-                    <p class="text-white/70 text-sm">Optimasi proses, otomasi workflow</p>
-                </div>
-                <div class="text-white">
-                    <h3 class="font-semibold text-lg mb-2">Desain Kreatif</h3>
-                    <p class="text-white/70 text-sm">Branding, UI/UX, identitas visual</p>
-                </div>
-                <div class="text-white">
-                    <h3 class="font-semibold text-lg mb-2">Hukum & Bisnis</h3>
-                    <p class="text-white/70 text-sm">Pendaftaran perusahaan, layanan hukum</p>
-                </div>
+                @endforeach
             </div>
             <div class="text-center mt-8">
                 <a href="{{ route('services') }}" class="text-white hover:text-purple-200 transition">
@@ -163,14 +166,15 @@
         </div>
     </div>
 </section>
+@endif
 
 <!-- Our Team Section -->
-@if(isset($contributors) && $contributors->count() > 0)
+@if(!empty($theme['show_team']) && isset($contributors) && $contributors->count() > 0)
 <section class="py-16">
     <div class="container mx-auto px-4">
         <div class="max-w-7xl mx-auto">
             <div class="glass-card rounded-2xl p-8 md:p-12 mb-12">
-                <h2 class="text-3xl font-bold text-white text-center mb-12">Tim Kami</h2>
+                <h2 class="text-3xl font-bold text-white text-center mb-12">{{ $theme['team_heading'] }}</h2>
                 
                 <!-- Slider Container -->
                 <div class="contributor-slider-wrapper relative">

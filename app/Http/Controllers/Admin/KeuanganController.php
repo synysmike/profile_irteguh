@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChartOfAccount;
 use App\Models\Customer;
 use App\Models\Employee;
+use App\Models\Project;
 use App\Models\Sale;
 use App\Models\Purchase;
 use App\Models\JournalEntry;
@@ -180,6 +181,21 @@ class KeuanganController extends Controller
             'taxes',
             'nextInvoiceNumber'
         ));
+    }
+
+    /** Antrean draft Order Layanan Kami (produk + jasa). */
+    public function orderLayanan()
+    {
+        $sales = Sale::layananPending()
+            ->with(['customer', 'saleItems'])
+            ->latestFirst()
+            ->get();
+        $projects = Project::layananPending()
+            ->with(['customer', 'service', 'layananTemplate'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        return view('admin.keuangan.transaksi.order-layanan', compact('sales', 'projects'));
     }
 
     /** 3. Transaksi - Pembelian */

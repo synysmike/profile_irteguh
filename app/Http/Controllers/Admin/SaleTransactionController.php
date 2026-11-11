@@ -9,6 +9,7 @@ use App\Models\SaleTransaction;
 use App\Models\Service;
 use App\Services\ProjectFinanceService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class SaleTransactionController extends Controller
@@ -85,20 +86,22 @@ class SaleTransactionController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $this->validateTransaction($request);
-        $discount = !empty($validated['discount_id']) ? Discount::find($validated['discount_id']) : null;
-        $line = ProjectFinanceService::lineTotals(
-            (int) $validated['quantity'],
-            (float) $validated['unit_price'],
-            $discount
-        );
+        DB::transaction(function () use ($request) {
+            $validated = $this->validateTransaction($request);
+            $discount = ! empty($validated['discount_id']) ? Discount::find($validated['discount_id']) : null;
+            $line = ProjectFinanceService::lineTotals(
+                (int) $validated['quantity'],
+                (float) $validated['unit_price'],
+                $discount
+            );
 
-        $payload = array_merge($validated, ProjectFinanceService::discountSnapshot($discount, $line['discount_amount']), [
-            'subtotal' => $line['subtotal'],
-            'is_active' => $request->input('is_active', '0') == '1',
-        ]);
+            $payload = array_merge($validated, ProjectFinanceService::discountSnapshot($discount, $line['discount_amount']), [
+                'subtotal' => $line['subtotal'],
+                'is_active' => $request->input('is_active', '0') == '1',
+            ]);
 
-        SaleTransaction::create($payload);
+            SaleTransaction::create($payload);
+        });
 
         if ($request->ajax()) {
             return response()->json([
@@ -131,26 +134,37 @@ class SaleTransactionController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $transaction = SaleTransaction::findOrFail($id);
-        $validated = $this->validateTransaction($request, $transaction);
+        DB::transaction(function () use ($request, $id) {
+            $transaction = SaleTransaction::whereKey($id)->lockForUpdate()->firstOrFail();
+            if ($transaction->isInvoiced() || $transaction->project_id) {
+                // project-linked may still edit via project UI; invoiced cannot change qty freely
+                if ($transaction->isInvoiced()) {
+                    throw ValidationException::withMessages([
+                        'quantity' => ['Alokasi sudah diinvoice dan tidak bisa diubah.'],
+                    ]);
+                }
+            }
 
-        $discount = !empty($validated['discount_id']) ? Discount::find($validated['discount_id']) : null;
-        $line = ProjectFinanceService::lineTotals(
-            (int) $validated['quantity'],
-            (float) $validated['unit_price'],
-            $discount
-        );
+            $validated = $this->validateTransaction($request, $transaction);
 
-        $payload = array_merge($validated, ProjectFinanceService::discountSnapshot($discount, $line['discount_amount']), [
-            'subtotal' => $line['subtotal'],
-            'is_active' => $request->input('is_active', '0') == '1',
-        ]);
+            $discount = ! empty($validated['discount_id']) ? Discount::find($validated['discount_id']) : null;
+            $line = ProjectFinanceService::lineTotals(
+                (int) $validated['quantity'],
+                (float) $validated['unit_price'],
+                $discount
+            );
 
-        $transaction->update($payload);
+            $payload = array_merge($validated, ProjectFinanceService::discountSnapshot($discount, $line['discount_amount']), [
+                'subtotal' => $line['subtotal'],
+                'is_active' => $request->input('is_active', '0') == '1',
+            ]);
 
-        if ($transaction->project_id) {
-            ProjectFinanceService::recalculateFromAllocations($transaction->project);
-        }
+            $transaction->update($payload);
+
+            if ($transaction->project_id) {
+                ProjectFinanceService::recalculateFromAllocations($transaction->project);
+            }
+        });
 
         if ($request->ajax()) {
             return response()->json([
@@ -260,7 +274,7 @@ class SaleTransactionController extends Controller
 
     private function validatePurchaseQuantity(int $purchaseId, int $quantity, ?int $excludeSaleTransactionId = null): void
     {
-        $purchase = Purchase::findOrFail($purchaseId);
+        $purchase = Purchase::whereKey($purchaseId)->lockForUpdate()->firstOrFail();
         $remaining = $purchase->remainingQuantity($excludeSaleTransactionId);
         if ($quantity > $remaining) {
             throw ValidationException::withMessages([

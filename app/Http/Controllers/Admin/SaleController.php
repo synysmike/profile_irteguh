@@ -12,6 +12,7 @@ use App\Models\CashTransaction;
 use App\Models\ChartOfAccount;
 use App\Services\LayananFulfillmentService;
 use App\Services\PosCheckoutService;
+use App\Services\ProjectFinanceService;
 use App\Services\SumberDanaResolver;
 use App\Support\SaleWhatsAppInvoice;
 use Illuminate\Http\Request;
@@ -372,24 +373,61 @@ class SaleController extends Controller
 
     public function destroy(string $id)
     {
-        $sale = Sale::findOrFail($id);
-        
-        // Hapus cash transaction terkait
-        if ($sale->cashTransaction) {
-            $sale->cashTransaction->delete();
+        $sale = Sale::with(['saleItems.saleTransaction', 'projectPaymentTerm'])->findOrFail($id);
+
+        try {
+            DB::transaction(function () use ($sale) {
+                if ($sale->project_payment_term_id && $sale->projectPaymentTerm) {
+                    ProjectFinanceService::reverseTermPayment($sale->projectPaymentTerm);
+
+                    return;
+                }
+
+                CashTransaction::where('sale_id', $sale->id)->delete();
+
+                foreach ($sale->saleItems as $item) {
+                    $transaction = $item->saleTransaction;
+                    if (! $transaction || $transaction->project_id) {
+                        continue;
+                    }
+
+                    // Ghost ST dari jual langsung grosir di POS → hapus agar remainingQuantity pulih.
+                    // Alokasi stok siap invoice → aktifkan kembali.
+                    $isPosGhost = $transaction->code === null
+                        && ! $transaction->show_in_layanan
+                        && $transaction->service_id === null
+                        && abs(optional($transaction->created_at)->diffInSeconds($sale->created_at) ?? 999) < 120;
+
+                    if ($isPosGhost) {
+                        $transaction->delete();
+                    } else {
+                        $transaction->update(['is_active' => true]);
+                    }
+                }
+
+                $sale->saleItems()->delete();
+                $sale->delete();
+            });
+        } catch (\Throwable $e) {
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus penjualan: '.$e->getMessage(),
+                ], 422);
+            }
+
+            return back()->with('error', 'Gagal menghapus penjualan: '.$e->getMessage());
         }
-        
-        $sale->delete();
 
         if (request()->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Penjualan berhasil dihapus. Transaksi kas terkait juga dihapus.',
+                'message' => 'Penjualan berhasil dihapus. Stok/alokasi & kas terkait dipulihkan.',
             ]);
         }
 
         return redirect()->route('admin.keuangan.transaksi.penjualan')
-            ->with('success', 'Penjualan berhasil dihapus.');
+            ->with('success', 'Penjualan berhasil dihapus. Stok/alokasi & kas terkait dipulihkan.');
     }
 
     /**

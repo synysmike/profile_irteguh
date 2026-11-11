@@ -143,12 +143,20 @@
 
         <div>
             <label for="portfolio_category" class="block text-sm font-medium text-gray-700 mb-2">Kategori Portofolio</label>
+            @php
+                $portfolioCats = \App\Models\Project::portfolioCategories();
+                $currentPortfolioCat = old('portfolio_category', $project->portfolio_category ?? '');
+                if ($currentPortfolioCat !== '' && ! in_array($currentPortfolioCat, $portfolioCats, true)) {
+                    $portfolioCats[] = $currentPortfolioCat;
+                }
+            @endphp
             <select id="portfolio_category" name="portfolio_category" class="w-full px-4 py-2 border border-gray-300 rounded-md">
-                <option value="">— Pilih —</option>
-                @foreach(\App\Models\Project::portfolioCategories() as $cat)
-                <option value="{{ $cat }}" {{ old('portfolio_category', $project->portfolio_category ?? '') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                <option value="">— Pilih (dari master Layanan) —</option>
+                @foreach($portfolioCats as $cat)
+                <option value="{{ $cat }}" {{ $currentPortfolioCat === $cat ? 'selected' : '' }}>{{ $cat }}</option>
                 @endforeach
             </select>
+            <p class="text-xs text-gray-500 mt-1">Opsi mengikuti judul master Services / kategori etalase.</p>
         </div>
         <div>
             <label for="portfolio_year" class="block text-sm font-medium text-gray-700 mb-2">Tahun</label>

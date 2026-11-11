@@ -4,13 +4,29 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', \App\Models\Setting::appName() . ' - Solusi IT & Kreatif Terintegrasi')</title>
+    @php $siteTheme = \App\Models\Setting::homeTheme(); @endphp
+    <title>@yield('title', \App\Models\Setting::appName() . ' - ' . \Illuminate\Support\Str::limit($siteTheme['footer_tagline'], 60, ''))</title>
     @stack('meta')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --theme-accent: {{ $siteTheme['accent'] }};
+            --theme-accent-hover: {{ $siteTheme['accent_hover'] }};
+            --theme-gradient-from: {{ $siteTheme['gradient_from'] }};
+            --theme-gradient-via: {{ $siteTheme['gradient_via'] }};
+            --theme-gradient-to: {{ $siteTheme['gradient_to'] }};
+            --theme-overlay: {{ $siteTheme['overlay_opacity'] }};
+        }
+        .theme-accent-bg { background-color: var(--theme-accent); }
+        .theme-accent-bg:hover { background-color: var(--theme-accent-hover); }
+        .theme-accent-text:hover { color: var(--theme-accent); }
+        .theme-fallback-gradient {
+            background-image: linear-gradient(to bottom right, var(--theme-gradient-from), var(--theme-gradient-via), var(--theme-gradient-to));
+        }
+        .theme-hero-overlay { background-color: rgba(0, 0, 0, var(--theme-overlay)); }
         @media print {
             body { background: #fff !important; }
             .fixed.inset-0, nav, footer, #mobile-menu-btn, #mobile-menu, .no-print { display: none !important; }
@@ -20,7 +36,7 @@
     </style>
     @stack('styles')
 </head>
-<body class="min-h-screen @yield('body_class', 'bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900')">
+<body class="min-h-screen @yield('body_class', 'theme-fallback-gradient')">
     {{-- Print header: visible only when printing --}}
     <div class="print-header-only hidden border-b border-gray-300 pb-3 mb-4">
         <div class="flex items-center gap-4">
@@ -101,7 +117,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
                     <h3 class="text-white font-bold text-lg mb-4">{{ \App\Models\Setting::appName() }}</h3>
-                    <p class="text-white/70 text-sm">Solusi IT & Kreatif Terintegrasi untuk Pendidikan dan Bisnis</p>
+                    <p class="text-white/70 text-sm">{{ $siteTheme['footer_tagline'] }}</p>
                 </div>
                 <div>
                     <h3 class="text-white font-bold text-lg mb-4">Tautan Cepat</h3>
@@ -116,7 +132,7 @@
                 </div>
                 <div>
                     <h3 class="text-white font-bold text-lg mb-4">Kontak</h3>
-                    <p class="text-white/70 text-sm mb-2">Surabaya, Indonesia</p>
+                    <p class="text-white/70 text-sm mb-2">{{ \App\Models\Setting::contactAddress() }}</p>
                     <a href="{{ route('contact') }}" class="text-white/70 hover:text-white transition text-sm">Hubungi Kami →</a>
                 </div>
             </div>

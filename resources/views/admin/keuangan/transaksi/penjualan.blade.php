@@ -118,7 +118,9 @@
         </div>
 
         <div class="p-4 border-t border-gray-200 space-y-2 bg-white">
-            <div class="flex justify-between text-sm"><span class="text-gray-600">Subtotal</span><span id="pos-subtotal" class="font-medium">Rp 0</span></div>
+            <div class="flex justify-between text-sm"><span class="text-gray-600">Subtotal kotor</span><span id="pos-gross" class="font-medium">Rp 0</span></div>
+            <div class="flex justify-between text-sm text-red-700"><span>Diskon</span><span id="pos-discount">Rp 0</span></div>
+            <div class="flex justify-between text-sm"><span class="text-gray-600">Subtotal net</span><span id="pos-subtotal" class="font-medium">Rp 0</span></div>
             <div class="flex justify-between text-sm"><span class="text-gray-600">Pajak</span><span id="pos-tax-amount">Rp 0</span></div>
             <div class="flex justify-between text-base font-semibold"><span>Total</span><span id="pos-total">Rp 0</span></div>
             <div class="flex gap-2 pt-2">
@@ -357,6 +359,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         quantity: src.quantity,
                         unit_price: src.unit_price,
                         max_qty: src.quantity,
+                        discount_amount: parseFloat(src.discount_amount || 0) || 0,
+                        discount_name: src.discount_name || null,
+                        line_subtotal: parseFloat(src.subtotal || 0) || (src.quantity * src.unit_price),
                         locked: true
                     });
                 } else {
@@ -375,6 +380,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         quantity: qty,
                         unit_price: price,
                         max_qty: max,
+                        discount_amount: 0,
+                        discount_name: null,
+                        line_subtotal: qty * price,
                         locked: false
                     });
                 }
@@ -415,7 +423,11 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             let html = '';
             cart.forEach(function(item, idx) {
-                const line = item.quantity * item.unit_price;
+                const gross = item.quantity * item.unit_price;
+                const discount = parseFloat(item.discount_amount || 0) || 0;
+                const line = item.locked
+                    ? (parseFloat(item.line_subtotal || (gross - discount)) || 0)
+                    : gross;
                 html += '<div class="bg-white border border-gray-200 rounded-md p-2.5">';
                 html += '<div class="flex justify-between gap-2"><div class="min-w-0"><div class="text-sm font-medium text-gray-900 truncate">' + escapeHtml(item.description) + '</div>';
                 html += '<div class="text-xs text-gray-500">' + (item.locked ? 'Alokasi tetap' : 'Dari stok grosir') + '</div></div>';
@@ -427,7 +439,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     html += '<input type="number" min="0" step="1" value="' + Math.round(item.unit_price) + '" class="pos-cart-price w-24 px-2 py-1 border rounded text-sm" data-idx="' + idx + '">';
                     html += '<span class="text-xs font-medium ml-auto">' + rp(line) + '</span></div>';
                 } else {
-                    html += '<div class="mt-1 text-xs text-gray-600">Qty ' + item.quantity + ' × ' + rp(item.unit_price) + ' = <strong>' + rp(line) + '</strong></div>';
+                    html += '<div class="mt-1 text-xs text-gray-600">Qty ' + item.quantity + ' × ' + rp(item.unit_price);
+                    if (discount > 0) {
+                        html += ' − diskon ' + rp(discount);
+                    }
+                    html += ' = <strong>' + rp(line) + '</strong></div>';
                 }
                 html += '</div>';
             });
@@ -461,13 +477,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateTotals() {
-        const subtotal = cart.reduce(function(s, i) { return s + (i.quantity * i.unit_price); }, 0);
+        const gross = cart.reduce(function(s, i) { return s + (i.quantity * i.unit_price); }, 0);
+        const discount = cart.reduce(function(s, i) { return s + (parseFloat(i.discount_amount || 0) || 0); }, 0);
+        const subtotal = cart.reduce(function(s, i) {
+            if (i.locked) {
+                return s + (parseFloat(i.line_subtotal || ((i.quantity * i.unit_price) - (parseFloat(i.discount_amount || 0) || 0))) || 0);
+            }
+            return s + (i.quantity * i.unit_price);
+        }, 0);
         const taxOpt = document.getElementById('pos-tax').selectedOptions[0];
         const rate = parseFloat(taxOpt?.dataset.rate || 0) || 0;
         const calc = taxOpt?.dataset.calculation || 'addition';
-        const taxAmount = Math.round(subtotal * rate / 100);
+        const taxAmount = Math.round((subtotal * rate / 100) * 100) / 100;
         const total = calc === 'deduction' ? Math.max(subtotal - taxAmount, 0) : (subtotal + taxAmount);
 
+        document.getElementById('pos-gross').textContent = rp(gross);
+        document.getElementById('pos-discount').textContent = rp(discount);
         document.getElementById('pos-subtotal').textContent = rp(subtotal);
         document.getElementById('pos-tax-amount').textContent = rp(taxAmount);
         document.getElementById('pos-total').textContent = rp(total);

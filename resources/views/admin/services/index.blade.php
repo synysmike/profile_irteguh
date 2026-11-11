@@ -22,6 +22,8 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Urutan</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk etalase</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jasa etalase</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                     </tr>
@@ -38,6 +40,8 @@
                         <td class="px-6 py-4">
                             <div class="text-sm font-medium text-gray-900">{{ $service->title }}</div>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $service->produk_count }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $service->jasa_count }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($service->is_active)
                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Aktif</span>
@@ -52,7 +56,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
                             Belum ada layanan. <button onclick="openResourceModal('serviceModal', 'services', 'Layanan')" class="text-purple-600 hover:text-purple-800">Tambah yang pertama</button>
                         </td>
                     </tr>

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Service extends Model
 {
@@ -12,6 +13,16 @@ class Service extends Model
         'features' => 'array',
         'is_active' => 'boolean',
     ];
+
+    public function saleTransactions(): HasMany
+    {
+        return $this->hasMany(SaleTransaction::class);
+    }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
 
     public function scopeActive($query)
     {

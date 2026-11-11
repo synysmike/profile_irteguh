@@ -15,7 +15,13 @@ class ServiceController extends Controller
 
     public function index()
     {
-        $services = Service::ordered()->get();
+        $services = Service::ordered()
+            ->withCount([
+                'saleTransactions as produk_count' => fn ($q) => $q->where('show_in_layanan', true),
+                'projects as jasa_count' => fn ($q) => $q->where('show_in_layanan', true),
+            ])
+            ->get();
+
         return view('admin.services.index', compact('services'));
     }
 

@@ -22,19 +22,19 @@ Lihat juga: [README.md](README.md) (alur) · [prd.md](prd.md) (requirement)
 - [x] GET invoice publik tidak mengubah `sale_items` di database
 - [x] Normalisasi nomor HP saat simpan customer (paste dari WhatsApp)
 - [ ] Pastikan path admin invoice selalu auth / hanya redirect ke publik (audit ulang akses tanpa login)
-- [ ] Hapus/batal sale mengembalikan alokasi stok + hapus kas terkait + reset status termin (satu transaksi DB)
-- [ ] `lockForUpdate` pada stok/alokasi saat checkout POS & buat alokasi (hindari race dua user)
-- [ ] Aturan termin setelah ada yang lunas: nominal paid freeze; unpaid = sisa dari total baru (atau kunci total setelah posting pertama)
+- [x] Hapus/batal sale mengembalikan alokasi stok + hapus kas terkait + reset status termin (satu transaksi DB)
+- [x] `lockForUpdate` pada stok/alokasi saat checkout POS & buat alokasi (hindari race dua user)
+- [x] Aturan termin setelah ada yang lunas: nominal paid freeze; unpaid = sisa dari total baru
 
 ---
 
 ## Prioritas sedang (konsistensi angka)
 
-- [ ] Samakan hitung diskon POS: preview keranjang = backend (`PosCheckoutService`) — satu helper shared
-- [ ] Tampilkan diskon di UI keranjang POS
+- [x] Samakan hitung diskon POS: preview keranjang = backend (`PosCheckoutService`) — net + diskon di UI
+- [x] Tampilkan diskon di UI keranjang POS
 - [ ] Opsional: pilih diskon saat jual langsung dari grosir (tanpa lewat alokasi)
-- [ ] Edit termin/DP yang sudah lunas tidak boleh hitung ulang nominal invoice yang sudah diposting
-- [ ] Setelah ubah stok/diskon project: unpaid terms ikut recalc; paid tetap frozen; progress % tetap konsisten dengan total
+- [x] Edit termin/DP yang sudah lunas tidak boleh hitung ulang nominal invoice yang sudah diposting
+- [x] Setelah ubah stok/diskon project: unpaid terms ikut recalc; paid tetap frozen; progress % tetap konsisten dengan total
 - [ ] Hapus master pajak diblokir jika masih dipakai project/sale/purchase (atau soft-deactivate saja)
 - [ ] Jika akun tipe `kas` belum ada: blokir posting / tampilkan error jelas (jangan sale tanpa cash diam-diam)
 
@@ -58,6 +58,17 @@ Lihat juga: [README.md](README.md) (alur) · [prd.md](prd.md) (requirement)
 - [ ] Expiry session verifikasi invoice (opsional, mis. 24 jam)
 - [ ] Validasi ketat: total % termin selalu 100% termasuk paid (sudah ada di form — uji edge case AJAX)
 - [ ] Unit/feature test untuk: `ProjectFinanceService`, `PosCheckoutService`, verifikasi invoice HP, normalisasi HP
+
+---
+
+## Tema Beranda (publik)
+
+- [x] Halaman admin Konten → **Tema Beranda** (`/admin/home-theme`)
+- [x] Copy hero (kicker/tagline/deskripsi/CTA) dari Setting
+- [x] Token warna aksen + gradient fallback + overlay slide
+- [x] Toggle section kategori / unggulan / layanan / tim
+- [x] Preview layanan dari master `services` aktif
+- [x] Footer tagline + alamat dari Setting kontak
 
 ---
 
@@ -94,9 +105,10 @@ Lihat requirement: [prd.md](prd.md) §4.
 - [x] Putuskan checkout jasa: **jangan** pakai project etalase; **buat draft Project baru** yang serupa (salinan template) + `customer_id` dari pemesan
 - [x] Implementasi clone project etalase → draft baru (field relevan disalin; customer = pemesan checkout)
 - [x] Pastikan project etalase tetap tampil/utuh setelah order (tidak berubah jadi milik customer)
-- [ ] Rating kartu dari akumulasi `project_reviews` / `sale_reviews` (jasa sudah pakai averageRating; produk menyusul)
-- [ ] Opsional: kolom jumlah produk/jasa tertaut di index services (setelah relasi `service_id` jalan)
-- [ ] Opsional: samakan/link `portfolio_category` project ke master `services`
+- [x] Rating kartu dari akumulasi `project_reviews` / `sale_reviews` (+ sold count)
+- [x] Kolom jumlah produk/jasa tertaut di index services
+- [x] Samakan/link `portfolio_category` project ke master `services` (opsi = title services)
+- [x] Antrean Order Layanan terpusat (`/admin/keuangan/order-layanan`)
 
 ### Fase C — Checkout nyata (ketiganya sekaligus)
 

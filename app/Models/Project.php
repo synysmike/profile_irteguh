@@ -103,14 +103,19 @@ class Project extends Model
         };
     }
 
+    /**
+     * Opsi kategori portofolio = judul master Services (disimpan sebagai string title).
+     *
+     * @return array<int, string>
+     */
     public static function portfolioCategories(): array
     {
-        return [
-            'Infrastruktur IT',
-            'Otomasi & Workflow',
-            'Kreatif/Desain',
-            'Layanan Hukum/Bisnis',
-        ];
+        return Service::ordered()->pluck('title')->filter()->unique()->values()->all();
+    }
+
+    public function layananOrders(): HasMany
+    {
+        return $this->hasMany(self::class, 'layanan_template_project_id');
     }
 
     public function customer(): BelongsTo

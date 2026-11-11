@@ -10,16 +10,23 @@ class Setting extends Model
 {
     protected $fillable = ['key', 'value'];
 
+    /** @var array<string, mixed> Request-lifetime memo (avoids stale file-cache when storage is unwritable). */
+    private static array $memo = [];
+
     /**
      * Get a setting value by key.
      */
     public static function get(string $key, $default = null)
     {
-        $cacheKey = 'setting_' . $key;
-        return Cache::remember($cacheKey, 3600, function () use ($key, $default) {
-            $setting = static::where('key', $key)->first();
-            return $setting ? $setting->value : $default;
-        });
+        if (array_key_exists($key, static::$memo)) {
+            return static::$memo[$key];
+        }
+
+        $setting = static::where('key', $key)->first();
+        $value = $setting ? $setting->value : $default;
+        static::$memo[$key] = $value;
+
+        return $value;
     }
 
     /**
@@ -31,7 +38,13 @@ class Setting extends Model
             ['key' => $key],
             ['value' => $value]
         );
-        Cache::forget('setting_' . $key);
+        static::$memo[$key] = $value;
+
+        try {
+            Cache::forget('setting_' . $key);
+        } catch (\Throwable) {
+            // Ignore unwritable file cache; memo + DB are source of truth.
+        }
     }
 
     /**
@@ -195,5 +208,62 @@ class Setting extends Model
     public static function investorBankHolder(): string
     {
         return (string) static::get('investor_bank_holder', '');
+    }
+
+    /**
+     * Tema & copy beranda (defaults = nilai hardcode lama).
+     *
+     * @return array<string, mixed>
+     */
+    public static function homeTheme(): array
+    {
+        $overlay = (float) static::get('home_overlay_opacity', '0.35');
+        $overlay = max(0.15, min(0.75, $overlay));
+
+        return [
+            'kicker' => (string) static::get('home_kicker', 'Selamat Datang Di Situs Resmi'),
+            'tagline' => (string) static::get('home_tagline', 'Untuk Pendidikan dan Bisnis'),
+            'description' => (string) static::get(
+                'home_description',
+                'Mengubah tantangan menjadi peluang melalui otomasi, infrastruktur IT, desain kreatif, dan layanan hukum.'
+            ),
+            'cta_primary_label' => (string) static::get('home_cta_primary_label', 'Lihat Portfolio'),
+            'cta_primary_url' => (string) static::get('home_cta_primary_url', '/portfolio'),
+            'cta_secondary_label' => (string) static::get('home_cta_secondary_label', 'Hubungi Kami'),
+            'cta_secondary_url' => (string) static::get('home_cta_secondary_url', '/contact'),
+            'accent' => static::normalizeHexColor(static::get('theme_accent', '#9333ea'), '#9333ea'),
+            'accent_hover' => static::normalizeHexColor(static::get('theme_accent_hover', '#7e22ce'), '#7e22ce'),
+            'gradient_from' => static::normalizeHexColor(static::get('theme_gradient_from', '#581c87'), '#581c87'),
+            'gradient_via' => static::normalizeHexColor(static::get('theme_gradient_via', '#1e3a8a'), '#1e3a8a'),
+            'gradient_to' => static::normalizeHexColor(static::get('theme_gradient_to', '#312e81'), '#312e81'),
+            'overlay_opacity' => $overlay,
+            'show_categories' => (bool) (int) static::get('home_show_categories', '1'),
+            'show_featured' => (bool) (int) static::get('home_show_featured', '1'),
+            'show_services' => (bool) (int) static::get('home_show_services', '1'),
+            'show_team' => (bool) (int) static::get('home_show_team', '1'),
+            'footer_tagline' => (string) static::get(
+                'home_footer_tagline',
+                'Solusi IT & Kreatif Terintegrasi untuk Pendidikan dan Bisnis'
+            ),
+            'services_heading' => (string) static::get('home_services_heading', 'Apa Yang Kami Tawarkan'),
+            'categories_heading' => (string) static::get('home_categories_heading', 'Jelajahi Karya Kami'),
+            'featured_heading' => (string) static::get('home_featured_heading', 'Proyek Unggulan'),
+            'team_heading' => (string) static::get('home_team_heading', 'Tim Kami'),
+        ];
+    }
+
+    public static function normalizeHexColor(?string $value, string $fallback): string
+    {
+        $value = trim((string) $value);
+        if (preg_match('/^#([A-Fa-f0-9]{6})$/', $value)) {
+            return strtolower($value);
+        }
+        if (preg_match('/^#([A-Fa-f0-9]{3})$/', $value, $m)) {
+            $h = $m[1];
+
+            return strtolower('#'.$h[0].$h[0].$h[1].$h[1].$h[2].$h[2]);
+        }
+
+        return strtolower($fallback);
     }
 }

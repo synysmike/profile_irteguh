@@ -49,14 +49,26 @@ class PosCheckoutService
                 }
 
                 if ($type === 'sale_transaction') {
+                    $transactionId = (int) ($row['sale_transaction_id'] ?? 0);
                     $transaction = SaleTransaction::with('purchase')
-                        ->availableForInvoice()
-                        ->find($row['sale_transaction_id'] ?? 0);
+                        ->whereKey($transactionId)
+                        ->lockForUpdate()
+                        ->first();
 
-                    if (! $transaction) {
+                    if (
+                        ! $transaction
+                        || ! $transaction->is_active
+                        || $transaction->project_id
+                        || $transaction->saleItems()->exists()
+                        || ! $transaction->purchase_id
+                    ) {
                         throw ValidationException::withMessages([
                             "cart.{$index}" => ['Alokasi stok tidak tersedia atau sudah diinvoice.'],
                         ]);
+                    }
+
+                    if ($transaction->purchase_id) {
+                        Purchase::whereKey($transaction->purchase_id)->lockForUpdate()->first();
                     }
 
                     $lineSubtotal = (float) $transaction->subtotal;
@@ -77,7 +89,7 @@ class PosCheckoutService
                 }
 
                 $purchaseId = (int) ($row['purchase_id'] ?? 0);
-                $purchase = Purchase::find($purchaseId);
+                $purchase = Purchase::whereKey($purchaseId)->lockForUpdate()->first();
                 if (! $purchase) {
                     throw ValidationException::withMessages([
                         "cart.{$index}" => ['Barang grosir tidak ditemukan.'],
@@ -222,6 +234,8 @@ class PosCheckoutService
                 'quantity' => (int) $t->quantity,
                 'unit_price' => (float) $t->unit_price,
                 'subtotal' => (float) $t->subtotal,
+                'discount_amount' => (float) ($t->discount_amount ?? 0),
+                'discount_name' => $t->discount_name,
                 'supplier' => $t->purchase?->supplier?->name,
             ])
             ->values()

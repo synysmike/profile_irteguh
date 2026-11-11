@@ -239,7 +239,7 @@ Service utama:
 | **Done (Fase C)** | Checkout: Customer upsert + draft Sale/Project + WA admin (`Setting::contactWhatsapp`) |
 | **Done (Fase D)** | Konfirmasi/tolak draft: Sale potong alokasi+kas; Project aktif+termin; reject aman |
 | **Next** | Freeze termin lunas, restore stok hapus sale, samakan diskon POS, lock stok |
-| **Next (Layanan Kami)** | Opsional: antrean terpusat, rating produk, qty tertaut di master services |
+| **Done (Layanan polish)** | Antrean Order Layanan, rating/sold kartu, counts services, portfolio_category←services |
 | **Later** | HPP & laba rugi akurat, neraca, buku besar, auto-jurnal, role/permission |
 
 Detail item: [checklist.md](checklist.md).
@@ -263,3 +263,5 @@ Detail item: [checklist.md](checklist.md).
 | 2026-11-11 | Fase C: `POST /services/checkout` → Customer + draft Sale/Project + buka WA admin |
 | 2026-11-11 | Fase D: konfirmasi/tolak draft Sale & Project (`LayananFulfillmentService`) |
 | 2026-11-11 | Keputusan: etalase produk wajib `purchase_id` (grosir); UI menolak alokasi tanpa grosir |
+| 2026-11-11 | Polish Layanan + prioritas keuangan: antrean order, rating/sold, restore sale, lock stok, freeze termin, diskon POS |
+| 2026-11-11 | Tema Beranda v1: admin `home-theme` (copy/warna/overlay/toggle section) via Setting |

@@ -75,8 +75,6 @@ class ProjectFinanceService
     {
         $project->paymentTerms()->where('status', '!=', 'paid')->delete();
 
-        $tax = $project->tax_id ? Tax::find($project->tax_id) : null;
-        $amounts = static::applyTax((float) $project->subtotal, $tax);
         $termNumber = (int) $project->paymentTerms()->where('status', 'paid')->max('term_number');
         $termNumber = $termNumber > 0 ? $termNumber + 1 : 1;
 
@@ -90,21 +88,20 @@ class ProjectFinanceService
                 continue;
             }
 
-            $subtotalPortion = round($amounts['subtotal'] * $percentage / 100, 2);
-            $taxPortion = round($amounts['ppn_amount'] * $percentage / 100, 2);
-            $termTotal = round($amounts['total'] * $percentage / 100, 2);
-
+            // Nominal diisi ulang oleh redistributeUnpaidTerms (sisa setelah paid frozen).
             $project->paymentTerms()->create([
                 'term_number' => $termNumber++,
                 'label' => $row['label'],
                 'percentage' => $percentage,
-                'subtotal_amount' => $subtotalPortion,
-                'tax_amount' => $taxPortion,
-                'amount' => $termTotal,
+                'subtotal_amount' => 0,
+                'tax_amount' => 0,
+                'amount' => 0,
                 'due_date' => $row['due_date'] ?? null,
                 'status' => 'pending',
             ]);
         }
+
+        static::redistributeUnpaidTerms($project->fresh(['paymentTerms']));
     }
 
     /**
@@ -114,6 +111,16 @@ class ProjectFinanceService
     {
         $term = $project->paymentTerms()->where('id', $termId)->first();
         if (!$term || empty($payload)) {
+            return;
+        }
+
+        // Paid terms: only label/due_date may change — billed amounts stay frozen.
+        if ($term->status === 'paid') {
+            $term->update([
+                'label' => trim((string) ($payload['label'] ?? $term->label)) ?: $term->label,
+                'due_date' => $payload['due_date'] ?? $term->due_date,
+            ]);
+
             return;
         }
 
@@ -134,17 +141,30 @@ class ProjectFinanceService
     public static function rebuildFullPaymentTerm(Project $project): void
     {
         $project->paymentTerms()->where('status', '!=', 'paid')->delete();
+        $project->refresh();
+        $project->load('paymentTerms');
 
-        $tax = $project->tax_id ? Tax::find($project->tax_id) : null;
-        $amounts = static::applyTax((float) $project->subtotal, $tax);
+        $paid = $project->paymentTerms->where('status', 'paid');
+        $paidTotal = round((float) $paid->sum('amount'), 2);
+        $paidDpp = round((float) $paid->sum('subtotal_amount'), 2);
+        $paidTax = round((float) $paid->sum('tax_amount'), 2);
+
+        $remainderTotal = max(0, round((float) $project->total - $paidTotal, 2));
+        $remainderDpp = max(0, round((float) $project->subtotal - $paidDpp, 2));
+        $remainderTax = max(0, round((float) $project->ppn_amount - $paidTax, 2));
+        $displayPct = (float) $project->total > 0
+            ? round(($remainderTotal / (float) $project->total) * 100, 2)
+            : 100;
+
+        $nextTerm = ((int) $paid->max('term_number')) + 1;
 
         $project->paymentTerms()->create([
-            'term_number' => 1,
-            'label' => 'Pelunasan',
-            'percentage' => 100,
-            'subtotal_amount' => $amounts['subtotal'],
-            'tax_amount' => $amounts['ppn_amount'],
-            'amount' => $amounts['total'],
+            'term_number' => max(1, $nextTerm),
+            'label' => $paid->isNotEmpty() ? 'Pelunasan' : 'Pelunasan',
+            'percentage' => $displayPct,
+            'subtotal_amount' => $remainderDpp,
+            'tax_amount' => $remainderTax,
+            'amount' => $remainderTotal,
             'due_date' => $project->due_date,
             'status' => 'pending',
         ]);
@@ -179,19 +199,71 @@ class ProjectFinanceService
 
         $project->refresh();
 
-        // Refresh unpaid term nominals to match new totals (percentages unchanged).
-        $fresh = static::applyTax((float) $project->subtotal, $tax);
+        // Paid terms stay frozen; unpaid share the remainder of the new total.
+        static::redistributeUnpaidTerms($project);
+    }
 
-        foreach ($project->paymentTerms()->where('status', '!=', 'paid')->get() as $term) {
-            $pct = (float) $term->percentage;
-            $term->update([
-                'subtotal_amount' => round($fresh['subtotal'] * $pct / 100, 2),
-                'tax_amount' => round($fresh['ppn_amount'] * $pct / 100, 2),
-                'amount' => round($fresh['total'] * $pct / 100, 2),
-            ]);
+    /**
+     * Paid terms keep billed amounts. Unpaid terms absorb remainder of project totals,
+     * weighted by their relative percentages (not % of full new total).
+     */
+    public static function redistributeUnpaidTerms(Project $project): void
+    {
+        $project->loadMissing('paymentTerms');
+        $paid = $project->paymentTerms->where('status', 'paid');
+        $unpaid = $project->paymentTerms->where('status', '!=', 'paid')->values();
+
+        if ($unpaid->isEmpty()) {
+            return;
         }
 
-        // Also update paid term display portions? Keep paid amounts frozen (already billed).
+        $paidTotal = round((float) $paid->sum('amount'), 2);
+        $paidDpp = round((float) $paid->sum('subtotal_amount'), 2);
+        $paidTax = round((float) $paid->sum('tax_amount'), 2);
+
+        $remainderTotal = max(0, round((float) $project->total - $paidTotal, 2));
+        $remainderDpp = max(0, round((float) $project->subtotal - $paidDpp, 2));
+        $remainderTax = max(0, round((float) $project->ppn_amount - $paidTax, 2));
+
+        $weightSum = (float) $unpaid->sum(fn ($t) => max(0, (float) $t->percentage));
+        if ($weightSum <= 0) {
+            $weightSum = (float) $unpaid->count();
+        }
+
+        $assignedTotal = 0.0;
+        $assignedDpp = 0.0;
+        $assignedTax = 0.0;
+        $lastIndex = $unpaid->count() - 1;
+
+        foreach ($unpaid as $index => $term) {
+            $weight = $weightSum > 0
+                ? max(0, (float) $term->percentage) / $weightSum
+                : (1 / max(1, $unpaid->count()));
+
+            if ($index === $lastIndex) {
+                $termTotal = round($remainderTotal - $assignedTotal, 2);
+                $termDpp = round($remainderDpp - $assignedDpp, 2);
+                $termTax = round($remainderTax - $assignedTax, 2);
+            } else {
+                $termTotal = round($remainderTotal * $weight, 2);
+                $termDpp = round($remainderDpp * $weight, 2);
+                $termTax = round($remainderTax * $weight, 2);
+                $assignedTotal += $termTotal;
+                $assignedDpp += $termDpp;
+                $assignedTax += $termTax;
+            }
+
+            $displayPct = (float) $project->total > 0
+                ? round(($termTotal / (float) $project->total) * 100, 2)
+                : (float) $term->percentage;
+
+            $term->update([
+                'percentage' => $displayPct,
+                'subtotal_amount' => $termDpp,
+                'tax_amount' => $termTax,
+                'amount' => $termTotal,
+            ]);
+        }
     }
 
     /**
@@ -237,15 +309,9 @@ class ProjectFinanceService
         ?string $notes = null,
         ?Discount $discount = null
     ): SaleTransaction {
-        $remaining = $purchase->remainingQuantity();
         if ($quantity < 1) {
             throw ValidationException::withMessages([
                 'quantity' => ['Quantity minimal 1.'],
-            ]);
-        }
-        if ($quantity > $remaining) {
-            throw ValidationException::withMessages([
-                'quantity' => ["Stok tersisa hanya {$remaining} unit."],
             ]);
         }
         if ($unitPrice < 0) {
@@ -255,11 +321,19 @@ class ProjectFinanceService
         }
 
         return DB::transaction(function () use ($project, $purchase, $quantity, $unitPrice, $notes, $discount) {
+            $lockedPurchase = Purchase::whereKey($purchase->id)->lockForUpdate()->firstOrFail();
+            $remaining = $lockedPurchase->remainingQuantity();
+            if ($quantity > $remaining) {
+                throw ValidationException::withMessages([
+                    'quantity' => ["Stok tersisa hanya {$remaining} unit."],
+                ]);
+            }
+
             $line = static::lineTotals($quantity, $unitPrice, $discount);
             $transaction = SaleTransaction::create(array_merge([
-                'purchase_id' => $purchase->id,
+                'purchase_id' => $lockedPurchase->id,
                 'project_id' => $project->id,
-                'description' => $purchase->displayDescription(),
+                'description' => $lockedPurchase->displayDescription(),
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
                 'subtotal' => $line['subtotal'],

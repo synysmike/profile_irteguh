@@ -568,7 +568,15 @@ class ProjectController extends Controller
             'notes' => 'nullable|string',
             'is_portfolio_public' => 'nullable',
             'is_portfolio_featured' => 'nullable',
-            'portfolio_category' => ['nullable', 'string', Rule::in(Project::portfolioCategories())],
+            'portfolio_category' => [
+                'nullable',
+                'string',
+                'max:120',
+                Rule::in(array_values(array_unique(array_filter(array_merge(
+                    Project::portfolioCategories(),
+                    [(string) ($project?->portfolio_category ?? '')]
+                ))))),
+            ],
             'portfolio_year' => 'nullable|integer|min:2000|max:2100',
             'portfolio_sort_order' => 'nullable|integer|min:0|max:9999',
             'portfolio_client_context' => 'nullable|string|max:255',

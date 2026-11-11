@@ -142,6 +142,13 @@
                 <li>
                     <div class="nav-section">Penjualan</div>
                     <a href="{{ route('admin.keuangan.transaksi.penjualan') }}" class="nav-link {{ request()->routeIs('admin.keuangan.transaksi.penjualan') ? 'active' : '' }}">Kasir POS</a>
+                    <a href="{{ route('admin.keuangan.order-layanan') }}" class="nav-link {{ request()->routeIs('admin.keuangan.order-layanan') ? 'active' : '' }}">
+                        Order Layanan
+                        @php $orderLayananPending = (\App\Models\Sale::layananPending()->count() + \App\Models\Project::layananPending()->count()); @endphp
+                        @if($orderLayananPending > 0)
+                        <span class="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-orange-500 text-white text-[10px] font-bold">{{ $orderLayananPending }}</span>
+                        @endif
+                    </a>
                     <a href="{{ route('admin.projects.index') }}" class="nav-link {{ request()->routeIs('admin.projects.*') ? 'active' : '' }}">Project</a>
                     <a href="{{ route('admin.keuangan.sale-transactions.index') }}" class="nav-link {{ request()->routeIs('admin.keuangan.sale-transactions.*') ? 'active' : '' }}">Alokasi Stok</a>
                 </li>
