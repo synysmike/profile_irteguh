@@ -1,6 +1,26 @@
 @extends('public.layouts.app')
 
-@section('title', 'Kontak - ' . \App\Models\Setting::appName())
+@php
+    $appName = \App\Models\Setting::appName();
+    $contactDesc = \App\Support\SeoMeta::limitDescription(
+        'Hubungi '.$appName
+        .(!empty($contactInfo['address']) ? ' — '.$contactInfo['address'] : '')
+        .(!empty($contactInfo['email']) ? ' · '.$contactInfo['email'] : '')
+        .(!empty($contactInfo['whatsapp_label']) ? ' · WA '.$contactInfo['whatsapp_label'] : '')
+    );
+@endphp
+
+@section('title', 'Kontak - '.$appName)
+
+@push('meta')
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => 'Kontak - '.$appName,
+    'description' => $contactDesc,
+    'keywords' => 'kontak, hubungi, whatsapp, '.$appName,
+    'url' => route('contact'),
+    'type' => 'website',
+]])
+@endpush
 
 @section('content')
 <section class="py-20">

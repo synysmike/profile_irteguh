@@ -54,6 +54,8 @@ Route::get('/berita', [\App\Http\Controllers\NewsController::class, 'index'])->n
 Route::get('/berita/{slug}', [\App\Http\Controllers\NewsController::class, 'show'])->name('news.show');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::get('/robots.txt', [\App\Http\Controllers\SitemapController::class, 'robots'])->name('robots');
+Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index'])->name('sitemap');
 
 // Public project term billing invoice (belum lunas) — harus di atas /invoice/{sale}
 Route::get('/invoice/term/{term}', [\App\Http\Controllers\PublicProjectTermInvoiceController::class, 'show'])
@@ -117,6 +119,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::delete('/site-logo', [\App\Http\Controllers\Admin\SiteLogoController::class, 'destroy'])->name('site-logo.destroy');
     Route::get('/home-theme', [\App\Http\Controllers\Admin\HomeThemeController::class, 'edit'])->name('home-theme.edit');
     Route::put('/home-theme', [\App\Http\Controllers\Admin\HomeThemeController::class, 'update'])->name('home-theme.update');
+    Route::get('/home-seo', [\App\Http\Controllers\Admin\HomeSeoController::class, 'edit'])->name('home-seo.edit');
+    Route::put('/home-seo', [\App\Http\Controllers\Admin\HomeSeoController::class, 'update'])->name('home-seo.update');
     
     // Resource routes
     Route::resource('slides', \App\Http\Controllers\Admin\SlideController::class);

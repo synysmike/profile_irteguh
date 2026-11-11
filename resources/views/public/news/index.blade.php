@@ -1,6 +1,28 @@
 @extends('public.layouts.app')
 
-@section('title', 'Berita - ' . \App\Models\Setting::appName())
+@php
+    $appName = \App\Models\Setting::appName();
+    $newsItems = isset($news) ? collect($news->items()) : collect();
+    $newsLabels = $newsItems->pluck('title');
+    $newsDesc = \App\Support\SeoMeta::fromLabels(
+        'Berita & update dari '.$appName,
+        $newsLabels
+    );
+    $newsCover = $newsItems->first()?->coverUrl();
+@endphp
+
+@section('title', 'Berita - '.$appName)
+
+@push('meta')
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => 'Berita - '.$appName,
+    'description' => $newsDesc,
+    'keywords' => $newsLabels->take(10)->implode(', '),
+    'url' => route('news.index'),
+    'image' => $newsCover,
+    'type' => 'website',
+]])
+@endpush
 
 @section('content')
 <section class="py-16 md:py-20">

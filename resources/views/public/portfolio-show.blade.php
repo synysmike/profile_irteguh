@@ -1,6 +1,28 @@
 @extends('public.layouts.app')
 
-@section('title', $project->title . ' - Ir Teguh Solution')
+@php
+    $appName = \App\Models\Setting::appName();
+    $portfolioShowDesc = \App\Support\SeoMeta::limitDescription($project->portfolioExcerptText());
+    $portfolioShowKeywords = collect([
+        $project->portfolio_category,
+        ...($project->portfolio_tags ?? []),
+        $project->title,
+    ])->filter()->unique()->implode(', ');
+@endphp
+
+@section('title', $project->title.' - '.$appName)
+
+@push('meta')
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => $project->title,
+    'description' => $portfolioShowDesc,
+    'keywords' => $portfolioShowKeywords,
+    'url' => route('portfolio.show', $project->slug),
+    'image' => $project->portfolioCoverUrl(),
+    'type' => 'article',
+    'published_time' => optional($project->updated_at ?? $project->created_at)->toIso8601String(),
+]])
+@endpush
 
 @section('content')
 <section class="py-20">

@@ -2,52 +2,16 @@
 
 @section('title', $newsItem->title . ' - ' . \App\Models\Setting::appName())
 
-@php
-    $ogTitle = $newsItem->title;
-    $ogDescription = \Illuminate\Support\Str::limit(
-        $newsItem->excerpt ?: strip_tags($newsItem->content),
-        160
-    );
-    $ogUrl = $newsItem->publicUrl();
-    $ogImage = $newsItem->shareImageUrlForPreview();
-    $ogImageType = $newsItem->shareImageMimeType();
-    $ogImageIsHttps = $ogImage && str_starts_with($ogImage, 'https://');
-@endphp
-
 @push('meta')
-<meta name="description" content="{{ $ogDescription }}">
-<link rel="canonical" href="{{ $ogUrl }}">
-<meta property="og:type" content="article">
-<meta property="og:site_name" content="{{ \App\Models\Setting::appName() }}">
-<meta property="og:locale" content="id_ID">
-<meta property="og:title" content="{{ $ogTitle }}">
-<meta property="og:description" content="{{ $ogDescription }}">
-<meta property="og:url" content="{{ $ogUrl }}">
-@if($ogImage)
-<meta property="og:image" content="{{ $ogImage }}">
-<meta property="og:image:url" content="{{ $ogImage }}">
-@if($ogImageIsHttps)
-<meta property="og:image:secure_url" content="{{ $ogImage }}">
-@endif
-@if($ogImageType)
-<meta property="og:image:type" content="{{ $ogImageType }}">
-@endif
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="{{ $ogTitle }}">
-<meta itemprop="image" content="{{ $ogImage }}">
-@endif
-<meta property="article:published_time" content="{{ optional($newsItem->published_at ?? $newsItem->created_at)->toIso8601String() }}">
-@if($newsItem->author_name)
-<meta property="article:author" content="{{ $newsItem->author_name }}">
-@endif
-<meta name="twitter:card" content="{{ $ogImage ? 'summary_large_image' : 'summary' }}">
-<meta name="twitter:title" content="{{ $ogTitle }}">
-<meta name="twitter:description" content="{{ $ogDescription }}">
-@if($ogImage)
-<meta name="twitter:image" content="{{ $ogImage }}">
-<meta name="twitter:image:alt" content="{{ $ogTitle }}">
-@endif
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => $newsItem->title,
+    'description' => $newsItem->excerpt ?: strip_tags($newsItem->content),
+    'url' => $newsItem->publicUrl(),
+    'image' => $newsItem->shareImageUrlForPreview(),
+    'type' => 'article',
+    'published_time' => optional($newsItem->published_at ?? $newsItem->created_at)->toIso8601String(),
+    'author' => $newsItem->author_name,
+]])
 @endpush
 
 @section('content')

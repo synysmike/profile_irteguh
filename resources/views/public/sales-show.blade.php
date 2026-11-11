@@ -1,6 +1,27 @@
 @extends('public.layouts.app')
 
-@section('title', $sale->publicTitle() . ' - Ir Teguh Solution')
+@php
+    $appName = \App\Models\Setting::appName();
+    $saleTitle = $sale->publicTitle();
+    $saleItemLabels = $sale->saleItems->pluck('description');
+    $saleDesc = \App\Support\SeoMeta::fromLabels(
+        'Detail penjualan '.$sale->invoice_number,
+        $saleItemLabels
+    );
+@endphp
+
+@section('title', $saleTitle.' - '.$appName)
+
+@push('meta')
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => $saleTitle,
+    'description' => $saleDesc,
+    'keywords' => collect([$sale->invoice_number, ...$saleItemLabels->take(6)])->filter()->implode(', '),
+    'url' => $sale->publicUrl(),
+    'type' => 'article',
+    'published_time' => optional($sale->sale_date ?? $sale->created_at)->toIso8601String(),
+]])
+@endpush
 
 @section('content')
 <section class="py-20">

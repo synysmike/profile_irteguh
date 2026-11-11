@@ -1,6 +1,24 @@
 @extends('public.layouts.app')
 
-@section('title', 'Tentang - Ir Teguh Solution')
+@php
+    $appName = \App\Models\Setting::appName();
+    $aboutDesc = \App\Support\SeoMeta::fromLabels(
+        'Tentang '.$appName.' — tim dan misi kami',
+        collect($contributors ?? [])->pluck('name')
+    );
+@endphp
+
+@section('title', 'Tentang - '.$appName)
+
+@push('meta')
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => 'Tentang '.$appName,
+    'description' => $aboutDesc,
+    'keywords' => 'tentang, profil, tim, '.$appName,
+    'url' => route('about'),
+    'type' => 'website',
+]])
+@endpush
 
 @section('content')
 <section class="py-20">

@@ -70,6 +70,13 @@ Lihat juga: [README.md](README.md) (alur) · [prd.md](prd.md) (requirement)
 - [x] Preview layanan dari master `services` aktif
 - [x] Footer tagline + alamat dari Setting kontak
 
+## SEO publik
+
+- [x] Partial meta bersama (description, canonical, OG, Twitter, robots)
+- [x] Meta per halaman dari konten terkait (layanan, portfolio, penjualan, berita, kontak, tentang)
+- [x] Admin Konten → **SEO Beranda** (`/admin/home-seo`) title/description/keywords/robots/OG image
+- [x] `robots.txt` + `sitemap.xml` (static + portfolio/penjualan/berita)
+
 ---
 
 ## Layanan Kami / WAstore (publik)

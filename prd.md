@@ -265,3 +265,4 @@ Detail item: [checklist.md](checklist.md).
 | 2026-11-11 | Keputusan: etalase produk wajib `purchase_id` (grosir); UI menolak alokasi tanpa grosir |
 | 2026-11-11 | Polish Layanan + prioritas keuangan: antrean order, rating/sold, restore sale, lock stok, freeze termin, diskon POS |
 | 2026-11-11 | Tema Beranda v1: admin `home-theme` (copy/warna/overlay/toggle section) via Setting |
+| 2026-11-11 | SEO publik: meta per halaman + admin SEO Beranda + robots/sitemap |

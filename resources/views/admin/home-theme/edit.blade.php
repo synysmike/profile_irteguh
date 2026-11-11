@@ -189,7 +189,8 @@
             <p class="text-xs text-gray-500">Alamat footer memakai Setting kontak (<a href="{{ route('admin.contact.index') }}" class="text-purple-600 hover:underline">Kontak</a>).</p>
         </div>
 
-        <div class="flex justify-end gap-2">
+        <div class="flex flex-wrap justify-between gap-2">
+            <a href="{{ route('admin.home-seo.edit') }}" class="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">SEO Beranda →</a>
             <button type="submit" class="px-5 py-2.5 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-semibold">Simpan Tema</button>
         </div>
     </form>

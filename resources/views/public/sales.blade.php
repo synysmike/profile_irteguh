@@ -1,6 +1,25 @@
 @extends('public.layouts.app')
 
-@section('title', 'Penjualan - Ir Teguh Solution')
+@php
+    $appName = \App\Models\Setting::appName();
+    $salesLabels = collect($sales ?? [])->take(8)->map->publicTitle();
+    $salesDesc = \App\Support\SeoMeta::fromLabels(
+        'Histori penjualan publik '.$appName,
+        $salesLabels
+    );
+@endphp
+
+@section('title', 'Penjualan - '.$appName)
+
+@push('meta')
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => 'Penjualan - '.$appName,
+    'description' => $salesDesc,
+    'keywords' => 'penjualan, histori, faktur, '.$appName,
+    'url' => route('sales.public.index'),
+    'type' => 'website',
+]])
+@endpush
 
 @section('content')
 <section class="py-20">

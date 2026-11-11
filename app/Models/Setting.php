@@ -266,4 +266,38 @@ class Setting extends Model
 
         return strtolower($fallback);
     }
+
+    /**
+     * Meta SEO beranda (dikelola di admin /home-seo).
+     *
+     * @return array{
+     *     title: string,
+     *     description: string,
+     *     keywords: string,
+     *     robots: string,
+     *     og_image: ?string,
+     *     og_image_url: ?string
+     * }
+     */
+    public static function homeSeo(): array
+    {
+        $theme = static::homeTheme();
+        $appName = static::appName();
+        $defaultTitle = $appName.' — '.$theme['tagline'];
+        $defaultDescription = $theme['description'];
+        $ogPath = static::get('seo_home_og_image');
+        $ogPath = $ogPath ? ltrim(str_replace('public/', '', (string) $ogPath), '/') : null;
+
+        return [
+            'title' => (string) static::get('seo_home_title', $defaultTitle),
+            'description' => (string) static::get('seo_home_description', $defaultDescription),
+            'keywords' => (string) static::get(
+                'seo_home_keywords',
+                'IT, otomasi, infrastruktur, desain, hukum, pendidikan, bisnis'
+            ),
+            'robots' => (string) static::get('seo_home_robots', 'index,follow'),
+            'og_image' => $ogPath,
+            'og_image_url' => $ogPath ? asset('storage/'.$ogPath) : null,
+        ];
+    }
 }

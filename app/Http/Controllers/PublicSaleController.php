@@ -20,6 +20,7 @@ class PublicSaleController extends Controller
 
         $years = Sale::publicCatalog()
             ->whereNotNull('sale_date')
+            ->reorder()
             ->selectRaw('YEAR(sale_date) as y')
             ->distinct()
             ->orderByDesc('y')

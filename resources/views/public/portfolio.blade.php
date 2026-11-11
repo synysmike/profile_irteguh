@@ -1,6 +1,31 @@
 @extends('public.layouts.app')
 
-@section('title', 'Portfolio - Ir Teguh Solution')
+@php
+    $appName = \App\Models\Setting::appName();
+    $portfolioLabels = collect($categories ?? [])
+        ->merge(collect($projects ?? [])->take(6)->pluck('title'))
+        ->filter()
+        ->unique()
+        ->values();
+    $portfolioCover = collect($projects ?? [])->first()?->portfolioCoverUrl();
+    $portfolioDesc = \App\Support\SeoMeta::fromLabels(
+        'Katalog portfolio '.$appName,
+        $portfolioLabels
+    );
+@endphp
+
+@section('title', 'Portfolio - '.$appName)
+
+@push('meta')
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => 'Portfolio - '.$appName,
+    'description' => $portfolioDesc,
+    'keywords' => $portfolioLabels->take(12)->implode(', '),
+    'url' => route('portfolio.index'),
+    'image' => $portfolioCover,
+    'type' => 'website',
+]])
+@endpush
 
 @section('content')
 <section class="py-20">

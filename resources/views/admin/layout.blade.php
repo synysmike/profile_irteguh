@@ -52,7 +52,7 @@
                     <a href="{{ route('admin.dashboard') }}" class="nav-link px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('admin.dashboard') ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">Dashboard</a>
 
                     <div class="relative nav-dropdown-wrap">
-                        <button type="button" class="nav-dropdown-trigger px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 inline-flex items-center gap-1 {{ request()->routeIs('admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*', 'admin.github-teams.*', 'admin.contact.*', 'admin.news.*', 'admin.home-theme.*', 'admin.site-logo.*') ? 'bg-purple-50 text-purple-700' : '' }}">
+                        <button type="button" class="nav-dropdown-trigger px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 inline-flex items-center gap-1 {{ request()->routeIs('admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*', 'admin.github-teams.*', 'admin.contact.*', 'admin.news.*', 'admin.home-theme.*', 'admin.home-seo.*', 'admin.site-logo.*') ? 'bg-purple-50 text-purple-700' : '' }}">
                             Konten
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
@@ -62,6 +62,7 @@
                                 <a href="{{ route('admin.slides.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Slide</a>
                                 <a href="{{ route('admin.hero-texts.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Teks Hero</a>
                                 <a href="{{ route('admin.home-theme.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.home-theme.*') ? 'bg-purple-50 text-purple-700 font-medium' : '' }}">Tema Beranda</a>
+                                <a href="{{ route('admin.home-seo.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.home-seo.*') ? 'bg-purple-50 text-purple-700 font-medium' : '' }}">SEO Beranda</a>
                                 <a href="{{ route('admin.services.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Layanan</a>
                                 <a href="{{ route('admin.contributors.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Tim</a>
                                 <a href="{{ route('admin.github-teams.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.github-teams.*') ? 'bg-purple-50 text-purple-700 font-medium' : '' }}">Tim GitHub</a>
@@ -140,7 +141,7 @@
             <div class="container mx-auto px-3 py-3 space-y-1">
                 <a href="{{ route('admin.dashboard') }}" class="block px-3 py-2.5 rounded-md text-sm font-medium {{ request()->routeIs('admin.dashboard') ? 'bg-purple-50 text-purple-700' : 'text-gray-700 hover:bg-gray-50' }}">Dashboard</a>
 
-                <details class="group rounded-md" {{ request()->routeIs('admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*', 'admin.github-teams.*', 'admin.contact.*', 'admin.news.*', 'admin.site-logo.*', 'admin.home-theme.*') ? 'open' : '' }}>
+                <details class="group rounded-md" {{ request()->routeIs('admin.slides.*', 'admin.hero-texts.*', 'admin.services.*', 'admin.contributors.*', 'admin.github-teams.*', 'admin.contact.*', 'admin.news.*', 'admin.site-logo.*', 'admin.home-theme.*', 'admin.home-seo.*') ? 'open' : '' }}>
                     <summary class="px-3 py-2.5 text-sm font-medium text-gray-700 cursor-pointer list-none flex items-center justify-between hover:bg-gray-50 rounded-md">
                         Konten
                         <svg class="w-4 h-4 text-gray-400 group-open:rotate-180 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -150,6 +151,7 @@
                         <a href="{{ route('admin.slides.index') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md">Slide</a>
                         <a href="{{ route('admin.hero-texts.index') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md">Teks Hero</a>
                         <a href="{{ route('admin.home-theme.edit') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md {{ request()->routeIs('admin.home-theme.*') ? 'bg-purple-50 text-purple-700 font-medium' : '' }}">Tema Beranda</a>
+                        <a href="{{ route('admin.home-seo.edit') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md {{ request()->routeIs('admin.home-seo.*') ? 'bg-purple-50 text-purple-700 font-medium' : '' }}">SEO Beranda</a>
                         <a href="{{ route('admin.services.index') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md">Layanan</a>
                         <a href="{{ route('admin.contributors.index') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md">Tim</a>
                         <a href="{{ route('admin.github-teams.index') }}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md">Tim GitHub</a>

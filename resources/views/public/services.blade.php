@@ -1,6 +1,29 @@
 @extends('public.layouts.app')
 
-@section('title', 'Layanan Kami - Ir Teguh Solution')
+@php
+    $appName = \App\Models\Setting::appName();
+    $serviceLabels = collect($services ?? [])->pluck('title')
+        ->merge(collect($catalog ?? [])->take(6)->pluck('name'))
+        ->filter()
+        ->unique()
+        ->values();
+    $servicesDesc = \App\Support\SeoMeta::fromLabels(
+        'Katalog produk & jasa '.$appName,
+        $serviceLabels
+    );
+@endphp
+
+@section('title', 'Layanan Kami - '.$appName)
+
+@push('meta')
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => 'Layanan Kami - '.$appName,
+    'description' => $servicesDesc,
+    'keywords' => $serviceLabels->take(12)->implode(', '),
+    'url' => route('services'),
+    'type' => 'website',
+]])
+@endpush
 
 @section('content')
 <section class="pb-28 pt-6 md:pt-10" id="layanan-marketplace">

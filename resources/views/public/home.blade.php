@@ -1,8 +1,25 @@
 @extends('public.layouts.app')
 
-@php $theme = $theme ?? \App\Models\Setting::homeTheme(); @endphp
+@php
+    $theme = $theme ?? \App\Models\Setting::homeTheme();
+    $homeSeo = \App\Models\Setting::homeSeo();
+    $homeOgImage = $homeSeo['og_image_url']
+        ?? ((isset($slides) && $slides->count() > 0) ? $slides->first()->resolvedImageUrl() : null);
+@endphp
 
-@section('title', 'Beranda - ' . \App\Models\Setting::appName())
+@section('title', $homeSeo['title'])
+
+@push('meta')
+@include('public.partials.seo-meta', ['seo' => [
+    'title' => $homeSeo['title'],
+    'description' => $homeSeo['description'],
+    'keywords' => $homeSeo['keywords'],
+    'robots' => $homeSeo['robots'],
+    'url' => route('home'),
+    'image' => $homeOgImage,
+    'type' => 'website',
+]])
+@endpush
 
 @section('body_class', 'bg-gray-950')
 @section('fullpage_hero', true)
