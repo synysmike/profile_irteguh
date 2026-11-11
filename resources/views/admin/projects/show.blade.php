@@ -15,6 +15,16 @@
             <p class="text-gray-600 mt-1">{{ $project->code }} · {{ $project->customer?->name }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            @if($project->is_layanan_pending)
+            <form method="POST" action="{{ route('admin.projects.layanan.confirm', $project) }}" onsubmit="return confirm('Konfirmasi order jasa? Project akan aktif dan termin default dibuat jika belum ada.')">
+                @csrf
+                <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm font-semibold">Konfirmasi Order</button>
+            </form>
+            <form method="POST" action="{{ route('admin.projects.layanan.reject', $project) }}" onsubmit="return confirm('Tolak draft order jasa? Project dibatalkan; template etalase tetap aman.')">
+                @csrf
+                <button type="submit" class="px-4 py-2 bg-white border border-red-300 text-red-700 rounded-md hover:bg-red-50 text-sm font-semibold">Tolak Order</button>
+            </form>
+            @endif
             <button type="button"
                     onclick="openResourceModal('customerModal', 'customers', 'Customer', null, '?quick=1')"
                     class="px-4 py-2 bg-white border border-purple-300 text-purple-700 rounded-md hover:bg-purple-50 text-sm font-semibold">

@@ -64,7 +64,7 @@
                 <div class="hidden md:flex space-x-6">
                     <a href="{{ route('home') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('home') ? 'text-white font-semibold' : '' }}">Beranda</a>
                     <a href="{{ route('about') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('about') ? 'text-white font-semibold' : '' }}">Tentang</a>
-                    <a href="{{ route('services') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('services') ? 'text-white font-semibold' : '' }}">Layanan</a>
+                    <a href="{{ route('services') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('services') ? 'text-white font-semibold' : '' }}">Layanan Kami</a>
                     <a href="{{ route('portfolio.index') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('portfolio.*') ? 'text-white font-semibold' : '' }}">Portfolio</a>
                     <a href="{{ route('sales.public.index') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('sales.public.*') ? 'text-white font-semibold' : '' }}">Penjualan</a>
                     <a href="{{ route('news.index') }}" class="text-white/90 hover:text-white transition {{ request()->routeIs('news.*') ? 'text-white font-semibold' : '' }}">Berita</a>
@@ -81,7 +81,7 @@
             <div id="mobile-menu" class="hidden md:hidden pb-4 space-y-2">
                 <a href="{{ route('home') }}" class="block text-white/90 hover:text-white transition">Beranda</a>
                 <a href="{{ route('about') }}" class="block text-white/90 hover:text-white transition">Tentang</a>
-                <a href="{{ route('services') }}" class="block text-white/90 hover:text-white transition">Layanan</a>
+                <a href="{{ route('services') }}" class="block text-white/90 hover:text-white transition">Layanan Kami</a>
                 <a href="{{ route('portfolio.index') }}" class="block text-white/90 hover:text-white transition">Portfolio</a>
                 <a href="{{ route('sales.public.index') }}" class="block text-white/90 hover:text-white transition">Penjualan</a>
                 <a href="{{ route('news.index') }}" class="block text-white/90 hover:text-white transition">Berita</a>
@@ -108,7 +108,7 @@
                     <ul class="space-y-2 text-sm">
                         <li><a href="{{ route('home') }}" class="text-white/70 hover:text-white transition">Beranda</a></li>
                         <li><a href="{{ route('about') }}" class="text-white/70 hover:text-white transition">Tentang</a></li>
-                        <li><a href="{{ route('services') }}" class="text-white/70 hover:text-white transition">Layanan</a></li>
+                        <li><a href="{{ route('services') }}" class="text-white/70 hover:text-white transition">Layanan Kami</a></li>
                         <li><a href="{{ route('portfolio.index') }}" class="text-white/70 hover:text-white transition">Portfolio</a></li>
                         <li><a href="{{ route('sales.public.index') }}" class="text-white/70 hover:text-white transition">Penjualan</a></li>
                         <li><a href="{{ route('news.index') }}" class="text-white/70 hover:text-white transition">Berita</a></li>

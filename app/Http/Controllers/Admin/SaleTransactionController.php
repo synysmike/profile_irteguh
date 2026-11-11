@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Discount;
 use App\Models\Purchase;
 use App\Models\SaleTransaction;
+use App\Models\Service;
 use App\Services\ProjectFinanceService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -19,11 +20,52 @@ class SaleTransactionController extends Controller
 
     public function index()
     {
-        $transactions = SaleTransaction::with(['purchase.supplier', 'discount'])
+        $transactions = SaleTransaction::with(['purchase.supplier', 'discount', 'service'])
             ->orderBy('description')
             ->get();
+        $services = Service::ordered()->get();
 
-        return view('admin.keuangan.transaksi.sale-transactions', compact('transactions'));
+        return view('admin.keuangan.transaksi.sale-transactions', compact('transactions', 'services'));
+    }
+
+    /**
+     * Toggle / set tampil di etalase Layanan Kami (produk dari alokasi).
+     */
+    public function updateLayanan(Request $request, SaleTransaction $saleTransaction)
+    {
+        if ($saleTransaction->isInvoiced() || $saleTransaction->project_id) {
+            return back()->with('error', 'Alokasi yang sudah diinvoice atau terikat project tidak bisa dipajang di Layanan Kami.');
+        }
+
+        if ($request->boolean('show_in_layanan')) {
+            if (! $saleTransaction->purchase_id) {
+                return back()->with('error', 'Alokasi harus terhubung ke grosir (purchase_id) sebelum dipajang di Layanan Kami.');
+            }
+
+            if (! $saleTransaction->is_active) {
+                return back()->with('error', 'Alokasi nonaktif tidak bisa dipajang di Layanan Kami.');
+            }
+
+            $validated = $request->validate([
+                'service_id' => 'required|exists:services,id',
+            ], [
+                'service_id.required' => 'Pilih kategori layanan sebelum menampilkan di etalase.',
+            ]);
+
+            $saleTransaction->update([
+                'show_in_layanan' => true,
+                'service_id' => (int) $validated['service_id'],
+            ]);
+
+            return back()->with('success', 'Alokasi ditampilkan di Layanan Kami.');
+        }
+
+        $saleTransaction->update([
+            'show_in_layanan' => false,
+            'service_id' => null,
+        ]);
+
+        return back()->with('success', 'Alokasi disembunyikan dari Layanan Kami.');
     }
 
     public function create()

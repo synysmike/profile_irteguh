@@ -7,7 +7,7 @@
         <div class="flex items-center justify-between mb-8">
             <div>
                 <h2 class="text-3xl font-bold text-gray-800 mb-2">Layanan Kami</h2>
-                <p class="text-gray-600">Kelola daftar layanan yang ditampilkan di halaman Layanan</p>
+                <p class="text-gray-600">Master kategori etalase publik (filter produk/jasa di halaman Layanan Kami)</p>
             </div>
             <button onclick="openResourceModal('serviceModal', 'services', 'Layanan')" class="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition font-semibold">
                 + Tambah Layanan

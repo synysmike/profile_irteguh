@@ -10,7 +10,9 @@ use App\Models\ProjectPaymentTerm;
 use App\Models\ProjectProgressMedia;
 use App\Models\Purchase;
 use App\Models\SaleTransaction;
+use App\Models\Service;
 use App\Models\Tax;
+use App\Services\LayananFulfillmentService;
 use App\Services\ProjectFinanceService;
 use App\Support\ProjectTermWhatsAppInvoice;
 use Illuminate\Http\Request;
@@ -27,11 +29,82 @@ class ProjectController extends Controller
 
     public function index()
     {
-        $projects = Project::with(['customer', 'tax', 'paymentTerms'])
+        $projects = Project::with(['customer', 'tax', 'paymentTerms', 'service'])
             ->orderByDesc('created_at')
             ->get();
+        $services = Service::ordered()->get();
 
-        return view('admin.projects.index', compact('projects'));
+        return view('admin.projects.index', compact('projects', 'services'));
+    }
+
+    /**
+     * Konfirmasi draft Order Layanan Kami (clone project) → status berjalan + termin default.
+     */
+    public function confirmLayanan(Project $project, LayananFulfillmentService $fulfillment)
+    {
+        try {
+            $fulfillment->confirmProject($project);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?: $e->getMessage());
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal konfirmasi project: '.$e->getMessage());
+        }
+
+        return redirect()
+            ->route('admin.projects.show', $project)
+            ->with('success', "Order Layanan {$project->code} dikonfirmasi. Project aktif.");
+    }
+
+    /**
+     * Tolak draft Order Layanan Kami → status cancelled.
+     */
+    public function rejectLayanan(Project $project, LayananFulfillmentService $fulfillment)
+    {
+        try {
+            $fulfillment->rejectProject($project);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?: $e->getMessage());
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal menolak project: '.$e->getMessage());
+        }
+
+        return back()->with('success', "Draft Order Layanan {$project->code} ditolak (dibatalkan).");
+    }
+
+    /**
+     * Toggle / set tampil di etalase Layanan Kami (jasa dari project template).
+     */
+    public function updateLayanan(Request $request, Project $project)
+    {
+        if ($project->status === 'cancelled') {
+            return back()->with('error', 'Project dibatalkan tidak bisa dipajang di Layanan Kami.');
+        }
+
+        if ($project->is_layanan_pending) {
+            return back()->with('error', 'Draft Order Layanan tidak bisa dipajang di etalase. Konfirmasi dulu atau pakai project template.');
+        }
+
+        if ($request->boolean('show_in_layanan')) {
+            $validated = $request->validate([
+                'service_id' => 'required|exists:services,id',
+            ], [
+                'service_id.required' => 'Pilih kategori layanan sebelum menampilkan di etalase.',
+            ]);
+
+            $project->update([
+                'show_in_layanan' => true,
+                'service_id' => (int) $validated['service_id'],
+            ]);
+
+            return back()->with('success', 'Project ditampilkan di Layanan Kami sebagai template jasa.');
+        }
+
+        $project->update([
+            'show_in_layanan' => false,
+            'service_id' => null,
+        ]);
+
+        return back()->with('success', 'Project disembunyikan dari Layanan Kami.');
     }
 
     public function show(string $id)

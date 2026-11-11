@@ -28,6 +28,7 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Diskon</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Layanan Kami</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
             </tr>
         </thead>
@@ -61,6 +62,40 @@
                     <span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">Nonaktif</span>
                     @endif
                 </td>
+                <td class="px-4 py-3 text-sm">
+                    @if($transaction->isInvoiced() || $transaction->project_id)
+                    <span class="text-xs text-gray-400" title="Sudah diinvoice / terikat project">—</span>
+                    @elseif(! $transaction->purchase_id)
+                    <span class="text-xs text-amber-700" title="Hubungkan ke grosir dulu agar stok/HPP disiplin">Perlu grosir</span>
+                    @elseif($transaction->show_in_layanan)
+                    <div class="space-y-1">
+                        <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-800">Tampil</span>
+                        <div class="text-[11px] text-gray-500">{{ $transaction->service?->title }}</div>
+                        <form method="POST" action="{{ route('admin.keuangan.sale-transactions.update-layanan', $transaction) }}">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="show_in_layanan" value="0">
+                            <button type="submit" class="text-xs text-amber-700 hover:text-amber-900">Sembunyikan</button>
+                        </form>
+                    </div>
+                    @else
+                    <details class="text-left">
+                        <summary class="cursor-pointer text-xs text-purple-600 hover:text-purple-800 font-medium">Tampilkan</summary>
+                        <form method="POST" action="{{ route('admin.keuangan.sale-transactions.update-layanan', $transaction) }}" class="mt-2 space-y-2 min-w-[11rem]">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="show_in_layanan" value="1">
+                            <select name="service_id" required class="w-full text-xs border border-gray-300 rounded px-2 py-1.5">
+                                <option value="">Kategori *</option>
+                                @foreach($services as $service)
+                                <option value="{{ $service->id }}">{{ $service->title }}</option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="w-full text-xs px-2 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700">Simpan</button>
+                        </form>
+                    </details>
+                    @endif
+                </td>
                 <td class="px-4 py-3 text-right text-sm">
                     <button type="button" onclick="openResourceModal('saleTransactionModal', 'keuangan/sale-transactions', 'Transaksi', {{ $transaction->id }})" class="text-purple-600 hover:text-purple-800 mr-3">Edit</button>
                     <button type="button" onclick="deleteResource('keuangan/sale-transactions', {{ $transaction->id }}, 'Transaksi')" class="text-red-600 hover:text-red-800">Hapus</button>
@@ -68,7 +103,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="9" class="px-4 py-8 text-center text-gray-500">
+                <td colspan="10" class="px-4 py-8 text-center text-gray-500">
                     Belum ada transaksi. Pastikan data grosir sudah diinput terlebih dahulu.
                     <button type="button" onclick="openResourceModal('saleTransactionModal', 'keuangan/sale-transactions', 'Transaksi')" class="text-purple-600 hover:text-purple-800 ml-1">Tambah yang pertama</button>
                 </td>

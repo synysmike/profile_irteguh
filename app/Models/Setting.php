@@ -114,7 +114,7 @@ class Setting extends Model
 
     public static function contactWhatsapp(): string
     {
-        return (string) static::get('contact_whatsapp', '6281234567890');
+        return (string) static::get('contact_whatsapp', '6281332444088');
     }
 
     public static function contactWhatsappLabel(): string

@@ -36,7 +36,7 @@
         <label class="flex items-center">
             <input type="checkbox" name="is_active" value="1" {{ old('is_active', isset($service) && $service ? $service->is_active : true) ? 'checked' : '' }}
                    class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
-            <span class="ml-2 text-sm text-gray-700">Tampilkan di halaman Layanan</span>
+            <span class="ml-2 text-sm text-gray-700">Aktif sebagai kategori etalase Layanan Kami</span>
         </label>
     </div>
 </div>

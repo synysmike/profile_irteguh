@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Tax;
 use App\Models\CashTransaction;
 use App\Models\ChartOfAccount;
+use App\Services\LayananFulfillmentService;
 use App\Services\PosCheckoutService;
 use App\Services\SumberDanaResolver;
 use App\Support\SaleWhatsAppInvoice;
@@ -450,6 +451,40 @@ class SaleController extends Controller
                 'message' => 'Gagal membuat invoice: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Konfirmasi draft Order Layanan Kami → potong alokasi + posting kas.
+     */
+    public function confirmLayanan(Sale $sale, LayananFulfillmentService $fulfillment)
+    {
+        try {
+            $fulfillment->confirmSale($sale);
+        } catch (ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?: $e->getMessage());
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal konfirmasi order: '.$e->getMessage());
+        }
+
+        return back()->with('success', "Order Layanan {$sale->invoice_number} dikonfirmasi. Stok & kas diproses.");
+    }
+
+    /**
+     * Tolak draft Order Layanan Kami (hapus draft, tanpa stok/kas).
+     */
+    public function rejectLayanan(Sale $sale, LayananFulfillmentService $fulfillment)
+    {
+        $invoice = $sale->invoice_number;
+
+        try {
+            $fulfillment->rejectSale($sale);
+        } catch (ValidationException $e) {
+            return back()->with('error', collect($e->errors())->flatten()->first() ?: $e->getMessage());
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal menolak order: '.$e->getMessage());
+        }
+
+        return back()->with('success', "Draft Order Layanan {$invoice} ditolak & dihapus.");
     }
 
     /**

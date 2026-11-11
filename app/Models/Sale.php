@@ -12,6 +12,7 @@ class Sale extends Model
         'invoice_number', 'sale_date',
         'subtotal', 'ppn_amount', 'tax_name', 'tax_rate', 'tax_calculation_type', 'total', 'notes',
         'show_in_public',
+        'is_layanan_pending',
         'is_posted', 'posted_at',
     ];
 
@@ -24,6 +25,7 @@ class Sale extends Model
         'discount_amount' => 'decimal:2',
         'total' => 'decimal:2',
         'show_in_public' => 'boolean',
+        'is_layanan_pending' => 'boolean',
         'is_posted' => 'boolean',
         'posted_at' => 'datetime',
     ];
@@ -81,6 +83,11 @@ class Sale extends Model
         return $query->where('show_in_public', true)
             ->whereNull('project_id')
             ->latestFirst();
+    }
+
+    public function scopeLayananPending($query)
+    {
+        return $query->where('is_layanan_pending', true);
     }
 
     public function publicTitle(): string

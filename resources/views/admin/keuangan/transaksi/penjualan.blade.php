@@ -24,6 +24,13 @@
 <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"><p class="text-green-700 text-sm">{{ session('success') }}</p></div>
 @endif
 
+@php $layananPendingSales = $sales->where('is_layanan_pending', true)->count(); @endphp
+@if($layananPendingSales > 0)
+<div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+    <p class="text-orange-800 text-sm font-medium">{{ $layananPendingSales }} draft Order Layanan menunggu konfirmasi (lihat badge di daftar faktur).</p>
+</div>
+@endif
+
 <div id="pos-alert" class="hidden mb-4 rounded-lg p-3 text-sm"></div>
 
 {{-- POS layout --}}
@@ -145,7 +152,12 @@
         <tbody class="divide-y divide-gray-200">
             @forelse($sales as $sale)
             <tr id="salesRow_{{ $sale->id }}">
-                <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $sale->invoice_number }}</td>
+                <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                    {{ $sale->invoice_number }}
+                    @if($sale->is_layanan_pending)
+                    <span class="ml-1 px-2 py-0.5 text-[10px] rounded-full bg-orange-100 text-orange-800 align-middle">Order Layanan</span>
+                    @endif
+                </td>
                 <td class="px-4 py-3 text-sm text-gray-600">{{ $sale->sale_date?->format('d/m/Y') }}</td>
                 <td class="px-4 py-3 text-sm text-gray-600">{{ $sale->customer?->name ?? '—' }}</td>
                 <td class="px-4 py-3 text-sm text-gray-600">
@@ -183,6 +195,16 @@
                     @endif
                 </td>
                 <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
+                    @if($sale->is_layanan_pending)
+                    <form method="POST" action="{{ route('admin.sales.layanan.confirm', $sale) }}" class="inline mr-2" onsubmit="return confirm('Konfirmasi order ini? Stok alokasi akan dipotong dan kas diposting.')">
+                        @csrf
+                        <button type="submit" class="text-emerald-700 hover:text-emerald-900 font-medium">Konfirmasi</button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.sales.layanan.reject', $sale) }}" class="inline mr-2" onsubmit="return confirm('Tolak & hapus draft order ini? Stok tidak terpengaruh.')">
+                        @csrf
+                        <button type="submit" class="text-red-600 hover:text-red-800">Tolak</button>
+                    </form>
+                    @endif
                     <a href="{{ $sale->publicInvoiceUrl() }}" target="_blank" class="text-blue-600 hover:text-blue-800 mr-3">Cetak</a>
                     @if($sale->customer?->phone)
                     <a href="{{ route('admin.sales.whatsapp', $sale->id) }}" target="_blank" rel="noopener" class="text-green-600 hover:text-green-800 mr-3" title="Kirim ke {{ $sale->customer->phone }}">WA</a>

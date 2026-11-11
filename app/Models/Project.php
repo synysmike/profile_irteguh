@@ -37,6 +37,10 @@ class Project extends Model
         'notes',
         'is_portfolio_public',
         'is_portfolio_featured',
+        'show_in_layanan',
+        'service_id',
+        'layanan_template_project_id',
+        'is_layanan_pending',
         'portfolio_category',
         'portfolio_year',
         'portfolio_sort_order',
@@ -63,6 +67,8 @@ class Project extends Model
         'progress_percent' => 'integer',
         'is_portfolio_public' => 'boolean',
         'is_portfolio_featured' => 'boolean',
+        'show_in_layanan' => 'boolean',
+        'is_layanan_pending' => 'boolean',
         'portfolio_year' => 'integer',
         'portfolio_sort_order' => 'integer',
         'portfolio_tags' => 'array',
@@ -110,6 +116,32 @@ class Project extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(Service::class);
+    }
+
+    public function layananTemplate(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'layanan_template_project_id');
+    }
+
+    /**
+     * Project yang dipajang di etalase Layanan Kami (jasa / template).
+     */
+    public function scopeLayananPublic($query)
+    {
+        return $query->where('show_in_layanan', true)
+            ->whereNotNull('service_id')
+            ->where('status', '!=', 'cancelled')
+            ->where('is_layanan_pending', false);
+    }
+
+    public function scopeLayananPending($query)
+    {
+        return $query->where('is_layanan_pending', true);
     }
 
     public function tax(): BelongsTo

@@ -16,6 +16,9 @@ use App\Http\Controllers\Admin\AdminController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
+Route::post('/services/checkout', [ServicesController::class, 'checkout'])
+    ->middleware('throttle:10,1')
+    ->name('services.checkout');
 Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
 Route::get('/portfolio/{slug}', [PortfolioController::class, 'show'])->name('portfolio.show');
 Route::get('/penjualan', [PublicSaleController::class, 'index'])->name('sales.public.index');
@@ -131,6 +134,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::delete('/customer-categories/{customerCategory}', [\App\Http\Controllers\Admin\CustomerCategoryController::class, 'destroy'])->name('customer-categories.destroy');
     Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
     Route::resource('projects', \App\Http\Controllers\Admin\ProjectController::class);
+    Route::patch('/projects/{project}/layanan', [\App\Http\Controllers\Admin\ProjectController::class, 'updateLayanan'])->name('projects.update-layanan');
+    Route::post('/projects/{project}/layanan/confirm', [\App\Http\Controllers\Admin\ProjectController::class, 'confirmLayanan'])->name('projects.layanan.confirm');
+    Route::post('/projects/{project}/layanan/reject', [\App\Http\Controllers\Admin\ProjectController::class, 'rejectLayanan'])->name('projects.layanan.reject');
     Route::patch('/projects/{project}/status', [\App\Http\Controllers\Admin\ProjectController::class, 'updateStatus'])->name('projects.update-status');
     Route::patch('/projects/{project}/progress-media/{media}/portfolio', [\App\Http\Controllers\Admin\ProjectController::class, 'toggleProgressMediaPortfolio'])->name('projects.progress-media.portfolio');
     Route::delete('/projects/{project}/progress-media/{media}', [\App\Http\Controllers\Admin\ProjectController::class, 'destroyProgressMedia'])->name('projects.progress-media.destroy');
@@ -153,6 +159,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/sales/pos/catalog', [\App\Http\Controllers\Admin\SaleController::class, 'posCatalog'])->name('sales.pos.catalog');
     Route::post('/sales/pos/checkout', [\App\Http\Controllers\Admin\SaleController::class, 'posCheckout'])->name('sales.pos.checkout');
     Route::patch('/sales/{sale}/public', [\App\Http\Controllers\Admin\SaleController::class, 'togglePublic'])->name('sales.toggle-public');
+    Route::post('/sales/{sale}/layanan/confirm', [\App\Http\Controllers\Admin\SaleController::class, 'confirmLayanan'])->name('sales.layanan.confirm');
+    Route::post('/sales/{sale}/layanan/reject', [\App\Http\Controllers\Admin\SaleController::class, 'rejectLayanan'])->name('sales.layanan.reject');
     Route::get('/sales/pending-transactions/list', [\App\Http\Controllers\Admin\SaleController::class, 'pendingTransactionsList'])->name('sales.pending-transactions.list');
     Route::post('/sales/pending-transactions', [\App\Http\Controllers\Admin\SaleController::class, 'addPendingTransaction'])->name('sales.pending-transactions.add');
     Route::delete('/sales/pending-transactions/clear', [\App\Http\Controllers\Admin\SaleController::class, 'clearPendingTransactions'])->name('sales.pending-transactions.clear');
@@ -173,6 +181,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/master/karyawan', [\App\Http\Controllers\Admin\KeuanganController::class, 'masterKaryawan'])->name('master.karyawan');
         Route::get('/transaksi/penjualan', [\App\Http\Controllers\Admin\KeuanganController::class, 'transaksiPenjualan'])->name('transaksi.penjualan');
         Route::get('/sale-transactions/purchase/{purchaseId}', [\App\Http\Controllers\Admin\SaleTransactionController::class, 'purchaseDetails'])->name('sale-transactions.purchase-details');
+        Route::patch('/sale-transactions/{sale_transaction}/layanan', [\App\Http\Controllers\Admin\SaleTransactionController::class, 'updateLayanan'])->name('sale-transactions.update-layanan');
         Route::resource('sale-transactions', \App\Http\Controllers\Admin\SaleTransactionController::class);
         Route::get('/transaksi/pembelian', [\App\Http\Controllers\Admin\KeuanganController::class, 'transaksiPembelian'])->name('transaksi.pembelian');
         Route::get('/transaksi/project', fn () => redirect()->route('admin.projects.index'))->name('transaksi.project');

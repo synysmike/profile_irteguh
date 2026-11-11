@@ -21,6 +21,8 @@ class SaleTransaction extends Model
         'subtotal',
         'notes',
         'is_active',
+        'show_in_layanan',
+        'service_id',
     ];
 
     protected $casts = [
@@ -30,6 +32,7 @@ class SaleTransaction extends Model
         'discount_amount' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'is_active' => 'boolean',
+        'show_in_layanan' => 'boolean',
     ];
 
     public function purchase()
@@ -45,6 +48,22 @@ class SaleTransaction extends Model
     public function discount()
     {
         return $this->belongsTo(Discount::class);
+    }
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
+
+    /**
+     * Alokasi yang dipajang di etalase Layanan Kami (produk).
+     * Wajib dari grosir (`purchase_id`) agar stok & HPP tetap disiplin.
+     */
+    public function scopeLayananPublic($query)
+    {
+        return $query->availableForInvoice()
+            ->where('show_in_layanan', true)
+            ->whereNotNull('service_id');
     }
 
     public function grossSubtotal(): float
