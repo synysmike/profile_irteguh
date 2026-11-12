@@ -584,6 +584,7 @@ class ProjectController extends Controller
             'portfolio_challenge' => 'nullable|string',
             'portfolio_solution' => 'nullable|string',
             'portfolio_outcome' => 'nullable|string',
+            'result' => 'nullable|string|max:500',
             'portfolio_tags' => 'nullable|string|max:500',
             'portfolio_cover' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
             'remove_portfolio_cover' => 'nullable',
@@ -910,9 +911,24 @@ class ProjectController extends Controller
             'portfolio_challenge' => $validated['portfolio_challenge'] ?? null,
             'portfolio_solution' => $validated['portfolio_solution'] ?? null,
             'portfolio_outcome' => $validated['portfolio_outcome'] ?? null,
+            'result' => $this->normalizeResultUrl($validated['result'] ?? null),
             'portfolio_tags' => $tags ?: null,
             'portfolio_cover_path' => $coverPath,
         ];
+    }
+
+    private function normalizeResultUrl(?string $url): ?string
+    {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $url) || str_starts_with($url, '//')) {
+            return $url;
+        }
+
+        return 'https://'.ltrim($url, '/');
     }
 
     private function respondSuccess(Request $request, string $message, Project $project)

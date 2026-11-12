@@ -49,6 +49,7 @@ class Project extends Model
         'portfolio_challenge',
         'portfolio_solution',
         'portfolio_outcome',
+        'result',
         'portfolio_tags',
         'portfolio_cover_path',
         'portfolio_visuals',
@@ -250,6 +251,29 @@ class Project extends Model
         return (string) ($this->portfolio_excerpt
             ?: Str::limit(strip_tags((string) $this->description), 160)
             ?: Str::limit(strip_tags((string) $this->portfolio_challenge), 160));
+    }
+
+    /**
+     * Absolute demo/result URL for public portfolio CTA, or null if empty/invalid.
+     */
+    public function resultUrl(): ?string
+    {
+        $url = trim((string) $this->result);
+        if ($url === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+
+        if (str_starts_with($url, '//')) {
+            $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'https';
+
+            return $scheme.':'.$url;
+        }
+
+        return 'https://'.ltrim($url, '/');
     }
 
     public function portfolioCoverUrl(): ?string

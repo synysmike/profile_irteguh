@@ -201,6 +201,14 @@
             <textarea id="portfolio_outcome" name="portfolio_outcome" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md">{{ old('portfolio_outcome', $project->portfolio_outcome ?? '') }}</textarea>
         </div>
         <div class="md:col-span-2">
+            <label for="result" class="block text-sm font-medium text-gray-700 mb-2">result</label>
+            <input type="text" id="result" name="result"
+                   value="{{ old('result', $project->result ?? '') }}"
+                   placeholder="https://contoh.com/demo"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md">
+            <p class="mt-1 text-xs text-gray-500">URL demo/hasil proyek. Di portfolio publik tampil sebagai tombol “Demo Project”.</p>
+        </div>
+        <div class="md:col-span-2">
             <label for="portfolio_cover" class="block text-sm font-medium text-gray-700 mb-2">Cover Portofolio</label>
             @if(!empty($project?->portfolio_cover_path))
             <div class="mb-2 flex items-center gap-3">
