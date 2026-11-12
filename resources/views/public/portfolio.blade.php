@@ -73,49 +73,62 @@
                         1000
                     );
                 @endphp
-                <a href="{{ route('portfolio.show', $project->slug) }}"
-                   class="glass-card rounded-xl p-6 hover:scale-105 transition transform group flex flex-col overflow-hidden min-w-0">
-                    <div class="w-full h-48 bg-white/10 rounded-lg mb-4 flex items-center justify-center overflow-hidden shrink-0">
-                        @if($project->portfolioCoverUrl())
-                        <img src="{{ $project->portfolioCoverUrl() }}" alt="{{ $project->title }}" class="w-full h-full object-cover">
-                        @else
-                        <span class="text-white/50">Pratinjau Proyek</span>
-                        @endif
-                    </div>
-                    <div class="mb-4 min-w-0 flex-1">
-                        <div class="mb-2">
-                            <span class="inline-flex items-center px-2 py-1 text-xs rounded-full {{ $project->statusBadgeClass() }}">
-                                {{ $project->statusLabel() }}
-                            </span>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2 mb-2">
-                            @if($project->portfolio_category)
-                            <span class="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{{ $project->portfolio_category }}</span>
-                            @endif
-                            @if($project->portfolioYearValue())
-                            <span class="text-xs text-white/50">{{ $project->portfolioYearValue() }}</span>
+                <div class="glass-card rounded-xl p-6 hover:scale-105 transition transform group flex flex-col overflow-hidden min-w-0">
+                    <a href="{{ route('portfolio.show', $project->slug) }}" class="block min-w-0 flex-1">
+                        <div class="w-full h-48 bg-white/10 rounded-lg mb-4 flex items-center justify-center overflow-hidden shrink-0">
+                            @if($project->portfolioCoverUrl())
+                            <img src="{{ $project->portfolioCoverUrl() }}" alt="{{ $project->title }}" class="w-full h-full object-cover">
+                            @else
+                            <span class="text-white/50">Pratinjau Proyek</span>
                             @endif
                         </div>
-                        <h3 class="text-xl font-bold text-white mb-2 group-hover:text-purple-200 transition break-words">
-                            {{ $project->title }}
-                        </h3>
-                        @if($cardDescription !== '')
-                        <p class="text-white/70 text-sm leading-relaxed break-words overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:6]">
-                            {{ $cardDescription }}
-                        </p>
+                        <div class="mb-4 min-w-0">
+                            <div class="mb-2">
+                                <span class="inline-flex items-center px-2 py-1 text-xs rounded-full {{ $project->statusBadgeClass() }}">
+                                    {{ $project->statusLabel() }}
+                                </span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                @if($project->portfolio_category)
+                                <span class="text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">{{ $project->portfolio_category }}</span>
+                                @endif
+                                @if($project->portfolioYearValue())
+                                <span class="text-xs text-white/50">{{ $project->portfolioYearValue() }}</span>
+                                @endif
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-purple-200 transition break-words">
+                                {{ $project->title }}
+                            </h3>
+                            @if($cardDescription !== '')
+                            <p class="text-white/70 text-sm leading-relaxed break-words overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:6]">
+                                {{ $cardDescription }}
+                            </p>
+                            @endif
+                        </div>
+                        @if($project->portfolio_tags && count($project->portfolio_tags) > 0)
+                        <div class="flex flex-wrap gap-2 mb-4 min-w-0">
+                            @foreach(array_slice($project->portfolio_tags, 0, 3) as $tag)
+                            <span class="text-xs text-white/60 bg-white/5 px-2 py-1 rounded truncate max-w-full">{{ $tag }}</span>
+                            @endforeach
+                        </div>
+                        @endif
+                    </a>
+                    <div class="mt-auto flex flex-wrap items-center gap-2">
+                        <a href="{{ route('portfolio.show', $project->slug) }}"
+                           class="inline-flex items-center px-3 py-2 text-sm rounded-lg bg-white/10 text-white hover:bg-white/20 transition border border-white/15">
+                            Lihat detail proyek →
+                        </a>
+                        @if($project->resultUrl())
+                        <a href="{{ $project->resultUrl() }}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg theme-accent-bg text-white font-semibold transition">
+                            Demo Project
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </a>
                         @endif
                     </div>
-                    @if($project->portfolio_tags && count($project->portfolio_tags) > 0)
-                    <div class="flex flex-wrap gap-2 mb-4 min-w-0">
-                        @foreach(array_slice($project->portfolio_tags, 0, 3) as $tag)
-                        <span class="text-xs text-white/60 bg-white/5 px-2 py-1 rounded truncate max-w-full">{{ $tag }}</span>
-                        @endforeach
-                    </div>
-                    @endif
-                    <div class="text-white/70 text-sm group-hover:text-white transition mt-auto">
-                        Lihat detail proyek →
-                    </div>
-                </a>
+                </div>
                 @endforeach
             </div>
             @else
